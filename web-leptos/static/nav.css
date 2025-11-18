@@ -1,0 +1,86 @@
+/* Top navigation bar */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    height: 56px;
+    padding: 0 1rem;
+
+    background: var(--bg-strong-color);
+    color: var(--bg-base-text);
+
+    /* clean divider without shadows */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+/* Container for the links (keeps spacing consistent) */
+.navbar > div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+    flex: 1; /* allow the container to span full width so the icon bar can push to the right */
+}
+
+/* Right-aligned icon bar */
+.nav-icon-bar {
+    margin-left: auto; /* push the icon bar to the right edge */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Pill links */
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    height: 36px;
+    padding: 0 1rem;
+
+    border-radius: 9999px;
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+
+    /* Default the accent source for non-current links to the light variant */
+    --accent: var(--accent-light, var(--teal-light));
+
+    transition: background 160ms ease, color 160ms ease, transform 80ms ease, border-color 160ms ease;
+}
+
+/* Keep subtle press feedback on anchors */
+.nav-link:active {
+    transform: translateY(1px);
+}
+
+/* Focus ring (no shadow) */
+.nav-link:focus-visible {
+    outline: 2px solid var(--primary-weak-color);
+    outline-offset: 2px;
+}
+
+/* Current page: switch to the base accent provided by the element */
+.nav-link[aria-current="page"],
+.nav-link.active {
+    --accent: var(--accent, var(--teal));
+}
+
+/* Compact sizes on very small screens */
+@media (max-width: 420px) {
+  .navbar {
+    height: 52px;
+    padding: 0 0.5rem;
+  }
+  .nav-link {
+    height: 34px;
+    padding: 0 0.75rem;
+  }
+}

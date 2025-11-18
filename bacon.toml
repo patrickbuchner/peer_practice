@@ -1,0 +1,11 @@
+[jobs.peer-practice]
+command = ["cargo", "run", "--", "run", "--config", "/data/peer_practice/config.toml"]
+watch = [
+    "peer_practice",
+    "peer_practice_shared",
+]
+need_stdout = true
+on_change_strategy = "kill_then_restart"
+
+[keybindings]
+r = "job:peer-practice"

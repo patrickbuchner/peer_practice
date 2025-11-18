@@ -1,0 +1,181 @@
+/* ==========================================================================
+   1. Base Button Component
+   ========================================================================== */
+
+.btn {
+    /* Define local variables for the button's theme */
+    /* Defaults to a neutral, secondary-style button */
+    --_bg: var(--bg-weak-color);
+    --_fg: var(--bg-weak-text);
+    --_border: var(--bg-strong-color);
+    --_bg-hover: var(--bg-strong-color);
+    --_bg-active: var(--bg-base-color);
+
+    /* Apply the variables and base styles */
+    background-color: var(--_bg);
+    color: var(--_fg);
+    border: 1px solid var(--_border);
+
+    /* Layout, typography, etc. */
+    padding: 0.625rem 1.125rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none; /* For when using <a> tags as buttons */
+    display: inline-flex; /* Center content inside the button border */
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Universal hover and active states using local variables */
+.btn:hover {
+    background-color: var(--_bg-hover);
+}
+
+.btn:active {
+    background-color: var(--_bg-active);
+    transform: scale(0.98);
+}
+
+
+/* ==========================================================================
+   2. Theme Variants (This replaces all the .btn-* classes)
+   ========================================================================== */
+
+/* This is a special case for a neutral button with no background */
+.btn[data-theme="ghost"] {
+    --_bg: transparent;
+    --_fg: var(--text);
+    --_border: var(--surface2);
+    --_bg-hover: var(--surface0);
+    --_bg-active: var(--surface1);
+}
+
+.btn[data-theme="primary"] {
+    --_bg: var(--primary-base-color);
+    --_fg: var(--primary-base-text);
+    --_border: transparent;
+    --_bg-hover: var(--primary-strong-color);
+    --_bg-active: var(--primary-weak-color);
+}
+
+.btn[data-theme="secondary"] {
+    --_bg: var(--secondary-base-color);
+    --_fg: var(--secondary-base-text);
+    --_border: transparent;
+    --_bg-hover: var(--secondary-strong-color);
+    --_bg-active: var(--secondary-weak-color);
+}
+
+.btn[data-theme="success"] {
+    --_bg: var(--success-base-color);
+    --_fg: var(--success-base-text);
+    --_border: transparent;
+    --_bg-hover: var(--success-strong-color);
+    --_bg-active: var(--success-weak-color);
+}
+
+.btn[data-theme="danger"] {
+    --_bg: var(--danger-base-color);
+    --_fg: var(--danger-base-text);
+    --_border: transparent;
+    --_bg-hover: var(--danger-strong-color);
+    --_bg-active: var(--danger-weak-color);
+}
+
+.btn[data-theme="warning"] {
+    --_bg: var(--warning-base-color);
+    --_fg: var(--warning-base-text);
+    --_border: transparent;
+    --_bg-hover: var(--warning-strong-color);
+    --_bg-active: var(--warning-weak-color);
+}
+
+
+/* ==========================================================================
+   3. Custom Accent Theme (Now fully integrated)
+   ========================================================================== */
+
+.btn[data-theme="accent"] {
+    --_accent-color: var(--accent, var(--teal)); /* Pass --accent via inline style */
+    --_accent-mix: 28%;
+    --_accent-mix-hover: 36%;
+    --_accent-mix-active: 22%;
+
+    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --_fg: var(--bg-base-text);
+    --_border: currentColor;
+    border-width: 0.5px;
+    --_bg-hover: color-mix(in oklab, var(--_accent-color) var(--_accent-mix-hover), var(--bg-weakest-color));
+    --_bg-active: color-mix(in oklab, var(--_accent-color) var(--_accent-mix-active), var(--bg-base-color));
+}
+
+
+/* Strength variants for the accent theme */
+.btn[data-theme="accent"][data-accent-strength="weakest"]  { --_accent-mix: 10%; --_accent-mix-hover: 16%; --_accent-mix-active: 6%; }
+.btn[data-theme="accent"][data-accent-strength="weak"]     { --_accent-mix: 18%; --_accent-mix-hover: 26%; --_accent-mix-active: 12%; }
+.btn[data-theme="accent"][data-accent-strength="base"]     { --_accent-mix: 28%; --_accent-mix-hover: 36%; --_accent-mix-active: 22%; }
+.btn[data-theme="accent"][data-accent-strength="strong"]   { --_accent-mix: 44%; --_accent-mix-hover: 52%; --_accent-mix-active: 36%; }
+.btn[data-theme="accent"][data-accent-strength="strongest"]{ --_accent-mix: 62%; --_accent-mix-hover: 70%; --_accent-mix-active: 56%; }
+
+
+/* ==========================================================================
+   4. Disabled State (Simplified and consolidated)
+   ========================================================================== */
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(10%);
+}
+
+/* Suppress hover/active effects when disabled in a single rule */
+.btn:disabled:hover,
+.btn[aria-disabled="true"]:hover,
+.btn:disabled:active,
+.btn[aria-disabled="true"]:active {
+    transform: none;
+    /* Crucially, this reverts the background to its original state */
+    background-color: var(--_bg);
+}
+
+
+/* ==========================================================================
+   5. Button Group Helper
+   ========================================================================== */
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+/* ==========================================================================
+   Button Size Variants (add this to your button CSS)
+   ========================================================================== */
+
+.btn[data-size="sm"] {
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn[data-size="lg"] {
+    height: 48px;
+    padding: 0 1.5rem;
+    font-size: 1.125rem;
+}
+
+/* A specific variant for icon-only buttons for a perfect square shape */
+.btn--icon {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    line-height: 1;
+}

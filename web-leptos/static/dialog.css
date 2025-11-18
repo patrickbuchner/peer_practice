@@ -1,0 +1,244 @@
+/* Overlay */
+[data-dialog-overlay],
+.dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--base, #000) 60%, transparent);
+    opacity: 0.95;
+}
+
+/* Container */
+[role="dialog"],
+.dialog {
+    --accent: var(--accent, var(--mauve, #7c3aed));
+    /* Build on top of card styling */
+    --dialog-bg: var(--surface-bg, var(--card-bg, var(--bg-weakest-color, #fff)));
+    --dialog-fg: var(--surface-fg, var(--card-fg, var(--bg-weakest-text, #111827)));
+    --dialog-border-mix: var(--surface-border-mix, var(--card-border-mix, 14%));
+    --dialog-border: color-mix(in oklab, var(--dialog-fg) var(--dialog-border-mix), transparent);
+    --dialog-shadow: 0 6px 24px rgba(0, 0, 0, .2), 0 0 1px rgba(0, 0, 0, .12);
+    --dialog-radius: var(--card-radius, 12px);
+
+    background: var(--dialog-bg);
+    color: var(--dialog-fg);
+    /* Defer sizing/placement to the dialog-sheet variant */
+    width: auto;
+    max-width: 100%;
+    border-radius: var(--dialog-radius);
+    box-shadow: var(--dialog-shadow);
+    /* Use card spacing scale */
+    padding: clamp(1rem, 4vw, 1.6rem);
+    border: 1px solid var(--dialog-border);
+    outline: none;
+}
+
+/* Accent mappings (align with your palette) */
+[data-accent="base"] {
+    --accent: var(--base, #0ea5e9);
+}
+
+[data-accent="mauve"] {
+    --accent: var(--mauve, #7c3aed);
+}
+
+[data-accent="teal"] {
+    --accent: var(--teal, #14b8a6);
+}
+
+[data-accent="maroon"] {
+    --accent: var(--maroon, #be123c);
+}
+
+[data-accent="crimson"] {
+    --accent: var(--crimson, #dc2626);
+}
+
+[data-accent="indigo"] {
+    --accent: var(--indigo, #6366f1);
+}
+
+[data-accent="amber"] {
+    --accent: var(--amber, #f59e0b);
+}
+
+/* Scheme hook if needed (base/dark etc.). Leaves room for future extensions */
+[data-scheme="base"] [role="dialog"],
+[data-scheme="base"] .dialog {
+    /* Inherit defaults; customize if you have scheme-specific vars */
+}
+/* Scheme variants: strongest | strong | base | weak | weakest */
+[data-scheme="strongest"] [role="dialog"],
+[data-scheme="strongest"] .dialog {
+    --dialog-bg: var(--bg-strongest-color, #0f172a);
+    --dialog-fg: var(--bg-strongest-text, #e5e7eb);
+    --dialog-border-mix: var(--surface-border-mix, var(--card-border-mix, 18%));
+}
+
+[data-scheme="strong"] [role="dialog"],
+[data-scheme="strong"] .dialog {
+    --dialog-bg: var(--bg-strong-color, #111827);
+    --dialog-fg: var(--bg-strong-text, #f3f4f6);
+    --dialog-border-mix: var(--surface-border-mix, var(--card-border-mix, 16%));
+}
+
+[data-scheme="weak"] [role="dialog"],
+[data-scheme="weak"] .dialog {
+    --dialog-bg: var(--bg-weak-color, #f3f4f6);
+    --dialog-fg: var(--bg-weak-text, #111827);
+    --dialog-border-mix: var(--surface-border-mix, var(--card-border-mix, 14%));
+}
+
+[data-scheme="weakest"] [role="dialog"],
+[data-scheme="weakest"] .dialog {
+    --dialog-bg: var(--bg-weakest-color, #ffffff);
+    --dialog-fg: var(--bg-weakest-text, #111827);
+    --dialog-border-mix: var(--surface-border-mix, var(--card-border-mix, 12%));
+}
+
+/* Optional: overlay tint follows scheme when overlay is inside a [data-scheme] root */
+[data-scheme="strongest"] [data-dialog-overlay],
+[data-scheme="strongest"] .dialog-overlay {
+    background: color-mix(in oklab, var(--bg-strongest-color, #0f172a) 60%, transparent);
+}
+
+[data-scheme="strong"] [data-dialog-overlay],
+[data-scheme="strong"] .dialog-overlay {
+    background: color-mix(in oklab, var(--bg-strong-color, #111827) 60%, transparent);
+}
+
+[data-scheme="weak"] [data-dialog-overlay],
+[data-scheme="weak"] .dialog-overlay {
+    background: color-mix(in oklab, var(--bg-weak-color, #f3f4f6) 60%, transparent);
+}
+
+[data-scheme="weakest"] [data-dialog-overlay],
+[data-scheme="weakest"] .dialog-overlay {
+    background: color-mix(in oklab, var(--bg-weakest-color, #ffffff) 60%, transparent);
+}
+
+/* Header/title/content helpers */
+.dialog-header,
+[role="dialog"] .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+.dialog-title,
+[role="dialog"] .dialog-title,
+[role="dialog"] h1,
+[role="dialog"] h2 {
+    margin: 0 0 .5rem 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dialog-fg);
+}
+
+.dialog-desc,
+[role="dialog"] .dialog-desc,
+[role="dialog"] p {
+    margin: 0 0 1rem 0;
+    opacity: .95;
+}
+
+/* Actions cluster aligns with your buttons.css styles */
+.dialog-actions,
+[role="dialog"] .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+/* Close button (icon-like) */
+.dialog-close,
+[role="dialog"] .dialog-close {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dialog-fg);
+    border-radius: .375rem;
+}
+
+.dialog-close:hover,
+[role="dialog"] .dialog-close:hover {
+    background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* Focus ring uses accent color */
+[role="dialog"]:focus-visible,
+.dialog:focus-visible,
+[role="dialog"] :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--accent) 60%, white);
+    outline-offset: 2px;
+}
+
+/* Subtle accent border on the dialog */
+[role="dialog"],
+.dialog {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent),
+    var(--dialog-shadow);
+}
+
+/* Hover states that respect accent (useful for A/link-styled items in menus) */
+[role="dialog"] a,
+.dialog a {
+    color: var(--dialog-fg);
+    text-decoration: none;
+    border-radius: .5rem;
+    padding: .25rem .25rem;
+}
+
+[role="dialog"] a:hover,
+.dialog a:hover {
+    background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+
+/* Reduce motion for users that prefer it */
+@media (prefers-reduced-motion: no-preference) {
+    [data-dialog-overlay],
+    .dialog-overlay {
+        animation: dlg-fade .12s ease-out both;
+    }
+
+    [role="dialog"],
+    .dialog {
+        animation: dlg-pop .14s ease-out both;
+    }
+}
+
+@keyframes dlg-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.95;
+    }
+}
+
+@keyframes dlg-pop {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -6px, 0) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+.dialog-sheet,
+[role="dialog"].dialog-sheet {
+    /* Keep sizing/behavior from the sheet */
+    width: min(92vw, 30rem);
+    margin-top: calc(var(--navbar-height, 48px) + 12px);
+}

@@ -1,0 +1,69 @@
+@import "./color_palette/catppuccin_latte.css";
+@import "./color_palette/catppuccin_mocha.css";
+/*@import "./color_palette/catppuccin_macciato.css";*/
+:root {
+    --rosewater: #dc8a78;
+    --flamingo: #dd7878;
+    --pink: #ea76cb;
+    --mauve: #8839ef;
+    --red: #d20f39;
+    --maroon: #e64553;
+    --peach: #fe640b;
+    --yellow: #df8e1d;
+    --green: #40a02b;
+    --teal: #179299;
+    --sky: #04a5e5;
+    --sapphire: #209fb5;
+    --blue: #1e66f5;
+    --lavender: #7287fd;
+
+    --rosewater-light: #f5e0dc;
+    --flamingo-light: #f2cdcd;
+    --pink-light: #f5c2e7;
+    --mauve-light: #cba6f7;
+    --red-light: #f38ba8;
+    --maroon-light: #eba0ac;
+    --peach-light: #fab387;
+    --yellow-light: #f9e2af;
+    --green-light: #a6e3a1;
+    --teal-light: #94e2d5;
+    --sky-light: #89dceb;
+    --sapphire-light: #74c7ec;
+    --blue-light: #89b4fa;
+    --lavender-light: #b4befe;
+
+    --primary-base-color: var(--primary-color);
+    --primary-base-text: var(--primary-text-color);
+    --primary-weak-color: color-mix(in oklch, var(--primary-color) 25%, var(--base));
+    --primary-weak-text: var(--primary-text-color);
+    --primary-strong-color: color-mix(in oklch, var(--primary-color) 85%, var(--text));
+    --primary-strong-text: var(--primary-text-color);
+
+    --secondary-base-color: var(--secondary-color);
+    --secondary-base-text: var(--secondary-text-color);
+    --secondary-weak-color: color-mix(in oklch, var(--secondary-color) 25%, var(--base));
+    --secondary-weak-text: var(--secondary-text-color);
+    --secondary-strong-color: color-mix(in oklch, var(--secondary-color) 85%, var(--text));
+    --secondary-strong-text: var(--secondary-text-color);
+
+    --success-base-color: var(--success-color);
+    --success-base-text: var(--success-text-color);
+    --success-weak-color: color-mix(in oklch, var(--success-color) 25%, var(--base));
+    --success-weak-text: var(--success-text-color);
+    --success-strong-color: color-mix(in oklch, var(--success-color) 85%, var(--text));
+    --success-strong-text: var(--success-text-color);
+
+    --warning-base-color: var(--warning-color);
+    --warning-base-text: var(--warning-text-color);
+    --warning-weak-color: color-mix(in oklch, var(--warning-color) 25%, var(--base));
+    --warning-weak-text: var(--warning-text-color);
+    --warning-strong-color: color-mix(in oklch, var(--warning-color) 85%, var(--text));
+    --warning-strong-text: var(--warning-text-color);
+
+    --danger-base-color: var(--danger-color);
+    --danger-base-text: var(--danger-text-color);
+    --danger-weak-color: color-mix(in oklch, var(--danger-color) 25%, var(--base));
+    --danger-weak-text: var(--danger-text-color);
+    --danger-strong-color: color-mix(in oklch, var(--danger-color) 85%, var(--text));
+    --danger-strong-text: var(--danger-text-color);
+}

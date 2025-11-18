@@ -1,0 +1,8 @@
+[package]
+name = "peer_practice_shared"
+version = "2025.10.14"
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+peer_practice_messages.workspace = true

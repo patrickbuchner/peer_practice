@@ -1,0 +1,26 @@
+[package]
+name = "peer_practice"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+peer_practice_shared.workspace = true
+peer_practice_server_services.workspace = true
+chrono.workspace = true
+tokio = {workspace = true, features = ["full", "tracing"]}
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+axum.workspace = true
+axum-extra.workspace = true
+tower-http.workspace = true
+tower-sessions = "0.14.0"
+tracing.workspace = true
+jsonwebtoken = "9.3.1"
+clap = { version = "4.5", features = ["derive", "env"] }
+toml = "0.9.5"
+rand = "0.9.2"
+eyre.workspace = true
+mimalloc = { version = "0.1.48", features = ["v3"] }

@@ -1,0 +1,23 @@
+[package]
+name = "web-leptos"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+leptos_router = "0.8"
+web-sys = { version = "0.3.77", features = ["ErrorEvent", "WebSocket", "MessageEvent", "Navigator", "Storage"] }
+console_error_panic_hook = "0.1"
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+peer_practice_shared.workspace = true
+#tracing-log = "0.2.0"
+tracing-wasm = "0.2.1"
+futures-util = { version = "0.3.31", features = ["futures-channel", "channel"] }
+futures-channel = "0.3.31"
+pulldown-cmark = "0.13.0"
+ammonia = "4.1.1"
+chrono.workspace = true

@@ -1,0 +1,40 @@
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Catppuccin Mocha Palette */
+        --text: #cdd6f4;
+        --subtext1: #bac2de;
+        --subtext0: #a6adc8;
+        --overlay2: #9399b2;
+        --overlay1: #7f849c;
+        --overlay0: #6c7086;
+        --surface2: #585b70;
+        --surface1: #45475a;
+        --surface0: #313244;
+        --base: #1e1e2e;
+        --mantle: #181825;
+        --crust: #11111b;
+
+        --primary-color: #1e66f5;
+        --secondary-color: #6c7086;
+        --success-color: #40a02b;
+        --danger-color: #8A0000;
+        --warning-color: #df8e1d;
+
+        --primary-text-color: #eff1f5;
+        --secondary-text-color: #eff1f5;
+        --success-text-color: #eff1f5;
+        --danger-text-color: #eff1f5;
+        --warning-text-color: #4c4f69;
+
+        --bg-base-color: #1e1e2e;
+        --bg-base-text: #cdd6f4;
+        --bg-weakest-color: #242437;
+        --bg-weakest-text: #cdd6f4;
+        --bg-weak-color: #32324d;
+        --bg-weak-text: #cdd6f4;
+        --bg-strong-color: #46466c;
+        --bg-strong-text: #f8f8fe;
+        --bg-strongest-color: #5a5a8b;
+        --bg-strongest-text: #fafafc;
+    }
+}

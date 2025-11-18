@@ -1,0 +1,18 @@
+[package]
+name = "peer_practice_messages"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+
+[dependencies]
+chrono.workspace = true
+serde.workspace = true
+uuid.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+lettre.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+regex = "1.11.1"
+uuid.workspace = true
+uuid.features = ["js"]

@@ -1,0 +1,163 @@
+.markdown-body {
+    /*
+     * LOCAL VARIABLES for markdown scope.
+     * This creates a dedicated API for prose styling. It allows you to
+     * tweak the look of your markdown without affecting other UI components.
+    */
+    --_text-color: var(--text);
+    --_heading-color: var(--subtext1);
+    --_link-color: var(--blue);
+    --_link-color-hover: var(--lavender);
+    --_secondary-text-color: var(--subtext0);
+    --_border-color-subtle: var(--surface1);
+    --_code-inline-bg: var(--surface0);
+    --_code-inline-text: var(--peach);
+    --_code-block-bg: var(--mantle);
+    --_blockquote-border: var(--mauve);
+    --_table-header-bg: var(--surface0);
+
+    color: var(--_text-color);
+    line-height: 1.7; /* A slightly taller line-height is often better for prose */
+    font-size: 1.1rem; /* A slightly larger base font for readability */
+}
+
+/*
+ * ==========================================================================
+ * 1. Typographic Scale & Vertical Rhythm
+ * ==========================================================================
+ */
+
+/* Add consistent spacing between block elements */
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body table {
+    margin-block: 1.25em;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    color: var(--_heading-color);
+    line-height: 1.3;
+    margin-block: 1.5em 0.8em; /* More space above, less below */
+}
+
+/* A clear typographic scale using rem for consistency */
+.markdown-body h1 { font-size: 2.25rem; }
+.markdown-body h2 { font-size: 1.75rem; }
+.markdown-body h3 { font-size: 1.5rem; }
+.markdown-body h4 { font-size: 1.25rem; }
+.markdown-body h5 { font-size: 1.1rem; }
+.markdown-body h6 { font-size: 1rem; font-style: italic; }
+
+/*
+ * ==========================================================================
+ * 2. Content Styling
+ * ==========================================================================
+ */
+
+.markdown-body a {
+    color: var(--_link-color);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}
+
+.markdown-body a:hover {
+    color: var(--_link-color-hover);
+    text-decoration: none;
+}
+
+/* Rely on browser defaults for weight and style, but with refined color */
+.markdown-body strong {
+    font-weight: 700;
+    color: var(--subtext1);
+}
+
+.markdown-body em {
+    font-style: italic;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+    padding-left: 1.5rem;
+}
+
+.markdown-body li::marker {
+    color: var(--_blockquote-border);
+}
+
+.markdown-body blockquote {
+    color: var(--_secondary-text-color);
+    border-left: 3px solid var(--_blockquote-border);
+    padding-left: 1.25rem;
+    font-style: italic;
+}
+
+.markdown-body hr {
+    border: 0;
+    border-top: 1px solid var(--_border-color-subtle);
+    margin: 2em 0;
+}
+
+.markdown-body img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--_border-color-subtle);
+}
+
+/*
+ * ==========================================================================
+ * 3. Code & Tables
+ * ==========================================================================
+ */
+
+/* Inline code */
+.markdown-body code {
+    color: var(--_code-inline-text);
+    background: var(--_code-inline-bg);
+    padding: 0.2em 0.4em;
+    border-radius: 0.35rem;
+    border: 1px solid var(--_border-color-subtle);
+    font-size: 0.9em;
+}
+
+/* Code blocks */
+.markdown-body pre {
+    background: var(--_code-block-bg);
+    padding: 1rem;
+    border-radius: 0.6rem;
+    overflow-x: auto;
+    border: 1px solid var(--_border-color-subtle);
+}
+
+.markdown-body pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit; /* Inherit the text color from the <pre> tag */
+    font-size: 0.9em;
+}
+
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid var(--_border-color-subtle);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+}
+
+.markdown-body th {
+    background: var(--_table-header-bg);
+    font-weight: 600;
+}

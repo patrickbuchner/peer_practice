@@ -1,0 +1,19 @@
+/target
+/email_password.txt
+/jwt_password.txt
+/.idea/
+/web-*/dist
+/web-*/node_modules/
+
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+/node_modules/
+/config.toml
+/result

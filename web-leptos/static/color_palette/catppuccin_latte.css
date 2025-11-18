@@ -1,0 +1,41 @@
+
+:root {
+    /* Catppuccin Latte Palette */
+    --text: #4c4f69;
+    --subtext1: #5c5f77;
+    --subtext0: #6c6f85;
+    --overlay2: #7c7f93;
+    --overlay1: #8c8fa1;
+    --overlay0: #9ca0b0;
+    --surface2: #acb0be;
+    --surface1: #bcc0cc;
+    --surface0: #ccd0da;
+    --base: #eff1f5;
+    --mantle: #e6e9ef;
+    --crust: #dce0e8;
+
+    /* Base Semantic Colors (for simple components) */
+    --primary-color: #1e66f5;
+    --secondary-color: #7c7f93;
+    --success-color: #40a02b;
+    --danger-color: #d20f39;
+    --warning-color: #df8e1d;
+
+    --primary-text-color: #eff1f5;
+    --secondary-text-color: #eff1f5;
+    --success-text-color: #eff1f5;
+    --danger-text-color: #eff1f5;
+    --warning-text-color: #4c4f69;
+
+    --bg-base-color: #eff1f5;
+    --bg-base-text: #4c4f69;
+    --bg-weakest-color: #e7e9f1;
+    --bg-weakest-text: #37384b;
+    --bg-weak-color: #d6dbe5;
+    --bg-weak-text: #37384b;
+    --bg-strong-color: #bcc4d6;
+    --bg-strong-text: #2c2e33;
+    --bg-strongest-color: #a4b0c6;
+    --bg-strongest-text: #25282f;
+
+}

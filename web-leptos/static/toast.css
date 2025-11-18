@@ -1,0 +1,91 @@
+/* ==========================================================================
+   1. Base Toast Component
+   ========================================================================== */
+
+.toast {
+    /* Scope variables locally to the component */
+    --_bg: var(--bg-strong-color);
+    --_fg: var(--bg-strong-text);
+    --_radius: 0.5rem;
+    --_shadow: 0 6px 24px rgba(0, 0, 0, 0.18), 0 0 1px rgba(0, 0, 0, 0.12);
+    --_padding-x: 0.75rem;
+    --_padding-y: 0.5rem;
+    --_font-size: 0.875rem;
+    --_anim-time: 180ms;
+
+    /* Apply styles using local variables */
+    background: var(--_bg);
+    color: var(--_fg);
+    border-radius: var(--_radius);
+    box-shadow: var(--_shadow);
+    padding: var(--_padding-y) var(--_padding-x);
+    font-size: var(--_font-size);
+
+    /* Positioning & Animation */
+    z-index: 1100;
+    white-space: nowrap;
+    pointer-events: none;
+    animation: toast-slide-in var(--_anim-time) ease-out forwards;
+}
+
+
+/* ==========================================================================
+   2. Theme Variants (using data-theme)
+   ========================================================================== */
+
+.toast[data-theme="primary"] {
+    --_bg: var(--primary-base-color);
+    --_fg: var(--primary-base-text);
+}
+.toast[data-theme="success"] {
+    --_bg: var(--success-base-color);
+    --_fg: var(--success-base-text);
+}
+.toast[data-theme="warning"] {
+    --_bg: var(--warning-base-color);
+    --_fg: var(--warning-base-text);
+}
+.toast[data-theme="danger"] {
+    --_bg: var(--danger-base-color);
+    --_fg: var(--danger-base-text);
+}
+.toast[data-theme="weak"] { /* Replaces .toast--muted */
+    --_bg: var(--bg-weak-color);
+    --_fg: var(--bg-base-text);
+}
+
+
+/* ==========================================================================
+   3. Animation Keyframes
+   ========================================================================== */
+
+@keyframes toast-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   4. Best Practice: Toast Container
+   ========================================================================== */
+
+/*
+  For managing multiple toasts, it's best to use a container.
+  The container handles positioning, and the toasts just stack up inside.
+*/
+.toast-container {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1100;
+
+    display: flex;
+    flex-direction: column-reverse; /* New toasts appear above old ones */
+    gap: 0.5rem;
+}

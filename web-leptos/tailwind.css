@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "./static/color_palette.css";
+@import "./static/button.css";
+@import "./static/card.css";
+@import "./static/combo.css";
+@import "./static/headings.css";
+@import "./static/toast.css";
+@import "./static/nav.css";
+@import "./static/markdown.css";
+@import "./static/dialog.css";
+
+@source "./src/**/*.{rs,html,css}";

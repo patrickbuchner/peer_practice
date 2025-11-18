@@ -1,0 +1,247 @@
+body {
+    background-color: var(--bg-base-color);
+    color: var(--bg-base-text);
+    font-family: sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+    box-sizing: border-box;
+    overflow-x: scroll;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+html {
+    -webkit-text-size-adjust: auto;
+    text-size-adjust: auto;
+    font-size: clamp(var(--font-min, 17px), var(--font-fluid, 1.2vw), var(--font-max, 20px));
+}
+
+:root {
+    --font-min: 17px;
+    --font-fluid: 1.2vw;
+    --font-max: 20px;
+}
+
+@media (min-width: 1200px) and (min-resolution: 1.5dppx) {
+    :root {
+        --font-min: 20px;
+        --font-fluid: 1.0vw;
+        --font-max: 26px;
+    }
+}
+
+@media (min-width: 1600px) and (min-resolution: 2dppx) {
+    :root {
+        --font-min: 22px;
+        --font-fluid: 0.9vw;
+        --font-max: 30px;
+    }
+}
+
+body > * {
+    /*width: min(100%, 72rem);*/
+    margin-inline: 0;
+    max-inline-size: 100%;
+}
+
+:root {
+    --cluster-gap: 8px;
+    --cluster-justify: center;
+    --cluster-align: center;
+}
+
+.cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cluster-gap);
+    justify-content: var(--cluster-justify);
+    align-items: var(--cluster-align);
+}
+
+/* Base: card component aligned with button.css theming */
+.card {
+    /* Local variables (mirror button.css naming) */
+    --_bg: var(--bg-weak-color);
+    --_fg: var(--bg-weak-text);
+    --_border: color-mix(in oklab, var(--_fg) 14%, transparent);
+
+    background-color: var(--_bg);
+    color: var(--_fg);
+    border: 1px solid var(--_border);
+
+    padding: clamp(1rem, 4vw, 1.6rem);
+    border-radius: 12px;
+    margin-block: 1rem;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Theme variants (support both data-theme and legacy data-scheme) */
+.card[data-theme="weakest"],
+.card[data-scheme="weakest"] {
+    --_bg: var(--bg-weakest-color);
+    --_fg: var(--bg-weakest-text);
+    --_border: color-mix(in oklab, var(--_fg) 10%, transparent);
+}
+
+.card[data-theme="weak"],
+.card[data-scheme="weak"] {
+    --_bg: var(--bg-weak-color);
+    --_fg: var(--bg-weak-text);
+    --_border: color-mix(in oklab, var(--_fg) 12%, transparent);
+}
+
+.card[data-theme="base"],
+.card[data-scheme="base"] {
+    --_bg: var(--bg-base-color);
+    --_fg: var(--bg-base-text);
+    --_border: color-mix(in oklab, var(--_fg) 14%, transparent);
+}
+
+.card[data-theme="strong"],
+.card[data-scheme="strong"] {
+    --_bg: var(--bg-strong-color);
+    --_fg: var(--bg-strong-text);
+    --_border: color-mix(in oklab, var(--_fg) 16%, transparent);
+}
+
+.card[data-theme="strongest"],
+.card[data-scheme="strongest"] {
+    --_bg: var(--bg-strongest-color);
+    --_fg: var(--bg-strongest-text);
+    --_border: color-mix(in oklab, var(--_fg) 18%, transparent);
+}
+
+/* Accent theme (mirrors button.css accent API) */
+.card[data-theme="accent"] {
+    --_accent-color: var(--accent, var(--teal));
+    --_accent-mix: 28%;        /* base */
+    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --_fg: var(--bg-base-text);
+    --_border: transparent;
+}
+
+/* Strength variants for the accent theme */
+.card[data-theme="accent"][data-accent-strength="weakest"]  { --_accent-mix: 10%; }
+.card[data-theme="accent"][data-accent-strength="weak"]     { --_accent-mix: 18%; }
+.card[data-theme="accent"][data-accent-strength="base"]     { --_accent-mix: 28%; }
+.card[data-theme="accent"][data-accent-strength="strong"]   { --_accent-mix: 44%; }
+.card[data-theme="accent"][data-accent-strength="strongest"]{ --_accent-mix: 62%; }
+
+/* Back-compat: legacy data-accent API mapped to the new accent system */
+.card[data-accent] {
+    --_accent-color: var(--accent, var(--teal));
+    --_accent-mix: 28%;
+    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --_fg: var(--bg-base-text);
+    --_border: transparent;
+}
+.card[data-accent="weakest"]  { --_accent-mix: 10%; }
+.card[data-accent="weak"]     { --_accent-mix: 18%; }
+.card[data-accent="base"]     { --_accent-mix: 28%; }
+.card[data-accent="strong"]   { --_accent-mix: 44%; }
+.card[data-accent="strongest"]{ --_accent-mix: 62%; }
+
+/* Card internals using the resolved foreground */
+.card .card-title {
+    color: var(--_fg);
+}
+
+.card .card-title-input {
+    color: var(--_fg);
+    border: 1px solid color-mix(in oklab, var(--bg-base-text) 18%, transparent);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    line-height: 1.4;
+}
+
+/* Generic accent surfaces (apply to any non-button element via .surface) */
+.surface {
+    /* Defaults use weak background/text from theme unless overridden via data-accent */
+    --surface-bg: var(--bg-weak-color);
+    --surface-fg: var(--bg-weak-text);
+    --surface-border-mix: 18%;
+
+    background: var(--surface-bg);
+    color: var(--surface-fg);
+    border: 1px solid color-mix(in oklab, var(--surface-fg) var(--surface-border-mix), transparent);
+    border-radius: 0.6rem;
+}
+
+/* Prevent accidental application to buttons */
+button.surface,
+.surface.btn,
+button[class*="btn"].surface {
+    all: unset;
+}
+
+/* Accent strengths for .surface (same percentages as card accent) */
+.surface[data-accent="weakest"] {
+    --accent: var(--accent, var(--teal));
+    --surface-bg: color-mix(in oklab, var(--accent) 10%, var(--bg-base-color));
+    --surface-border-mix: 30%;
+}
+
+.surface[data-accent="weak"] {
+    --accent: var(--accent, var(--teal));
+    --surface-bg: color-mix(in oklab, var(--accent) 18%, var(--bg-base-color));
+    --surface-border-mix: 40%;
+}
+
+.surface[data-accent="base"] {
+    --accent: var(--accent, var(--teal));
+    --surface-bg: color-mix(in oklab, var(--accent) 28%, var(--bg-base-color));
+    --surface-border-mix: 50%;
+}
+
+.surface[data-accent="strong"] {
+    --accent: var(--accent, var(--teal));
+    --surface-bg: color-mix(in oklab, var(--accent) 44%, var(--bg-base-color));
+    --surface-border-mix: 60%;
+}
+
+.surface[data-accent="strongest"] {
+    --accent: var(--accent, var(--teal));
+    --surface-bg: color-mix(in oklab, var(--accent) 62%, var(--bg-base-color));
+    --surface-border-mix: 70%;
+}
+
+/* Optional: override text color for contrast on surfaces */
+.surface[data-fg="base"] {
+    --surface-fg: var(--bg-base-text);
+}
+
+.surface[data-fg="weak"] {
+    --surface-fg: var(--bg-weak-text);
+}
+
+.surface[data-fg="strong"] {
+    --surface-fg: var(--bg-strong-text);
+}
+
+.surface[data-fg="on-accent"] {
+    --surface-fg: white;
+}
+
+/* Common media content within surfaces scales nicely */
+.surface img,
+.surface video,
+.surface canvas,
+.surface svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Code/Pre overflow handling on surfaces */
+.surface pre,
+.surface code {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+}

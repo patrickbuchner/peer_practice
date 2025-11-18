@@ -1,0 +1,114 @@
+/* ==========================================================================
+   1. Base Select Component
+   ========================================================================== */
+
+.combo {
+    /* Define local variables for the component's theme */
+    --_bg: var(--bg-weak-color);
+    --_fg: var(--bg-weak-text);
+    --_border: color-mix(in oklab, var(--bg-base-text) 18%, transparent);
+    --_focus-ring-color: var(--primary-base-color); /* Default focus is primary */
+
+    /* Apply variables and base styles */
+    appearance: none; /* Critical for custom styling */
+    -webkit-appearance: none;
+    background-color: var(--_bg);
+    color: var(--_fg);
+    border: 1px solid var(--_border);
+
+    /* Dropdown Arrow SVG Icon (color adapts via currentColor) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.9rem;
+
+    /* Layout, typography, etc. */
+    display: block;
+    width: 100%;
+    padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.4;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* States use the local variables */
+.combo:hover {
+    background-color: color-mix(in oklab, var(--_bg) 85%, var(--bg-strong-color));
+}
+
+.combo:focus {
+    outline: none;
+    border-color: var(--_focus-ring-color);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--_focus-ring-color) 25%, transparent);
+}
+
+
+/* ==========================================================================
+   2. Size Variants (using data-size)
+   ========================================================================== */
+
+.combo[data-size="sm"] {
+    font-size: 0.875rem;
+    padding: 0.4rem 2rem 0.4rem 0.6rem;
+    border-radius: 0.45rem;
+    background-size: 0.8rem;
+}
+
+.combo[data-size="lg"] {
+    font-size: 1.125rem;
+    padding: 0.6rem 2.5rem 0.6rem 0.9rem;
+    border-radius: 0.6rem;
+    background-size: 1rem;
+}
+
+
+/* ==========================================================================
+   3. Theme Variants (using data-theme)
+   ========================================================================== */
+
+/* For inputs, themes primarily affect the border and focus ring color */
+.combo[data-theme="success"] { --_border: var(--success-base-color); --_focus-ring-color: var(--success-base-color); }
+.combo[data-theme="warning"] { --_border: var(--warning-base-color); --_focus-ring-color: var(--warning-base-color); }
+.combo[data-theme="danger"]  { --_border: var(--danger-base-color);  --_focus-ring-color: var(--danger-base-color); }
+
+/* Custom accent theme */
+.combo[data-theme="accent"] {
+    --_accent-color: var(--accent, var(--teal));
+    --_accent-mix: 28%;
+
+    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --_border: color-mix(in oklab, var(--_accent-color) 50%, transparent);
+    --_focus-ring-color: var(--_accent-color);
+}
+
+/* Accent strength modifiers */
+.combo[data-theme="accent"][data-accent-strength="weakest"]  { --_accent-mix: 10%; }
+.combo[data-theme="accent"][data-accent-strength="weak"]     { --_accent-mix: 18%; }
+.combo[data-theme="accent"][data-accent-strength="base"]     { --_accent-mix: 28%; }
+.combo[data-theme="accent"][data-accent-strength="strong"]   { --_accent-mix: 44%; }
+.combo[data-theme="accent"][data-accent-strength="strongest"]{ --_accent-mix: 62%; }
+
+
+/* ==========================================================================
+   4. Other States & Dropdown Options
+   ========================================================================== */
+
+.combo:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* For multi-select, hide the arrow and allow scrolling */
+.combo[multiple] {
+    padding-right: 0.75rem;
+    min-height: 8rem;
+    overflow-y: auto;
+    background-image: none;
+}
+
+.combo option {
+    color: var(--bg-base-text);
+    background-color: var(--bg-base-color);
+}
