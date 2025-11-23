@@ -7,6 +7,10 @@ let
   lib = pkgs.lib;
   craneLib = crane.mkLib pkgs;
 
+  # Extract version information from the specific package Cargo.toml
+  crateDetails = craneLib.crateNameFromCargoToml {
+    cargoToml = root + /web-leptos/Cargo.toml;
+  };
   src = lib.fileset.toSource {
     inherit root;
     fileset = lib.fileset.unions [
@@ -33,7 +37,7 @@ let
 
   wasmArgs = commonArgs // {
     pname = "trunk-workspace-wasm";
-    version = "0.1.0";
+    version = crateDetails.version;
     cargoExtraArgs = "--package=web-leptos";
     CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
   };
@@ -52,8 +56,6 @@ in
 # Use crane's dedicated Trunk builder for workspace-based apps
 craneLib.buildTrunkPackage {
   pname = "web-leptos";
-  version = "0.1.0";
-  # Use the cleaned workspace src
   inherit src;
 
   cargoArtifacts = cargoArtifactsWasm;

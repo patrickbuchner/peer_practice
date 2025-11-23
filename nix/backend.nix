@@ -7,6 +7,11 @@ let
   lib = pkgs.lib;
   craneLib = crane.mkLib pkgs;
 
+  # Extract version information from the specific package Cargo.toml
+  crateDetails = craneLib.crateNameFromCargoToml {
+    cargoToml = root + /peer_practice/Cargo.toml;
+  };
+
   src = lib.fileset.toSource {
     inherit root;
     fileset = craneLib.fileset.commonCargoSources root;
@@ -22,7 +27,7 @@ let
     commonArgs
     // {
       pname = "peer_practice";
-      version = "0.1.0";
+      version = crateDetails.version;
     }
   );
 
@@ -47,7 +52,6 @@ let
         commonArgs
         // {
           pname = "peer_practice";
-          version = "0.0.0";
           CARGO_BUILD_TARGET = target;
           "${linkerVar}" = "${crossPkgs.stdenv.cc.targetPrefix}cc";
           "CC_${targetEnv}" = "${crossPkgs.stdenv.cc.targetPrefix}cc";

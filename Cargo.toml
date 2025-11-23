@@ -4,6 +4,7 @@ members = ["peer_practice", "peer_practice_messages", "peer_practice_server_serv
 resolver = "3"
 [workspace.package]
 license = "MIT OR Apache-2.0"
+version = "0.1.1"
 
 [workspace.dependencies]
 peer_practice_shared = { path = "peer_practice_shared" }

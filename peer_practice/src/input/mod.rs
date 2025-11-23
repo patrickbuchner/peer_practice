@@ -11,9 +11,9 @@ pub mod config;
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "config-cli",
+    name = "peer-practice",
     version,
-    about = "A simple config CLI using clap + TOML + env"
+    about = "The server backend for a peer-practice service."
 )]
 pub struct App {
     #[command(subcommand)]
