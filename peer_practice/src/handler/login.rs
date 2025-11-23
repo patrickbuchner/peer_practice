@@ -106,7 +106,7 @@ pub async fn pin_handler(
     if provided_pin != stored_pin {
         return Err(StatusCode::UNAUTHORIZED);
     }
-    
+
     let offset = 15;
     let access_claims = Claims {
         user_id: pin_login.id,

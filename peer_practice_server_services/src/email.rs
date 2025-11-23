@@ -19,7 +19,7 @@ pub struct EmailConfiguration {
     pub credentials: Credentials,
     pub from: Mailbox,
     pub reply_to: Mailbox,
-    pub tls_relay: String
+    pub tls_relay: String,
 }
 
 impl EmailConfiguration {
@@ -35,7 +35,7 @@ impl EmailConfiguration {
                 .wrap_err("Could not parse \"reply_to\" email address.")?,
             from: Mailbox::from_str(from).wrap_err("Could not parse \"from\" email address.")?,
             credentials: Credentials::new(credentials, password),
-            tls_relay
+            tls_relay,
         })
     }
 }

@@ -18,8 +18,13 @@ impl AppState {
         let ws_hub = ws_hub::spawn_ws_hub();
         let pending_logins = pending_logins::spawn_pending_logins_actor();
         let users = users::spawn_users_actor(storage.clone(), ws_hub.clone());
-        let email =
-            email::spawn_email_actor(config.email.clone().try_into().expect("Invalid email config."));
+        let email = email::spawn_email_actor(
+            config
+                .email
+                .clone()
+                .try_into()
+                .expect("Invalid email config."),
+        );
         let posts = posts::spawn_posts_actor(storage.clone(), ws_hub.clone());
 
         Self {

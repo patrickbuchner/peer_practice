@@ -2,9 +2,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::input::config::current::{Config, Envelope};
-use config::ConfigEnvelop;
 use crate::run;
 use clap::{Parser, Subcommand};
+use config::ConfigEnvelope;
 use eyre::{Context, eyre};
 
 pub mod config;
@@ -96,6 +96,6 @@ fn generate_default_file(path: &Path, force: bool) -> eyre::Result<()> {
 fn read_config_file(path: &Path) -> eyre::Result<Config> {
     let data = fs::read_to_string(path)
         .with_context(|| format!("Failed to read config file: {}", path.display()))?;
-    ConfigEnvelop::config(&data)
+    ConfigEnvelope::config(&data)
         .with_context(|| format!("Failed to parse config file in {}", path.display()))
 }

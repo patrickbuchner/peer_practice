@@ -1,7 +1,7 @@
-use eyre::Result;
 use clap::Parser;
-use peer_practice::input;
+use eyre::Result;
 use mimalloc::MiMalloc;
+use peer_practice::input;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

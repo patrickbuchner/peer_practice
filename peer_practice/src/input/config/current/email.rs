@@ -24,14 +24,14 @@ impl TryFrom<EmailConfig> for EmailConfiguration {
     }
 }
 
-impl From<EmailConfig> for crate::input::config::current::email::EmailConfig {
-    fn from(value: EmailConfig) -> Self {
-        Self {
-            from: value.from,
-            reply_to: value.reply_to,
-            password: value.password,
-            tls_relay: value.tls_relay,
-            credential_email_account: value.credential_email_account,
+impl Default for EmailConfig {
+    fn default() -> Self {
+        EmailConfig {
+            tls_relay: "smtp.gmail.com:587".to_string(),
+            password: "change-me-email-password".to_string(),
+            credential_email_account: "for@example.com".to_string(),
+            reply_to: "replay.to@example.com".to_string(),
+            from: "from@example.com".to_string(),
         }
     }
 }

@@ -10,17 +10,14 @@ pub struct ServerConfig {
     pub cors_allowed_origins: Vec<String>,
 }
 
-impl Default for ServerConfig {
-    fn default() -> Self {
-        ServerConfig {
-            data_dir: PathBuf::from("/data/peer_practice"),
-            port: 3000,
-            webroot: Some(PathBuf::from("web-leptos/dist")),
-            jwt_secret: "change-me-jwt-secret".to_string(),
-            cors_allowed_origins: vec![
-                "http://localhost".to_string(),
-                "https://localhost".to_string(),
-            ],
+impl From<ServerConfig> for crate::input::config::current::server::ServerConfig {
+    fn from(value: ServerConfig) -> Self {
+        Self {
+            jwt_secret: value.jwt_secret,
+            data_dir: value.data_dir,
+            port: value.port,
+            webroot: value.webroot,
+            cors_allowed_origins: value.cors_allowed_origins,
         }
     }
 }

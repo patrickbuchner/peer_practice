@@ -123,7 +123,8 @@ async fn setup(
                 id_to_user.insert(id, user.clone());
             }
         }
-        Err(e) => {error!("Failed to retrieve users: {}", e)}
+        Err(e) => {
+            error!("Failed to retrieve users: {}", e)
+        }
     }
-
 }
