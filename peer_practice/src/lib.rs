@@ -7,6 +7,7 @@ use std::path::Path;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::info;
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::input::config::current::Config;
@@ -28,7 +29,7 @@ async fn run(config: Config) -> Result<()> {
         )
     })?;
 
-    init_file_logging(&config.server.data_dir)?;
+    let _logging_guard = init_file_logging(&config.server.data_dir)?;
     let state = AppState::new(config.clone());
 
     tokio::spawn(services::run_expired_posts_reaper(
@@ -45,14 +46,14 @@ async fn run(config: Config) -> Result<()> {
         ServeDir::new(config.clone().server.webroot.unwrap()).not_found_service(ServeFile::new(
             format!("{}/index.html", config.server.webroot.unwrap().display()),
         ));
-    let cors = config
+    let cors_origin = config
         .server
         .cors_allowed_origins
         .iter()
         .map(HeaderValue::try_from)
         .map(|i| i.expect("Invalid CORS origin"))
         .collect::<Vec<_>>();
-    info!("CORS allowed origins: {:?}", cors);
+    info!("CORS allowed origins: {:?}", cors_origin);
 
     let app = Router::new()
         .fallback_service(serve_dir)
@@ -60,7 +61,7 @@ async fn run(config: Config) -> Result<()> {
         .route("/v1/login", post(login::login_handler))
         .route("/v1/ws", get(websocket::ws_handler))
         .with_state(state)
-        .layer(CorsLayer::new().allow_origin(cors).allow_methods([
+        .layer(CorsLayer::new().allow_origin(cors_origin).allow_methods([
             Method::POST,
             Method::GET,
             Method::OPTIONS,
@@ -75,15 +76,13 @@ async fn run(config: Config) -> Result<()> {
     Ok(())
 }
 
-fn init_file_logging(data_dir: &Path) -> Result<()> {
+fn init_file_logging(data_dir: &Path) -> Result<WorkerGuard> {
     // Respect RUST_LOG if set, otherwise default to info
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     // Create a daily rolling file appender in the data directory
     let file_appender = tracing_appender::rolling::daily(data_dir, "server.log");
     let (nb_writer, guard) = tracing_appender::non_blocking(file_appender);
-    // Leak the guard to keep the background worker alive for program lifetime
-    let _guard: &'static _ = Box::leak(Box::new(guard));
 
     // Build a JSON formatting layer that writes to the file
     let json_file_layer = tracing_subscriber::fmt::layer()
@@ -91,14 +90,16 @@ fn init_file_logging(data_dir: &Path) -> Result<()> {
         .json()
         .with_writer(nb_writer);
 
-    // If you also want console logs, uncomment the next line
-    // let stdout_layer = tracing_subscriber::fmt::layer();
-
-    tracing_subscriber::registry()
+    let subscriber = tracing_subscriber::registry()
         .with(filter)
-        .with(json_file_layer)
-        // .with(stdout_layer)
-        .init();
+        .with(json_file_layer);
 
-    Ok(())
+    #[cfg(debug_assertions)]
+    let subscriber = {
+        let stdout_layer = tracing_subscriber::fmt::layer();
+        subscriber.with(stdout_layer)
+    };
+
+    subscriber.init();
+    Ok(guard)
 }
