@@ -68,6 +68,7 @@ let
             rustToolchain
           ];
           doCheck = false;
+          RUSTFLAGS = "-C debuginfo=0";
         }
       )
     );

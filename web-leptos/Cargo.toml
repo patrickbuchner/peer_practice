@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 license.workspace = true
 
-
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] }
 leptos_router = "0.8"
@@ -21,3 +20,6 @@ futures-channel = "0.3.31"
 pulldown-cmark = "0.13.0"
 ammonia = "4.1.1"
 chrono.workspace = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['--enable-bulk-memory']

@@ -57,16 +57,16 @@ enum Commands {
         force: bool,
     },
 
-    /// Run with merged config from (precedence) CLI > TOML > env
+    /// Run with merged config from (precedence) TOML
     Run {
-        /// Optional TOML config file path
+        /// TOML config file path
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
     },
 
     /// Show current configuration (differences from defaults by default)
     Show {
-        /// Optional TOML config file path
+        /// TOML config file path
         #[arg(long, value_name = "FILE")]
         config: PathBuf,
     },
