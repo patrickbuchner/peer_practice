@@ -3,7 +3,7 @@
 # Requires: Nix with flakes enabled and SSH access to t
 
 # Build the aarch64 combined app defined in flake.nix
-nix build .#app-aarch64
+nix build .#packages.aarch64-linux.app-native
 
 # Sync the web assets (dist/) and the server binary to the target
 # -L / --copy-links ensures we copy the actual files, not symlinks from symlinkJoin/Nix store
