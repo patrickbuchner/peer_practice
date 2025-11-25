@@ -29,7 +29,8 @@ in
   # Run tests using cargo-nextest
   peer_practice_test = craneLib.cargoNextest (
     commonArgs
-    // {inherit cargoArtifacts;
+    // {
+      inherit cargoArtifacts;
       partitions = 1;
       partitionType = "count";
     }
@@ -38,13 +39,15 @@ in
   # Run clippy linting
   peer_practice_clippy = craneLib.cargoClippy (
     commonArgs
-    // {inherit cargoArtifacts;
+    // {
+      inherit cargoArtifacts;
       cargoClippyExtraArgs = "--all-targets -- --deny warnings";
     }
   );
 
   # Check formatting
-  peer_practice_fmt = craneLib.cargoFmt(commonArgs) // {inherit cargoArtifacts;
+  peer_practice_fmt = craneLib.cargoFmt (commonArgs) // {
+    inherit cargoArtifacts;
     inherit src;
   };
 }

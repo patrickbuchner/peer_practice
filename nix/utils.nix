@@ -30,21 +30,4 @@
         webPkgInDist # Use the new wrapped package
       ];
     };
-  makeConfiguredApp =
-    {
-      pname,
-      combinedApp,
-      version,
-    }:
-    let
-      binaryName = "peer_practice";
-
-      scriptBin = pkgs.writeShellScriptBin pname ''
-        exec ${combinedApp}/bin/${binaryName} "$@"
-      '';
-    in
-    pkgs.symlinkJoin {
-      name = "${pname}-${version}";
-      paths = [ scriptBin ];
-    };
 }

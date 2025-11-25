@@ -36,7 +36,7 @@ let
     targets = [ "aarch64-unknown-linux-musl" ];
   };
   rustToolchainX86_64 = pkgs.rust-bin.stable.latest.default.override {
-    targets = [ "x86_64-unknown-linux-gnu" ];
+    targets = [ "x86_64-unknown-linux-musl" ];
   };
 
   # Helper to produce a cross-compiled server package for a given target
@@ -51,7 +51,7 @@ let
       (
         commonArgs
         // {
-          pname = "peer_practice";
+          pname = "peer-practice";
           version = crateDetails.version;
           CARGO_BUILD_TARGET = target;
           "${linkerVar}" = "${crossPkgs.stdenv.cc.targetPrefix}cc";
@@ -77,7 +77,7 @@ let
     makeTargetPkg "aarch64-unknown-linux-musl" pkgs.pkgsCross.aarch64-multiplatform-musl
       rustToolchainAarch64;
   peer_practice_x86_64 =
-    makeTargetPkg "x86_64-unknown-linux-gnu" pkgs.pkgsCross.x86_64-multiplatform
+    makeTargetPkg "x86_64-unknown-linux-musl" pkgs.pkgsCross.musl64
       rustToolchainX86_64;
 in
 {
