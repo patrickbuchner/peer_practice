@@ -5,6 +5,7 @@
 }:
 let
   craneLib = crane.mkLib pkgs;
+  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
   # Re-use the same source definition as backend to maximize caching
   src = pkgs.lib.fileset.toSource {
@@ -28,7 +29,7 @@ in
   # Run tests using cargo-nextest
   peer_practice_test = craneLib.cargoNextest (
     commonArgs
-    // {
+    // {inherit cargoArtifacts;
       partitions = 1;
       partitionType = "count";
     }
@@ -37,13 +38,13 @@ in
   # Run clippy linting
   peer_practice_clippy = craneLib.cargoClippy (
     commonArgs
-    // {
+    // {inherit cargoArtifacts;
       cargoClippyExtraArgs = "--all-targets -- --deny warnings";
     }
   );
 
   # Check formatting
-  peer_practice_fmt = craneLib.cargoFmt {
+  peer_practice_fmt = craneLib.cargoFmt(commonArgs) // {inherit cargoArtifacts;
     inherit src;
   };
 }

@@ -46,6 +46,7 @@
             backend
             frontend
             ;
+          root = ./.;
         };
       in
       {
@@ -65,6 +66,7 @@
             backend
             frontend
             ;
+          root = ./.;
         };
 
         devShells.default = import ./nix/shell.nix { inherit pkgs; };

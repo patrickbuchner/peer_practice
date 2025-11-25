@@ -56,6 +56,7 @@ in
 # Use crane's dedicated Trunk builder for workspace-based apps
 craneLib.buildTrunkPackage {
   pname = "web-leptos";
+  version = crateDetails.version;
   inherit src;
 
   cargoArtifacts = cargoArtifactsWasm;

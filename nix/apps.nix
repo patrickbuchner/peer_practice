@@ -3,6 +3,7 @@
   # Executed via `nix run`
   default = {
     type = "app";
+    version = "123.234.345";
     program = "${packages.peer-practice-configured}/bin/peer-practice-configured";
   };
 

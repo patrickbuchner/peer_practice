@@ -5,6 +5,7 @@
       serverPkg,
       webPkg,
       pname,
+      version,
     }:
     let
       # Wrap the web package contents (webPkg) inside a 'dist' directory
@@ -23,7 +24,7 @@
 
     in
     pkgs.symlinkJoin {
-      name = pname;
+      name = "${pname}-${version}";
       paths = [
         serverPkg
         webPkgInDist # Use the new wrapped package
@@ -33,11 +34,17 @@
     {
       pname,
       combinedApp,
+      version,
     }:
     let
       binaryName = "peer_practice";
+
+      scriptBin = pkgs.writeShellScriptBin pname ''
+        exec ${combinedApp}/bin/${binaryName} "$@"
+      '';
     in
-    pkgs.writeShellScriptBin pname ''
-      exec ${combinedApp}/bin/${binaryName} "$@"
-    '';
+    pkgs.symlinkJoin {
+      name = "${pname}-${version}";
+      paths = [ scriptBin ];
+    };
 }

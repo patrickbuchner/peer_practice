@@ -52,6 +52,7 @@ let
         commonArgs
         // {
           pname = "peer_practice";
+          version = crateDetails.version;
           CARGO_BUILD_TARGET = target;
           "${linkerVar}" = "${crossPkgs.stdenv.cc.targetPrefix}cc";
           "CC_${targetEnv}" = "${crossPkgs.stdenv.cc.targetPrefix}cc";
