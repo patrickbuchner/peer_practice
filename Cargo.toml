@@ -29,8 +29,14 @@ lettre = { version = "0.11", default-features = false, features = [
     "serde", "smtp-transport", "sendmail-transport", "builder", "tokio1-rustls", "ring", "rustls-platform-verifier"] }
 reqwest = { version = "0.12.23", features = ["json"] }
 
-[profile.dev]
-opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
+[profile.dev.package."peer_practice_shared"]
+opt-level = 0
+[profile.dev.package."peer_practice_messages"]
+opt-level = 0
+[profile.dev.package."peer_practice_server_services"]
+opt-level = 0
 
 [profile.release]
 opt-level = 3

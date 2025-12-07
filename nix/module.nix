@@ -7,10 +7,11 @@
 }:
 let
   cfg = config.services.peer-practice;
-  defaultPackage = self.packages.${pkgs.system}.app-native;
+  defaultPackage = self.packages.${pkgs.stdenv.hostPlatform.system}.app-native;
 
   serverConfig = {
-    version = "V2025_11_17";
+    version = "V2025_11_23";
+
     email = {
       inherit (cfg.email)
         from
@@ -18,15 +19,16 @@ let
         tls_relay
         credential_email_account
         ;
-      # If the password is set in nix, use it. Otherwise rely on runtime env/file replacement if your app supports it.
-      # Assuming your app reads this raw from TOML:
-      password = cfg.email.password;
+      # Write password_file instead of an inline password
+      password_file = cfg.email.password_file;
     };
+
     server = {
-      # Dynamically point to the package's dist folder
+      # Keep dynamic webroot pointing at built dist, still matches TOML key
       webroot = "${cfg.package}/dist";
+
       inherit (cfg)
-        jwt_secret
+        jwt_secret_file
         data_dir
         port
         cors_allowed_origins
@@ -59,9 +61,9 @@ in
       description = "Directory to store application data.";
     };
 
-    jwt_secret = lib.mkOption {
-      type = lib.types.str;
-      description = "Secret for JWT generation.";
+    jwt_secret_file = lib.mkOption {
+      type = lib.types.path;
+      description = "Path to file containing the JWT secret.";
     };
 
     cors_allowed_origins = lib.mkOption {
@@ -87,9 +89,10 @@ in
         type = lib.types.str;
         default = "user@example.com";
       };
-      password = lib.mkOption {
-        type = lib.types.str;
-        description = "Email password (WARNING: stored in world-readable nix store if set here)";
+      password_file = lib.mkOption {
+        type = lib.types.path;
+        default = "/var/peer_practice/email-password.txt";
+        description = "Path to file containing the email account password.";
       };
     };
   };
