@@ -21,6 +21,7 @@ let
           "html"
           "scss"
           "css"
+          "svg"
         ]
       ) root)
       (lib.fileset.maybeMissing (root + "/assets"))
