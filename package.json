@@ -4,8 +4,8 @@
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.12",
-    "tailwindcss": "^4.1.12"
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@catppuccin/tailwindcss": "^1.0.0"
