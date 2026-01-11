@@ -4,7 +4,7 @@ pkgs.mkShell {
     bash
     fish
     rustup
-    nodejs_20
+    nodejs_24
     trunk
     wasm-bindgen-cli
     openssl.dev

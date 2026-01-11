@@ -8,6 +8,7 @@
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
-    "@catppuccin/tailwindcss": "^1.0.0"
+    "@catppuccin/tailwindcss": "^1.0.0",
+    "@tailwindcss/language-server": "^0.14.29"
   }
 }
