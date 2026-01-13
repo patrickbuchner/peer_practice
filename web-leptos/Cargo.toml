@@ -13,11 +13,11 @@ reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 peer_practice_shared.workspace = true
-tracing-wasm = "0.2.1"
+tracing-wasm = "0.2"
 futures-util = { version = "0.3.31", features = ["futures-channel", "channel"] }
 futures-channel = "0.3.31"
-pulldown-cmark = "0.13.0"
-ammonia = "4.1.2"
+pulldown-cmark = "0.13"
+ammonia = "4.1"
 chrono.workspace = true
 
 [package.metadata.wasm-pack.profile.release]
