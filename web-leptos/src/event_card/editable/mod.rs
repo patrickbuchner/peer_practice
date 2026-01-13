@@ -9,6 +9,7 @@ use crate::event_card::editable::draft::{Draft, clear_draft, save_draft};
 use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::messages::ClientToServer;
+use peer_practice_shared::messages::client_to_server::PostAction;
 use peer_practice_shared::post::Topics;
 use peer_practice_shared::{convert_to_utc, convert_utc_to_local_date, ymd};
 
@@ -113,7 +114,7 @@ pub fn EventCardEditable(
                         date: convert_to_utc(date),
                         partaking_users: existing.partaking_users.clone(),
                     };
-                    state.send(ClientToServer::UpdatePost(post_id, updated));
+                    state.send(ClientToServer::Post(PostAction::UpdatePost(post_id, updated)));
                     clear_draft(post_id);
                     set_has_draft.set(false);
                 } else {
@@ -128,7 +129,7 @@ pub fn EventCardEditable(
                         date: convert_to_utc(date),
                         partaking_users: Default::default(),
                     };
-                    state.send(ClientToServer::NewPost(new_post));
+                    state.send(ClientToServer::Post(PostAction::NewPost(new_post)));
                     clear_draft(post_id);
                     set_has_draft.set(false);
                     if let Some(cb) = on_submitted {
@@ -356,7 +357,7 @@ pub fn EventCardEditable(
                                 confirm_message="This action cannot be undone.".to_string()
                                 on_confirm=Callback::new({
                                     move |_| {
-                                        state.send(ClientToServer::DeletePost(post_id));
+                                        state.send(ClientToServer::Post(PostAction::DeletePost(post_id)));
                                     }
                                 })
                             />

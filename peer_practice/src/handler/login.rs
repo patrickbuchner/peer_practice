@@ -9,11 +9,11 @@ use tokio::sync::oneshot;
 
 use crate::app_state::AppState;
 use crate::handler::claims::Claims;
+use peer_practice_messages::current::authentication::login_data::{LoginData, PinLogin};
+use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::email::EmailMsg;
 use peer_practice_server_services::pending_logins::PendingLoginsMsg;
 use peer_practice_server_services::users::UsersMsg;
-use peer_practice_shared::authentication::login_data::{LoginData, PinLogin};
-use peer_practice_shared::user::UserId;
 use rand::prelude::*;
 use tower_sessions::cookie::time::OffsetDateTime;
 

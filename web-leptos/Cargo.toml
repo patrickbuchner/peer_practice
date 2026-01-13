@@ -1,6 +1,6 @@
 [package]
 name = "web-leptos"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license.workspace = true
 
@@ -13,7 +13,6 @@ reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 peer_practice_shared.workspace = true
-#tracing-log = "0.2.0"
 tracing-wasm = "0.2.1"
 futures-util = { version = "0.3.31", features = ["futures-channel", "channel"] }
 futures-channel = "0.3.31"

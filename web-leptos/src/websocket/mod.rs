@@ -5,7 +5,9 @@ use futures_util::{SinkExt, StreamExt};
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use peer_practice_shared::messages::{ClientToServer, ServerToClient};
+use peer_practice_shared::Envelope;
+use peer_practice_shared::messages::server_to_client::{PostAction, UserAction};
+use peer_practice_shared::messages::{ClientToServer, ServerToClient, client_to_server};
 use std::cell::Cell;
 use std::rc::Rc;
 use web_sys::wasm_bindgen::prelude::*;
@@ -85,8 +87,7 @@ fn connect(
             first_ws_attempt_completed.set(true);
         }
         spawn_local(async move {
-            
-            _ = tx_get.send(ClientToServer::GetPosts).await;
+            _ = tx_get.send(ClientToServer::Hello).await;
         });
     }));
     ws.set_onopen(Some(onopen.as_ref().unchecked_ref()));
@@ -94,9 +95,10 @@ fn connect(
 
     let onmessage = Closure::<dyn FnMut(MessageEvent)>::wrap(Box::new(move |e: MessageEvent| {
         if let Some(txt) = e.data().as_string() {
-            match serde_json::from_str::<ServerToClient>(&txt) {
-                Ok(msg) => handle_websocket_messages(write_state, state, msg),
-                Err(err) => log!("Failed to deserialize ServerToClient: {}", err),
+            log!("Received message: {}", txt);
+            match serde_json::from_str::<Envelope<ServerToClient>>(&txt) {
+                Ok(envelope) => handle_websocket_messages(write_state, state, envelope.data),
+                Err(err) => log!("Failed to deserialize Envelope<ServerToClient>: {}", err),
             }
         }
     }));
@@ -118,7 +120,8 @@ fn connect(
 
     spawn_local(async move {
         while let Some(msg) = rx.next().await {
-            if let Ok(text) = serde_json::to_string(&msg)
+            let envelope = peer_practice_shared::create_envelope(msg);
+            if let Ok(text) = serde_json::to_string(&envelope)
                 && let Err(e) = ws.clone().send_with_str(&text)
             {
                 log!(
@@ -136,23 +139,32 @@ fn handle_websocket_messages(
     msg: ServerToClient,
 ) {
     match msg {
-        ServerToClient::User(id, user) => {
-            state_writer.users.update(|s| {
-                s.insert(id, user);
-            });
-        }
-        ServerToClient::Post(id, post) => {
-            state_writer.users.update(|s| {
-                if !s.contains_key(&post.owner) {
-                    state.send(ClientToServer::GetUser(post.owner));
-                }
-            });
-            state_writer.posts.write().insert(id, post);
-        }
-        ServerToClient::YouAre(id) => {
-            state_writer.user_id.set(Some(id));
-            state.send(ClientToServer::GetUser(id));
-        }
-        ServerToClient::RemovedPost(id) => _ = state_writer.posts.write().remove(&id),
+        ServerToClient::User(user_action) => match user_action {
+            UserAction::User(id, user) => {
+                state_writer.users.update(|s| {
+                    s.insert(id, user);
+                });
+            }
+            UserAction::YouAre(id) => {
+                state_writer.user_id.set(Some(id));
+                state.send(ClientToServer::User(client_to_server::UserAction::Get(id)));
+
+                state.send(ClientToServer::Post(client_to_server::PostAction::GetPosts));
+            }
+        },
+        ServerToClient::Post(post_action) => match post_action {
+            PostAction::Post(id, post) => {
+                state_writer.users.update(|s| {
+                    if !s.contains_key(&post.owner) {
+                        state.send(ClientToServer::User(client_to_server::UserAction::Get(
+                            post.owner,
+                        )));
+                    }
+                });
+                state_writer.posts.write().insert(id, post);
+            }
+            PostAction::RemovedPost(id) => _ = state_writer.posts.write().remove(&id),
+        },
+        _ => log!("Received unhandled message type"),
     }
 }

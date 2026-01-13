@@ -41,8 +41,7 @@ impl Default for EmailConfig {
 impl TryFrom<EmailConfig> for crate::input::config::current::email::EmailConfig {
     type Error = eyre::Error;
     fn try_from(value: EmailConfig) -> Result<Self, Self::Error> {
-        let password =
-            std::fs::read_to_string(&value.password_file)?;
+        let password = std::fs::read_to_string(&value.password_file)?;
         Ok(Self {
             from: value.from,
             reply_to: value.reply_to,

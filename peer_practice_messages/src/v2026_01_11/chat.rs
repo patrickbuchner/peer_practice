@@ -35,7 +35,7 @@ impl ChatId {
         self.id
     }
 
-    pub  fn from_id(id: Uuid) -> Self {
+    pub fn from_id(id: Uuid) -> Self {
         Self { id }
     }
 }

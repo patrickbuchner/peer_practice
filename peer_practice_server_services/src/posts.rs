@@ -1,12 +1,12 @@
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::messages::ServerToClient;
+use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::post::{Post, PostId};
 use peer_practice_messages::current::user::UserId;
 use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
-use peer_practice_messages::current::messages::server_to_client::PostAction;
 
 #[derive(Debug)]
 pub enum PostsMsg {
@@ -35,16 +35,18 @@ pub fn spawn_posts_actor(
                 PostsMsg::Upsert(id, post) => {
                     posts.insert(id, post.clone());
                     let _ = ws_hub
-                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(id, post))))
+                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                            PostAction::Post(id, post),
+                        )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                 }
                 PostsMsg::Remove(id) => {
                     posts.remove(&id);
                     let _ = ws_hub
-                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::RemovedPost(
-                            id,
-                        ))))
+                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                            PostAction::RemovedPost(id),
+                        )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                 }
@@ -61,7 +63,9 @@ pub fn spawn_posts_actor(
                     posts.insert(id, post.clone());
                     let _ = sender.send(id);
                     let _ = ws_hub
-                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(id, post))))
+                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                            PostAction::Post(id, post),
+                        )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                 }
@@ -69,10 +73,9 @@ pub fn spawn_posts_actor(
                     if let Some(post) = posts.get_mut(&post_id) {
                         post.partaking_users.insert(user);
                         let _ = ws_hub
-                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(
-                                post_id,
-                                post.clone(),
-                            ))))
+                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                                PostAction::Post(post_id, post.clone()),
+                            )))
                             .await;
                         let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                     }
@@ -81,10 +84,9 @@ pub fn spawn_posts_actor(
                     if let Some(post) = posts.get_mut(&post_id) {
                         post.partaking_users.remove(&user);
                         let _ = ws_hub
-                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(
-                                post_id,
-                                post.clone(),
-                            ))))
+                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                                PostAction::Post(post_id, post.clone()),
+                            )))
                             .await;
                         let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                     }

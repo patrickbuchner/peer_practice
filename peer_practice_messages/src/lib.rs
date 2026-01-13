@@ -6,11 +6,16 @@ pub mod v2025_10_14;
 
 pub mod v2026_01_11;
 
-#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum Version {
     #[default]
     V2026_01_11,
     V2025_10_14,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct EnvelopeHeader {
+    pub version: Version,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

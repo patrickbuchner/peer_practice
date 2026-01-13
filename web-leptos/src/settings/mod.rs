@@ -26,6 +26,8 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
     let (name, set_name) = signal(initial_name);
     let (saving, set_saving) = signal(false);
 
+    use peer_practice_shared::messages::client_to_server::UserAction;
+
     let (accent_color, set_accent_color) = signal(AccentColor::Teal);
     let accent_css = {
         let (ro, set) = signal(accent_color.get_untracked().css_var().to_string());
@@ -41,10 +43,10 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
         set_saving.set(true);
         let new_name = name.get();
         let id = state.user_id.get().unwrap();
-        state.send(ClientToServer::UpdateUser(UserDisplay {
+        state.send(ClientToServer::User(UserAction::Update(UserDisplay {
             id,
             display_name: Some(new_name.clone()),
-        }));
+        })));
 
         set_saving.set(false);
     };

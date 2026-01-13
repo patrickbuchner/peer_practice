@@ -12,6 +12,8 @@ use std::sync::Arc;
 pub mod editable;
 pub mod readonly;
 
+use peer_practice_shared::messages::client_to_server::PostAction;
+
 #[derive(Clone, PartialEq)]
 pub struct EventCardProps {
     pub id: PostId,
@@ -57,9 +59,9 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
 
     let toggle_join = move || {
         if partaking() {
-            state.send(ClientToServer::Leave(props.id));
+            state.send(ClientToServer::Post(PostAction::Leave(props.id)));
         } else {
-            state.send(ClientToServer::Join(props.id));
+            state.send(ClientToServer::Post(PostAction::Join(props.id)));
         }
     };
 

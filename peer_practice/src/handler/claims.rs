@@ -1,4 +1,4 @@
-use peer_practice_shared::user::UserId;
+use peer_practice_messages::current::user::UserId;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {

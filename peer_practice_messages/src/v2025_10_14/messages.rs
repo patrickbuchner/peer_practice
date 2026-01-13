@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerToClient {
+    MessageNotYetKnown,
     User(UserId, UserDisplay),
     Post(PostId, Post),
     RemovedPost(PostId),
@@ -12,6 +13,7 @@ pub enum ServerToClient {
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientToServer {
+    MessageNotYetKnown,
     Hello,
     GetUser(UserId),
     UpdateUser(UserDisplay),
