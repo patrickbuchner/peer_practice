@@ -7,7 +7,7 @@ license.workspace = true
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] }
 leptos_router = "0.8"
-web-sys = { version = "0.3.77", features = ["ErrorEvent", "WebSocket", "MessageEvent", "Navigator", "Storage"] }
+web-sys = { version = "0.3", features = ["ErrorEvent", "WebSocket", "MessageEvent", "Navigator", "Storage"] }
 console_error_panic_hook = "0.1"
 reqwest.workspace = true
 serde.workspace = true
@@ -18,7 +18,7 @@ tracing-wasm = "0.2.1"
 futures-util = { version = "0.3.31", features = ["futures-channel", "channel"] }
 futures-channel = "0.3.31"
 pulldown-cmark = "0.13.0"
-ammonia = "4.1.1"
+ammonia = "4.1.2"
 chrono.workspace = true
 
 [package.metadata.wasm-pack.profile.release]

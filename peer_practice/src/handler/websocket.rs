@@ -50,7 +50,7 @@ async fn handle_socket(mut socket: WebSocket, user_id: UserId, state: AppState) 
         })
         .await;
 
-    let (_connection_handle, mut hub_rx) = match rx.await {
+    let (connection_handle, mut hub_rx) = match rx.await {
         Ok(result) => result,
         Err(e) => {
             error!(
@@ -60,17 +60,8 @@ async fn handle_socket(mut socket: WebSocket, user_id: UserId, state: AppState) 
             return;
         }
     };
-    if socket
-        .send(Message::Text(
-            serde_json::to_string(&ServerToClient::YouAre(user_id))
-                .unwrap()
-                .into(),
-        ))
-        .await
-        .is_err()
-    {
-        return;
-    }
+
+    let connection_id = connection_handle.id();
 
     loop {
         tokio::select! {
@@ -99,7 +90,7 @@ async fn handle_socket(mut socket: WebSocket, user_id: UserId, state: AppState) 
                         info!("Received message from {:?}: {}", user_id, text);
                         match serde_json::from_str::<ClientToServer>(&text) {
                             Ok(msg) => {
-                                handle_websocket_message(&mut socket, &state, user_id, msg).await;
+                                handle_websocket_message(connection_id, &state, user_id, msg).await;
                             }
                             Err(e) => {
                                 error!("Failed to parse ClientToServer from {:?}: {}", user_id, e);

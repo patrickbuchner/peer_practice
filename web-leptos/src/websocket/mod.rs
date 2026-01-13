@@ -85,6 +85,7 @@ fn connect(
             first_ws_attempt_completed.set(true);
         }
         spawn_local(async move {
+            
             _ = tx_get.send(ClientToServer::GetPosts).await;
         });
     }));

@@ -23,6 +23,11 @@ pub enum WsHubMsg {
         user_id: UserId,
         msg: ServerToClient,
     },
+    Send {
+        user_id: UserId,
+        con_id: ConnectionId,
+        msg: ServerToClient,
+    },
 }
 
 #[derive(Clone)]
@@ -30,6 +35,12 @@ pub struct ConnectionHandle {
     hub_tx: mpsc::Sender<WsHubMsg>,
     user_id: UserId,
     connection_id: ConnectionId,
+}
+
+impl ConnectionHandle {
+    pub fn id(&self) -> ConnectionId {
+        self.connection_id
+    }
 }
 
 impl Drop for ConnectionHandle {
@@ -85,6 +96,16 @@ pub fn spawn_ws_hub() -> mpsc::Sender<WsHubMsg> {
                         let _ = sender.send(msg.clone());
                     }),
                 },
+                WsHubMsg::Send {
+                    user_id,
+                    con_id,
+                    msg,
+                } => {
+                    if let Some(sender) = groups.get_mut(&user_id).and_then(|con| con.get(&con_id))
+                    {
+                        let _ = sender.send(msg);
+                    }
+                }
             }
         }
     });

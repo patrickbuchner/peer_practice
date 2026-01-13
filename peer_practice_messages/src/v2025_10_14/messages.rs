@@ -12,6 +12,7 @@ pub enum ServerToClient {
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientToServer {
+    Hello,
     GetUser(UserId),
     UpdateUser(UserDisplay),
     GetPosts,

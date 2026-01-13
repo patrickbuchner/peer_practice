@@ -5,6 +5,7 @@ use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
+use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::user::{User, UserId};
 use tokio::sync::mpsc::Sender;
 use tracing::{error, info};
@@ -81,8 +82,7 @@ pub fn spawn_users_actor(
                         .await;
                     let _ = ws_hub
                         .send(WsHubMsg::BroadcastAll(ServerToClient::User(
-                            id,
-                            user.into(),
+                            UserAction::User(id, user.into()),
                         )))
                         .await;
                 }

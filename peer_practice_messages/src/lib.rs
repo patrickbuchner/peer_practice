@@ -1,5 +1,5 @@
 pub mod current {
-    pub use super::v2025_10_14::*;
+    pub use super::v2026_01_11::*;
 }
 
 pub mod v2025_10_14;
@@ -9,6 +9,7 @@ pub mod v2026_01_11;
 #[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Version {
     #[default]
+    V2026_01_11,
     V2025_10_14,
 }
 
