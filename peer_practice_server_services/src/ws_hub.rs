@@ -1,6 +1,7 @@
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::user::UserId;
 use std::collections::HashMap;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
@@ -52,63 +53,57 @@ impl Drop for ConnectionHandle {
     }
 }
 
-pub fn spawn_ws_hub() -> mpsc::Sender<WsHubMsg> {
-    let (tx, mut rx) = mpsc::channel::<WsHubMsg>(128);
+pub async fn handle_ws_hub_actions(
+    mut rx: Receiver<WsHubMsg>,
+    hub_tx_for_handles: Sender<WsHubMsg>,
+) {
     let mut groups: HashMap<UserId, HashMap<ConnectionId, mpsc::UnboundedSender<ServerToClient>>> =
         HashMap::new();
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            WsHubMsg::Join {
+                user_id,
+                respond_to,
+            } => {
+                let (conn_tx, conn_rx) = mpsc::unbounded_channel();
+                let conn_id = ConnectionId { id: Uuid::new_v4() };
 
-    let hub_tx_for_handles = tx.clone();
-
-    tokio::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                WsHubMsg::Join {
+                groups.entry(user_id).or_default().insert(conn_id, conn_tx);
+                let handle = ConnectionHandle {
+                    hub_tx: hub_tx_for_handles.clone(),
                     user_id,
-                    respond_to,
-                } => {
-                    let (conn_tx, conn_rx) = mpsc::unbounded_channel();
-                    let conn_id = ConnectionId { id: Uuid::new_v4() };
+                    connection_id: conn_id,
+                };
 
-                    groups.entry(user_id).or_default().insert(conn_id, conn_tx);
-                    let handle = ConnectionHandle {
-                        hub_tx: hub_tx_for_handles.clone(),
-                        user_id,
-                        connection_id: conn_id,
-                    };
+                let _ = respond_to.send((handle, conn_rx));
+            }
+            WsHubMsg::Leave {
+                user_id,
+                connection_id,
+            } => {
+                let _ = groups.get_mut(&user_id).unwrap().remove(&connection_id);
+            }
+            WsHubMsg::BroadcastAll(msg) => {
+                for sender in groups.values_mut().flat_map(|con| con.values_mut()) {
+                    let _ = sender.send(msg.clone());
+                }
+            }
 
-                    let _ = respond_to.send((handle, conn_rx));
-                }
-                WsHubMsg::Leave {
-                    user_id,
-                    connection_id,
-                } => {
-                    let _ = groups.get_mut(&user_id).unwrap().remove(&connection_id);
-                }
-                WsHubMsg::BroadcastAll(msg) => {
-                    for sender in groups.values_mut().flat_map(|con| con.values_mut()) {
-                        let _ = sender.send(msg.clone());
-                    }
-                }
-
-                WsHubMsg::BroadcastUser { user_id, msg } => match groups.get_mut(&user_id) {
-                    None => {}
-                    Some(cons) => cons.values_mut().for_each(|sender| {
-                        let _ = sender.send(msg.clone());
-                    }),
-                },
-                WsHubMsg::Send {
-                    user_id,
-                    con_id,
-                    msg,
-                } => {
-                    if let Some(sender) = groups.get_mut(&user_id).and_then(|con| con.get(&con_id))
-                    {
-                        let _ = sender.send(msg);
-                    }
+            WsHubMsg::BroadcastUser { user_id, msg } => match groups.get_mut(&user_id) {
+                None => {}
+                Some(cons) => cons.values_mut().for_each(|sender| {
+                    let _ = sender.send(msg.clone());
+                }),
+            },
+            WsHubMsg::Send {
+                user_id,
+                con_id,
+                msg,
+            } => {
+                if let Some(sender) = groups.get_mut(&user_id).and_then(|con| con.get(&con_id)) {
+                    let _ = sender.send(msg);
                 }
             }
         }
-    });
-
-    tx
+    }
 }

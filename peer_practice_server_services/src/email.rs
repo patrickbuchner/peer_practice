@@ -5,6 +5,7 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::response::Response;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use std::str::FromStr;
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::{mpsc, oneshot};
 
 pub enum EmailMsg {
@@ -39,26 +40,19 @@ impl EmailConfiguration {
         })
     }
 }
-
-pub fn spawn_email_actor(config: EmailConfiguration) -> mpsc::Sender<EmailMsg> {
-    let (tx, mut rx) = mpsc::channel::<EmailMsg>(64);
-
-    tokio::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                EmailMsg::SendLoginMail {
-                    target,
-                    validation_code,
-                    respond_to,
-                } => {
-                    let res = send_login_mail(&config, target, validation_code).await;
-                    let _ = respond_to.send(res);
-                }
+pub async fn handle_email_actions(config: EmailConfiguration, mut rx: Receiver<EmailMsg>) {
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            EmailMsg::SendLoginMail {
+                target,
+                validation_code,
+                respond_to,
+            } => {
+                let res = send_login_mail(&config, target, validation_code).await;
+                let _ = respond_to.send(res);
             }
         }
-    });
-
-    tx
+    }
 }
 
 async fn send_login_mail(

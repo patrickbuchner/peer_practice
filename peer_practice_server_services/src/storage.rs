@@ -8,6 +8,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::{mpsc, oneshot};
 use tracing::{error, info, trace};
 
@@ -42,74 +43,68 @@ async fn load_snapshot(namespace: &str, work_dir: &Path) -> Value {
     }
 }
 
-pub fn spawn_storage_actor(work_dir: PathBuf) -> mpsc::Sender<StorageMsg> {
-    let (tx, mut rx) = mpsc::channel::<StorageMsg>(128);
+pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<StorageMsg>) {
+    if let Err(err) = fs::create_dir_all(&work_dir).await {
+        error!("Failed to create work_dir {:?}: {}", work_dir, err);
+    }
 
-    tokio::spawn(async move {
-        if let Err(err) = fs::create_dir_all(&work_dir).await {
-            error!("Failed to create work_dir {:?}: {}", work_dir, err);
-        }
-
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                StorageMsg::SavePosts(posts) => {
-                    let pairs = posts
-                        .iter()
-                        .map(|(id, post)| json!([id, post]))
-                        .collect::<Vec<_>>();
-                    save_snapshot("posts", &Value::Array(pairs), &work_dir).await;
-                }
-                StorageMsg::RetrievePosts { respond_to } => {
-                    let mut posts = HashMap::new();
-                    let value = load_snapshot("posts", &work_dir).await;
-                    if let Value::Array(entries) = value {
-                        for entry in entries {
-                            if let Value::Array(mut pair) = entry
-                                && pair.len() == 2
-                                && let (Ok(id), Ok(post)) = (
-                                    serde_json::from_value::<PostId>(pair.remove(0)),
-                                    serde_json::from_value::<Post>(pair.remove(0)),
-                                )
-                            {
-                                posts.insert(id, post.clone());
-                            }
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            StorageMsg::SavePosts(posts) => {
+                let pairs = posts
+                    .iter()
+                    .map(|(id, post)| json!([id, post]))
+                    .collect::<Vec<_>>();
+                save_snapshot("posts", &Value::Array(pairs), &work_dir).await;
+            }
+            StorageMsg::RetrievePosts { respond_to } => {
+                let mut posts = HashMap::new();
+                let value = load_snapshot("posts", &work_dir).await;
+                if let Value::Array(entries) = value {
+                    for entry in entries {
+                        if let Value::Array(mut pair) = entry
+                            && pair.len() == 2
+                            && let (Ok(id), Ok(post)) = (
+                                serde_json::from_value::<PostId>(pair.remove(0)),
+                                serde_json::from_value::<Post>(pair.remove(0)),
+                            )
+                        {
+                            posts.insert(id, post.clone());
                         }
                     }
+                }
 
-                    let _ = respond_to.send(posts);
-                }
-                StorageMsg::SaveUsers(users) => {
-                    let pairs = users
-                        .iter()
-                        .map(|(id, user)| json!([id, user]))
-                        .collect::<Vec<_>>();
-                    save_snapshot("users", &Value::Array(pairs), &work_dir).await;
-                }
-                StorageMsg::RetrieveUsers { respond_to } => {
-                    let mut users = HashMap::new();
-                    let value = load_snapshot("users", &work_dir).await;
-                    info!("Retrieved users: {:?}", value);
-                    if let Value::Array(entries) = value {
-                        for entry in entries {
-                            if let Value::Array(mut pair) = entry
-                                && pair.len() == 2
-                                && let (Ok(id), Ok(post)) = (
-                                    serde_json::from_value::<UserId>(pair.remove(0)),
-                                    serde_json::from_value::<User>(pair.remove(0)),
-                                )
-                            {
-                                users.insert(id, post.clone());
-                            }
+                let _ = respond_to.send(posts);
+            }
+            StorageMsg::SaveUsers(users) => {
+                let pairs = users
+                    .iter()
+                    .map(|(id, user)| json!([id, user]))
+                    .collect::<Vec<_>>();
+                save_snapshot("users", &Value::Array(pairs), &work_dir).await;
+            }
+            StorageMsg::RetrieveUsers { respond_to } => {
+                let mut users = HashMap::new();
+                let value = load_snapshot("users", &work_dir).await;
+                info!("Retrieved users: {:?}", value);
+                if let Value::Array(entries) = value {
+                    for entry in entries {
+                        if let Value::Array(mut pair) = entry
+                            && pair.len() == 2
+                            && let (Ok(id), Ok(post)) = (
+                                serde_json::from_value::<UserId>(pair.remove(0)),
+                                serde_json::from_value::<User>(pair.remove(0)),
+                            )
+                        {
+                            users.insert(id, post.clone());
                         }
                     }
-
-                    let _ = respond_to.send(users);
                 }
+
+                let _ = respond_to.send(users);
             }
         }
-    });
-
-    tx
+    }
 }
 
 fn to_file_path(work_dir: &Path, namespace: &str) -> PathBuf {

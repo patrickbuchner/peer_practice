@@ -6,7 +6,7 @@ use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::users::UsersMsg;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
-use tracing::{error, info, instrument};
+use tracing::instrument;
 
 #[instrument(skip(state), fields(user_id = ?user_id, con_id = ?con_id))]
 pub async fn user_handler(

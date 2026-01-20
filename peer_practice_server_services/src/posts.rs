@@ -5,7 +5,7 @@ use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::post::{Post, PostId};
 use peer_practice_messages::current::user::UserId;
 use std::collections::HashMap;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{mpsc, oneshot};
 
 #[derive(Debug)]
@@ -19,83 +19,78 @@ pub enum PostsMsg {
     List(oneshot::Sender<Vec<(PostId, Post)>>),
 }
 
-pub fn spawn_posts_actor(
+pub async fn handle_posts(
     storage: Sender<StorageMsg>,
     ws_hub: Sender<WsHubMsg>,
-) -> Sender<PostsMsg> {
-    let (tx, mut rx) = mpsc::channel::<PostsMsg>(100);
+    mut rx: Receiver<PostsMsg>,
+) {
+    let mut posts: HashMap<PostId, Post> = HashMap::new();
 
-    tokio::spawn(async move {
-        let mut posts: HashMap<PostId, Post> = HashMap::new();
+    setup(&storage, &mut posts).await;
 
-        setup(&storage, &mut posts).await;
-
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                PostsMsg::Upsert(id, post) => {
-                    posts.insert(id, post.clone());
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            PostsMsg::Upsert(id, post) => {
+                posts.insert(id, post.clone());
+                let _ = ws_hub
+                    .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                        PostAction::Post(id, post),
+                    )))
+                    .await;
+                let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+            }
+            PostsMsg::Remove(id) => {
+                posts.remove(&id);
+                let _ = ws_hub
+                    .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                        PostAction::RemovedPost(id),
+                    )))
+                    .await;
+                let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+            }
+            PostsMsg::Get(id, reply) => {
+                let result = posts.get(&id).cloned();
+                let _ = reply.send(result);
+            }
+            PostsMsg::List(reply) => {
+                let list = posts.iter().map(|(id, post)| (*id, post.clone())).collect();
+                let _ = reply.send(list);
+            }
+            PostsMsg::New(post, sender) => {
+                let id = PostId::new();
+                posts.insert(id, post.clone());
+                let _ = sender.send(id);
+                let _ = ws_hub
+                    .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
+                        PostAction::Post(id, post),
+                    )))
+                    .await;
+                let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+            }
+            PostsMsg::UserJoins(post_id, user) => {
+                if let Some(post) = posts.get_mut(&post_id) {
+                    post.partaking_users.insert(user);
                     let _ = ws_hub
                         .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
-                            PostAction::Post(id, post),
+                            PostAction::Post(post_id, post.clone()),
                         )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
                 }
-                PostsMsg::Remove(id) => {
-                    posts.remove(&id);
+            }
+            PostsMsg::UserLeaves(post_id, user) => {
+                if let Some(post) = posts.get_mut(&post_id) {
+                    post.partaking_users.remove(&user);
                     let _ = ws_hub
                         .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
-                            PostAction::RemovedPost(id),
+                            PostAction::Post(post_id, post.clone()),
                         )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
-                }
-                PostsMsg::Get(id, reply) => {
-                    let result = posts.get(&id).cloned();
-                    let _ = reply.send(result);
-                }
-                PostsMsg::List(reply) => {
-                    let list = posts.iter().map(|(id, post)| (*id, post.clone())).collect();
-                    let _ = reply.send(list);
-                }
-                PostsMsg::New(post, sender) => {
-                    let id = PostId::new();
-                    posts.insert(id, post.clone());
-                    let _ = sender.send(id);
-                    let _ = ws_hub
-                        .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
-                            PostAction::Post(id, post),
-                        )))
-                        .await;
-                    let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
-                }
-                PostsMsg::UserJoins(post_id, user) => {
-                    if let Some(post) = posts.get_mut(&post_id) {
-                        post.partaking_users.insert(user);
-                        let _ = ws_hub
-                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
-                                PostAction::Post(post_id, post.clone()),
-                            )))
-                            .await;
-                        let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
-                    }
-                }
-                PostsMsg::UserLeaves(post_id, user) => {
-                    if let Some(post) = posts.get_mut(&post_id) {
-                        post.partaking_users.remove(&user);
-                        let _ = ws_hub
-                            .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
-                                PostAction::Post(post_id, post.clone()),
-                            )))
-                            .await;
-                        let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
-                    }
                 }
             }
         }
-    });
-
-    tx
+    }
 }
 
 async fn setup(storage: &Sender<StorageMsg>, posts: &mut HashMap<PostId, Post>) {

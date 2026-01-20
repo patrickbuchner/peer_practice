@@ -6,6 +6,7 @@ use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tracing::info;
 
+mod chat;
 mod posts;
 mod users;
 
@@ -34,7 +35,9 @@ pub async fn handle_websocket_message(
         ClientToServer::Post(action) => posts::post_handler(action, state, user_id, con_id)
             .await
             .wrap_err("Failed to handle post action")?,
-        ClientToServer::Chat(_) => todo!(),
+        ClientToServer::Chat(action) => chat::chat_handler(action, state, user_id, con_id)
+            .await
+            .wrap_err("Failed to handle chat action")?,
         ClientToServer::MessageNotYetKnown => {}
     }
     Ok(())

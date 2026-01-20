@@ -7,7 +7,7 @@ use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::user::{User, UserId};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tracing::{error, info};
 
 pub enum UsersMsg {
@@ -28,82 +28,75 @@ pub enum UsersMsg {
     },
 }
 
-pub fn spawn_users_actor(
+pub async fn handle_user_operations(
     storage: Sender<StorageMsg>,
     ws_hub: Sender<WsHubMsg>,
-) -> Sender<UsersMsg> {
-    let (tx, mut rx) = mpsc::channel::<UsersMsg>(64);
-
+    mut rx: Receiver<UsersMsg>,
+) {
     let mut id_to_user: HashMap<UserId, User> = HashMap::new();
     let mut email_to_id: HashMap<Email, UserId> = HashMap::new();
+    setup(&storage, &mut id_to_user, &mut email_to_id).await;
 
-    tokio::spawn(async move {
-        setup(&storage, &mut id_to_user, &mut email_to_id).await;
+    while let Some(msg) = rx.recv().await {
+        match msg {
+            UsersMsg::GetByEmail { email, respond_to } => {
+                let val = if let Some(existing) = email_to_id.get(&email).copied() {
+                    Some(existing)
+                } else {
+                    let mut id = UserId::new();
+                    while id_to_user.contains_key(&id) || email_to_id.values().any(|v| *v == id) {
+                        id = UserId::new();
+                    }
 
-        while let Some(msg) = rx.recv().await {
-            match msg {
-                UsersMsg::GetByEmail { email, respond_to } => {
-                    let val = if let Some(existing) = email_to_id.get(&email).copied() {
-                        Some(existing)
-                    } else {
-                        let mut id = UserId::new();
-                        while id_to_user.contains_key(&id) || email_to_id.values().any(|v| *v == id)
-                        {
-                            id = UserId::new();
-                        }
-
-                        email_to_id.insert(email.clone(), id);
-                        id_to_user.insert(
+                    email_to_id.insert(email.clone(), id);
+                    id_to_user.insert(
+                        id,
+                        User {
                             id,
-                            User {
-                                id,
-                                email,
-                                display_name: None,
-                            },
-                        );
-                        let _ = storage
-                            .send(StorageMsg::SaveUsers(id_to_user.clone()))
-                            .await;
-                        Some(id)
-                    };
-                    let _ = respond_to.send(val);
-                }
-                UsersMsg::Update { id, user } => {
-                    if let Some(existing) = id_to_user.get(&id)
-                        && existing.email != user.email
-                    {
-                        email_to_id.remove(&existing.email);
-                    }
-                    id_to_user.insert(id, user.clone());
-                    email_to_id.insert(user.email.clone(), id);
-
+                            email,
+                            display_name: None,
+                        },
+                    );
                     let _ = storage
                         .send(StorageMsg::SaveUsers(id_to_user.clone()))
                         .await;
-                    let _ = ws_hub
-                        .send(WsHubMsg::BroadcastAll(ServerToClient::User(
-                            UserAction::User(id, user.into()),
-                        )))
-                        .await;
+                    Some(id)
+                };
+                let _ = respond_to.send(val);
+            }
+            UsersMsg::Update { id, user } => {
+                if let Some(existing) = id_to_user.get(&id)
+                    && existing.email != user.email
+                {
+                    email_to_id.remove(&existing.email);
                 }
-                UsersMsg::Remove { id } => {
-                    if let Some(removed) = id_to_user.remove(&id) {
-                        email_to_id.remove(&removed.email);
-                    }
+                id_to_user.insert(id, user.clone());
+                email_to_id.insert(user.email.clone(), id);
 
-                    let _ = storage
-                        .send(StorageMsg::SaveUsers(id_to_user.clone()))
-                        .await;
+                let _ = storage
+                    .send(StorageMsg::SaveUsers(id_to_user.clone()))
+                    .await;
+                let _ = ws_hub
+                    .send(WsHubMsg::BroadcastAll(ServerToClient::User(
+                        UserAction::User(id, user.into()),
+                    )))
+                    .await;
+            }
+            UsersMsg::Remove { id } => {
+                if let Some(removed) = id_to_user.remove(&id) {
+                    email_to_id.remove(&removed.email);
                 }
-                UsersMsg::GetById { id, respond_to } => {
-                    let val = id_to_user.get(&id).cloned();
-                    let _ = respond_to.send(val);
-                }
+
+                let _ = storage
+                    .send(StorageMsg::SaveUsers(id_to_user.clone()))
+                    .await;
+            }
+            UsersMsg::GetById { id, respond_to } => {
+                let val = id_to_user.get(&id).cloned();
+                let _ = respond_to.send(val);
             }
         }
-    });
-
-    tx
+    }
 }
 
 async fn setup(
