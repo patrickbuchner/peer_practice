@@ -1,4 +1,6 @@
+use crate::chat::progress::Progress;
 use peer_practice_messages::Envelope;
+use peer_practice_messages::current::chat::ChatId;
 use peer_practice_messages::current::post::{Post, PostId};
 use peer_practice_messages::current::user::{User, UserId};
 use serde::de::DeserializeOwned;
@@ -21,6 +23,10 @@ pub enum StorageMsg {
     SaveUsers(HashMap<UserId, User>),
     RetrieveUsers {
         respond_to: oneshot::Sender<HashMap<UserId, User>>,
+    },
+    SaveChats(HashMap<ChatId, Progress>),
+    RetrieveChats {
+        respond_to: oneshot::Sender<HashMap<ChatId, Progress>>,
     },
 }
 
@@ -102,6 +108,32 @@ pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<Stora
                 }
 
                 let _ = respond_to.send(users);
+            }
+            StorageMsg::SaveChats(chats) => {
+                let pairs = chats
+                    .iter()
+                    .map(|(id, chat)| json!([id, chat]))
+                    .collect::<Vec<_>>();
+                save_snapshot("chats", &Value::Array(pairs), &work_dir).await;
+            }
+            StorageMsg::RetrieveChats { respond_to } => {
+                let mut chats = HashMap::new();
+                let value = load_snapshot("chats", &work_dir).await;
+                if let Value::Array(entries) = value {
+                    for entry in entries {
+                        if let Value::Array(mut pair) = entry
+                            && pair.len() == 2
+                            && let (Ok(id), Ok(chat)) = (
+                                serde_json::from_value::<ChatId>(pair.remove(0)),
+                                serde_json::from_value::<Progress>(pair.remove(0)),
+                            )
+                        {
+                            chats.insert(id, chat.clone());
+                        }
+                    }
+                }
+
+                let _ = respond_to.send(chats);
             }
         }
     }

@@ -1,7 +1,8 @@
 use peer_practice_messages::current::chat::{ChatId, ChatMessage, ChatMessageFromServer};
 use peer_practice_messages::current::user::UserId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub sender: UserId,
     pub message: String,
