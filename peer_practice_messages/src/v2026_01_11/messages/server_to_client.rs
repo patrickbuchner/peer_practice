@@ -3,6 +3,7 @@ use crate::v2026_01_11::post::{Post, PostId};
 use crate::v2026_01_11::user::UserId;
 use crate::v2026_01_11::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
+use crate::current::chat::ChatId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerToClient {
@@ -26,7 +27,9 @@ pub enum PostAction {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ChatAction {
-    Chat(Vec<ChatMessageFromServer>),
+    ChatDoesNotExistForPost(PostId),
+    ChatDoesNotExist(ChatId),
+    Chat(ChatId, Vec<ChatMessageFromServer>),
     MessageSent(ChatMessageFromServer),
 }
 

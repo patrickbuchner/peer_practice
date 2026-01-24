@@ -28,7 +28,7 @@ pub enum UsersMsg {
     },
 }
 
-pub async fn handle_user_operations(
+pub async fn handle_user_actions(
     storage: Sender<StorageMsg>,
     ws_hub: Sender<WsHubMsg>,
     mut rx: Receiver<UsersMsg>,
