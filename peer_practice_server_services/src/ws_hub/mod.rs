@@ -10,6 +10,10 @@ pub struct ConnectionId {
     id: Uuid,
 }
 
+#[cfg(test)]
+mod test;
+
+#[cfg_attr(test, derive(Debug))]
 pub enum WsHubMsg {
     Join {
         user_id: UserId,
@@ -32,8 +36,9 @@ pub enum WsHubMsg {
 }
 
 #[derive(Clone)]
+#[cfg_attr(test, derive(Debug))]
 pub struct ConnectionHandle {
-    hub_tx: mpsc::Sender<WsHubMsg>,
+    hub_tx: Sender<WsHubMsg>,
     user_id: UserId,
     connection_id: ConnectionId,
 }

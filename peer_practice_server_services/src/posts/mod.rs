@@ -1,12 +1,12 @@
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
-use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::PostAction;
+use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::post::{Post, PostId};
 use peer_practice_messages::current::user::UserId;
 use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::oneshot;
 
 #[derive(Debug)]
 pub enum PostsMsg {
@@ -18,6 +18,9 @@ pub enum PostsMsg {
     Get(PostId, oneshot::Sender<Option<Post>>),
     List(oneshot::Sender<Vec<(PostId, Post)>>),
 }
+
+#[cfg(test)]
+mod test;
 
 pub async fn handle_posts(
     storage: Sender<StorageMsg>,

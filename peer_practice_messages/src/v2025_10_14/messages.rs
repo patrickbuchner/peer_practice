@@ -3,7 +3,7 @@ use super::user::UserId;
 use super::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ServerToClient {
     MessageNotYetKnown,
     User(UserId, UserDisplay),

@@ -2,7 +2,10 @@ use chrono::{DateTime, Duration, Utc};
 use peer_practice_messages::current::email::Email;
 use std::collections::HashMap;
 use tokio::sync::mpsc::Receiver;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::oneshot;
+
+#[cfg(test)]
+mod test;
 
 pub enum PendingLoginsMsg {
     GetByAddress {

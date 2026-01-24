@@ -14,3 +14,8 @@ serde_json.workspace = true
 tracing.workspace = true
 eyre.workspace = true
 uuid.workspace = true
+futures-util.workspace = true
+
+[dev-dependencies]
+test-case = "3"
+tokio ={workspace = true,features = ["sync", "fs", "macros"]}

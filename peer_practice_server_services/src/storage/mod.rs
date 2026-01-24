@@ -9,9 +9,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 use tokio::fs;
-use tokio::io::AsyncWriteExt;
 use tokio::sync::mpsc::Receiver;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::oneshot;
 use tracing::{error, info, trace};
 
 #[derive(Debug)]
@@ -30,17 +29,51 @@ pub enum StorageMsg {
     },
 }
 
-async fn save_snapshot(namespace: &str, data: &Value, work_dir: &Path) {
+
+use futures_util::future::BoxFuture;
+use std::io;
+
+trait StorageFs: Send + Sync + 'static {
+    fn create_dir_all(&self, path: PathBuf) -> BoxFuture<'static, io::Result<()>>;
+    fn read(&self, path: PathBuf) -> BoxFuture<'static, io::Result<Vec<u8>>>;
+    fn write(&self, path: PathBuf, data: Vec<u8>) -> BoxFuture<'static, io::Result<()>>;
+    fn rename(&self, from: PathBuf, to: PathBuf) -> BoxFuture<'static, io::Result<()>>;
+}
+
+#[derive(Clone, Copy, Debug)]
+struct TokioFs;
+
+impl StorageFs for TokioFs {
+    fn create_dir_all(&self, path: PathBuf) -> BoxFuture<'static, io::Result<()>> {
+        Box::pin(async move { fs::create_dir_all(path).await })
+    }
+
+    fn read(&self, path: PathBuf) -> BoxFuture<'static, io::Result<Vec<u8>>> {
+        Box::pin(async move { fs::read(path).await })
+    }
+
+    fn write(&self, path: PathBuf, data: Vec<u8>) -> BoxFuture<'static, io::Result<()>> {
+        Box::pin(async move { fs::write(path, data).await })
+    }
+
+    fn rename(&self, from: PathBuf, to: PathBuf) -> BoxFuture<'static, io::Result<()>> {
+        Box::pin(async move { fs::rename(from, to).await })
+    }
+}
+
+// --- Storage logic (unchanged behavior, now parameterized over FS) -----------
+
+async fn save_snapshot(fs: &dyn StorageFs, namespace: &str, data: &Value, work_dir: &Path) {
     let path = to_file_path(work_dir, namespace);
-    match write_atomic_json(&path, data).await {
+    match write_atomic_json(fs, &path, data).await {
         Ok(()) => trace!("Saved snapshot '{}'", namespace),
         Err(err) => error!("SaveSnapshot '{}' failed: {}", namespace, err),
     }
 }
 
-async fn load_snapshot(namespace: &str, work_dir: &Path) -> Value {
+async fn load_snapshot(fs: &dyn StorageFs, namespace: &str, work_dir: &Path) -> Value {
     let path = to_file_path(work_dir, namespace);
-    match read_json(&path).await {
+    match read_json(fs, &path).await {
         Ok(val) => val,
         Err(err) => {
             info!("LoadSnapshot '{}' defaulting to null: {}", namespace, err);
@@ -49,8 +82,16 @@ async fn load_snapshot(namespace: &str, work_dir: &Path) -> Value {
     }
 }
 
-pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<StorageMsg>) {
-    if let Err(err) = fs::create_dir_all(&work_dir).await {
+pub async fn handle_storage_operations(work_dir: PathBuf, rx: Receiver<StorageMsg>) {
+    handle_storage_operations_with_fs(work_dir, TokioFs, rx).await
+}
+
+async fn handle_storage_operations_with_fs(
+    work_dir: PathBuf,
+    fs: impl StorageFs,
+    mut rx: Receiver<StorageMsg>,
+) {
+    if let Err(err) = fs.create_dir_all(work_dir.clone()).await {
         error!("Failed to create work_dir {:?}: {}", work_dir, err);
     }
 
@@ -61,11 +102,11 @@ pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<Stora
                     .iter()
                     .map(|(id, post)| json!([id, post]))
                     .collect::<Vec<_>>();
-                save_snapshot("posts", &Value::Array(pairs), &work_dir).await;
+                save_snapshot(&fs, "posts", &Value::Array(pairs), &work_dir).await;
             }
             StorageMsg::RetrievePosts { respond_to } => {
                 let mut posts = HashMap::new();
-                let value = load_snapshot("posts", &work_dir).await;
+                let value = load_snapshot(&fs, "posts", &work_dir).await;
                 if let Value::Array(entries) = value {
                     for entry in entries {
                         if let Value::Array(mut pair) = entry
@@ -87,11 +128,11 @@ pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<Stora
                     .iter()
                     .map(|(id, user)| json!([id, user]))
                     .collect::<Vec<_>>();
-                save_snapshot("users", &Value::Array(pairs), &work_dir).await;
+                save_snapshot(&fs, "users", &Value::Array(pairs), &work_dir).await;
             }
             StorageMsg::RetrieveUsers { respond_to } => {
                 let mut users = HashMap::new();
-                let value = load_snapshot("users", &work_dir).await;
+                let value = load_snapshot(&fs, "users", &work_dir).await;
                 info!("Retrieved users: {:?}", value);
                 if let Value::Array(entries) = value {
                     for entry in entries {
@@ -114,11 +155,11 @@ pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<Stora
                     .iter()
                     .map(|(id, chat)| json!([id, chat]))
                     .collect::<Vec<_>>();
-                save_snapshot("chats", &Value::Array(pairs), &work_dir).await;
+                save_snapshot(&fs, "chats", &Value::Array(pairs), &work_dir).await;
             }
             StorageMsg::RetrieveChats { respond_to } => {
                 let mut chats = HashMap::new();
-                let value = load_snapshot("chats", &work_dir).await;
+                let value = load_snapshot(&fs, "chats", &work_dir).await;
                 if let Value::Array(entries) = value {
                     for entry in entries {
                         if let Value::Array(mut pair) = entry
@@ -139,6 +180,8 @@ pub async fn handle_storage_operations(work_dir: PathBuf, mut rx: Receiver<Stora
     }
 }
 
+// ... existing code ...
+
 fn to_file_path(work_dir: &Path, namespace: &str) -> PathBuf {
     let cleaned = namespace
         .chars()
@@ -150,9 +193,9 @@ fn to_file_path(work_dir: &Path, namespace: &str) -> PathBuf {
     work_dir.join(format!("{cleaned}.json"))
 }
 
-async fn write_atomic_json(path: &Path, value: &Value) -> eyre::Result<()> {
+async fn write_atomic_json(fs: &dyn StorageFs, path: &Path, value: &Value) -> eyre::Result<()> {
     if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent).await;
+        let _ = fs.create_dir_all(parent.to_path_buf()).await;
     }
 
     let data = Envelope {
@@ -162,15 +205,20 @@ async fn write_atomic_json(path: &Path, value: &Value) -> eyre::Result<()> {
     let data = serde_json::to_vec_pretty(&data)?;
 
     let tmp = path.with_extension("json.tmp");
-    let mut file = fs::File::create(&tmp).await?;
-    file.write_all(&data).await?;
-    file.flush().await?;
-    fs::rename(&tmp, path).await?;
+    fs.write(tmp.clone(), data)
+        .await
+        .map_err(|e| eyre::eyre!(e))?;
+    fs.rename(tmp, path.to_path_buf())
+        .await
+        .map_err(|e| eyre::eyre!(e))?;
     Ok(())
 }
 
-async fn read_json<T: DeserializeOwned>(path: &Path) -> eyre::Result<T> {
-    let data = fs::read(path).await?;
+async fn read_json<T: DeserializeOwned>(fs: &dyn StorageFs, path: &Path) -> eyre::Result<T> {
+    let data = fs
+        .read(path.to_path_buf())
+        .await
+        .map_err(|e| eyre::eyre!(e))?;
     if let Ok(enveloped) = serde_json::from_slice::<Envelope<T>>(&data) {
         Ok(enveloped.data)
     } else {
@@ -178,3 +226,6 @@ async fn read_json<T: DeserializeOwned>(path: &Path) -> eyre::Result<T> {
         Ok(value)
     }
 }
+
+#[cfg(test)]
+mod test;

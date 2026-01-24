@@ -1,13 +1,12 @@
-use std::collections::HashMap;
-use tokio::sync::{mpsc, oneshot};
-
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::user::{User, UserId};
+use std::collections::HashMap;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::oneshot;
 use tracing::{error, info};
 
 pub enum UsersMsg {
@@ -27,6 +26,9 @@ pub enum UsersMsg {
         id: UserId,
     },
 }
+
+#[cfg(test)]
+mod test;
 
 pub async fn handle_user_actions(
     storage: Sender<StorageMsg>,

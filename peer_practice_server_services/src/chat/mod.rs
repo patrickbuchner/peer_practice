@@ -11,6 +11,8 @@ use tokio::sync::{mpsc, oneshot};
 
 pub mod message;
 pub mod progress;
+#[cfg(test)]
+mod test;
 
 #[derive(Debug)]
 pub enum ChatMsg {

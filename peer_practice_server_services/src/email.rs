@@ -1,12 +1,10 @@
 use eyre::WrapErr;
 use lettre::message::Mailbox;
-use lettre::message::header::ContentType;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::transport::smtp::response::Response;
-use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use std::str::FromStr;
 use tokio::sync::mpsc::Receiver;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::oneshot;
 
 pub enum EmailMsg {
     SendLoginMail {
@@ -54,12 +52,16 @@ pub async fn handle_email_actions(config: EmailConfiguration, mut rx: Receiver<E
         }
     }
 }
-
+#[cfg(not(test))]
 async fn send_login_mail(
     config: &EmailConfiguration,
     target: impl Into<Mailbox>,
     validation_code: u32,
 ) -> Result<Response, eyre::Error> {
+    use lettre::AsyncSmtpTransport;
+    use lettre::message::header::ContentType;
+    use lettre::{AsyncTransport, Message, Tokio1Executor};
+
     let email = Message::builder()
         .from(config.from.clone())
         .reply_to(config.reply_to.clone())
@@ -75,4 +77,13 @@ async fn send_login_mail(
 
     // Send the email
     mailer.send(email).await.wrap_err("Failed to send email.")
+}
+
+#[cfg(test)]
+async fn send_login_mail(
+    _config: &EmailConfiguration,
+    _target: impl Into<Mailbox>,
+    _validation_code: u32,
+) -> Result<Response, eyre::Error> {
+    Err(eyre::eyre!("Not sending email in test mode."))
 }
