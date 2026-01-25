@@ -1,12 +1,9 @@
 { pkgs }:
-let
-  nightlyToolchain = pkgs.rust-bin.nightly.latest.default;
-in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     bash
     fish
-    nightlyToolchain
+    rustup
     nodejs_24
     trunk
     wasm-bindgen-cli
@@ -15,4 +12,7 @@ pkgs.mkShell {
     cargo-nextest
     cargo-fuzz
   ];
+  shellHook = ''
+    rustup toolchain install nightly --component clippy,rustfmt --target wasm32-unknown-unknown
+  '';
 }
