@@ -1,4 +1,5 @@
 use crate::chat::progress::Progress;
+use futures_util::future::BoxFuture;
 use peer_practice_messages::Envelope;
 use peer_practice_messages::current::chat::ChatId;
 use peer_practice_messages::current::post::{Post, PostId};
@@ -6,12 +7,16 @@ use peer_practice_messages::current::user::{User, UserId};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use tokio::fs;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::oneshot;
 use tracing::{error, info, trace};
+
+#[cfg(test)]
+mod test;
 
 #[derive(Debug)]
 pub enum StorageMsg {
@@ -28,10 +33,6 @@ pub enum StorageMsg {
         respond_to: oneshot::Sender<HashMap<ChatId, Progress>>,
     },
 }
-
-
-use futures_util::future::BoxFuture;
-use std::io;
 
 trait StorageFs: Send + Sync + 'static {
     fn create_dir_all(&self, path: PathBuf) -> BoxFuture<'static, io::Result<()>>;
@@ -60,8 +61,6 @@ impl StorageFs for TokioFs {
         Box::pin(async move { fs::rename(from, to).await })
     }
 }
-
-// --- Storage logic (unchanged behavior, now parameterized over FS) -----------
 
 async fn save_snapshot(fs: &dyn StorageFs, namespace: &str, data: &Value, work_dir: &Path) {
     let path = to_file_path(work_dir, namespace);
@@ -180,8 +179,6 @@ async fn handle_storage_operations_with_fs(
     }
 }
 
-// ... existing code ...
-
 fn to_file_path(work_dir: &Path, namespace: &str) -> PathBuf {
     let cleaned = namespace
         .chars()
@@ -226,6 +223,3 @@ async fn read_json<T: DeserializeOwned>(fs: &dyn StorageFs, path: &Path) -> eyre
         Ok(value)
     }
 }
-
-#[cfg(test)]
-mod test;

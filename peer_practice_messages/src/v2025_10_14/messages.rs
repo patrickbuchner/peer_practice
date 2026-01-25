@@ -3,6 +3,7 @@ use super::user::UserId;
 use super::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerToClient {
     MessageNotYetKnown,
@@ -11,6 +12,8 @@ pub enum ServerToClient {
     RemovedPost(PostId),
     YouAre(UserId),
 }
+
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientToServer {
     MessageNotYetKnown,

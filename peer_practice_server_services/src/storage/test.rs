@@ -185,8 +185,7 @@ async fn retrieve_defaults_to_empty_on_corrupted_json() {
     let fs = MemFs::default();
     let (tx, task, work_dir) = arrange(fs.clone()).await;
 
-    // Write garbage into posts.json
-    let path = super::to_file_path(&work_dir, "posts");
+    let path = to_file_path(&work_dir, "posts");
     fs.write(path, b"{not valid json".to_vec()).await.unwrap();
 
     let got = retrieve_posts(&tx).await;
@@ -201,13 +200,12 @@ async fn legacy_non_enveloped_json_is_supported() {
     let fs = MemFs::default();
     let (tx, task, work_dir) = arrange(fs.clone()).await;
 
-    // Legacy format: directly store the Value::Array of [id, post] pairs without an Envelope.
     let id = PostId::new();
     let post = mk_post(UserId::default());
     let legacy_value = Value::Array(vec![json!([id, post])]);
     let legacy_bytes = serde_json::to_vec_pretty(&legacy_value).unwrap();
 
-    let path = super::to_file_path(&work_dir, "posts");
+    let path = to_file_path(&work_dir, "posts");
     fs.write(path, legacy_bytes).await.unwrap();
 
     let got = retrieve_posts(&tx).await;

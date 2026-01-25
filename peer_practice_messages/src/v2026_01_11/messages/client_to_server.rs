@@ -4,6 +4,7 @@ use crate::v2026_01_11::user::UserId;
 use crate::v2026_01_11::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
 
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ClientToServer {
     Hello,
@@ -13,12 +14,14 @@ pub enum ClientToServer {
     Chat(ChatAction),
 }
 
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum UserAction {
     Get(UserId),
     Update(UserDisplay),
 }
 
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PostAction {
     GetPosts,
@@ -30,6 +33,7 @@ pub enum PostAction {
     GetPostMessages(PostId),
 }
 
+#[cfg_attr(test, derive(Clone))]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ChatAction {
     GetChatFor(PostId),
