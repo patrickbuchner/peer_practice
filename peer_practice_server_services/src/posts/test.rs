@@ -1,15 +1,15 @@
-use super::{handle_posts, PostsMsg};
+use super::{PostsMsg, handle_posts};
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::level::Level;
-use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::messages::ServerToClient;
+use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::post::{Post, PostId, Topics};
 use peer_practice_messages::current::user::UserId;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 
 async fn next<T>(rx: &mut mpsc::Receiver<T>) -> T {
     timeout(Duration::from_millis(300), rx.recv())
@@ -52,7 +52,10 @@ fn mk_post(owner: UserId) -> Post {
 
 async fn get(posts_tx: &mpsc::Sender<PostsMsg>, post_id: PostId) -> Option<Post> {
     let (respond_to, recv) = oneshot::channel();
-    posts_tx.send(PostsMsg::Get(post_id, respond_to)).await.unwrap();
+    posts_tx
+        .send(PostsMsg::Get(post_id, respond_to))
+        .await
+        .unwrap();
     recv.await.unwrap()
 }
 
@@ -83,7 +86,10 @@ async fn new_broadcasts_and_persists_and_returns_id() {
     let post = mk_post(owner);
 
     let (id_tx, id_rx) = oneshot::channel();
-    posts_tx.send(PostsMsg::New(post.clone(), id_tx)).await.unwrap();
+    posts_tx
+        .send(PostsMsg::New(post.clone(), id_tx))
+        .await
+        .unwrap();
 
     let id = timeout(Duration::from_millis(300), id_rx)
         .await
@@ -100,7 +106,10 @@ async fn new_broadcasts_and_persists_and_returns_id() {
 
     match next(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => {
-            assert!(snapshot.contains_key(&id), "saved snapshot should contain new post id");
+            assert!(
+                snapshot.contains_key(&id),
+                "saved snapshot should contain new post id"
+            );
         }
         other => panic!("expected SavePosts, got {other:?}"),
     }
@@ -117,7 +126,10 @@ async fn upsert_then_get_returns_post() {
     let owner = UserId::default();
     let post = mk_post(owner);
 
-    posts_tx.send(PostsMsg::Upsert(id, post.clone())).await.unwrap();
+    posts_tx
+        .send(PostsMsg::Upsert(id, post.clone()))
+        .await
+        .unwrap();
 
     match next(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, _))) => {

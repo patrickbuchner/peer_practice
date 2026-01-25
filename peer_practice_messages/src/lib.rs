@@ -6,7 +6,7 @@ pub mod v2025_10_14;
 
 pub mod v2026_01_11;
 
-#[derive(Default, Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Debug, Clone, Copy, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
 pub enum Version {
     #[default]
     V2026_01_11,

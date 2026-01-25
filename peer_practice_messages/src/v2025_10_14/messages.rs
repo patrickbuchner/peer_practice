@@ -3,8 +3,7 @@ use super::user::UserId;
 use super::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ServerToClient {
     MessageNotYetKnown,
     User(UserId, UserDisplay),
@@ -13,8 +12,7 @@ pub enum ServerToClient {
     YouAre(UserId),
 }
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ClientToServer {
     MessageNotYetKnown,
     Hello,

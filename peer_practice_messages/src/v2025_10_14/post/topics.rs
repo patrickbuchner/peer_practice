@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, PartialOrd, Ord, Default)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, Copy, PartialOrd, Ord, Default,
+)]
 pub enum Topics {
     #[default]
     Basics,

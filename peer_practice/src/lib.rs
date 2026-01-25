@@ -14,11 +14,13 @@ use crate::input::config::current::Config;
 use app_state::AppState;
 use handler::login;
 use handler::websocket;
-
 mod app_state;
 mod handler;
 pub mod input;
 mod services;
+
+#[cfg(feature = "fuzzing")]
+pub use handler::websocket::parse_received_message_for_fuzz;
 
 async fn run(config: Config) -> Result<()> {
     // Ensure data directory exists and initialize logging to a file within it

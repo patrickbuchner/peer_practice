@@ -2,14 +2,14 @@ use crate::v2026_01_11::user::UserId;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ChatMessage {
     pub sender: UserId,
     pub message: String,
     pub chat_id: ChatId,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ChatMessageFromServer {
     pub sender: UserId,
     pub message: String,

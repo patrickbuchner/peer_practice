@@ -4,8 +4,7 @@ use crate::v2026_01_11::user::UserId;
 use crate::v2026_01_11::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum ClientToServer {
     Hello,
     MessageNotYetKnown,
@@ -14,15 +13,13 @@ pub enum ClientToServer {
     Chat(ChatAction),
 }
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum UserAction {
     Get(UserId),
     Update(UserDisplay),
 }
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum PostAction {
     GetPosts,
     Join(PostId),
@@ -33,8 +30,7 @@ pub enum PostAction {
     GetPostMessages(PostId),
 }
 
-#[cfg_attr(test, derive(Clone))]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub enum ChatAction {
     GetChatFor(PostId),
     GetChat(ChatId),

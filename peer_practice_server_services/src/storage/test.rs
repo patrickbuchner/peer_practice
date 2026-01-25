@@ -2,10 +2,10 @@ use super::*;
 use crate::chat::message::Message;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::level::Level;
-use peer_practice_messages::current::post::{Topics};
+use peer_practice_messages::current::post::Topics;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -50,7 +50,13 @@ impl StorageFs for MemFs {
     }
 }
 
-async fn arrange(fs: MemFs) -> (mpsc::Sender<StorageMsg>, tokio::task::JoinHandle<()>, PathBuf) {
+async fn arrange(
+    fs: MemFs,
+) -> (
+    mpsc::Sender<StorageMsg>,
+    tokio::task::JoinHandle<()>,
+    PathBuf,
+) {
     let (tx, rx) = mpsc::channel::<StorageMsg>(16);
     let work_dir = PathBuf::from("/mem");
     let task = tokio::spawn(handle_storage_operations_with_fs(work_dir.clone(), fs, rx));
@@ -59,7 +65,9 @@ async fn arrange(fs: MemFs) -> (mpsc::Sender<StorageMsg>, tokio::task::JoinHandl
 
 async fn retrieve_posts(tx: &mpsc::Sender<StorageMsg>) -> HashMap<PostId, Post> {
     let (respond_to, recv) = oneshot::channel();
-    tx.send(StorageMsg::RetrievePosts { respond_to }).await.unwrap();
+    tx.send(StorageMsg::RetrievePosts { respond_to })
+        .await
+        .unwrap();
     timeout(Duration::from_millis(300), recv)
         .await
         .expect("timed out")
@@ -68,7 +76,9 @@ async fn retrieve_posts(tx: &mpsc::Sender<StorageMsg>) -> HashMap<PostId, Post> 
 
 async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> {
     let (respond_to, recv) = oneshot::channel();
-    tx.send(StorageMsg::RetrieveUsers { respond_to }).await.unwrap();
+    tx.send(StorageMsg::RetrieveUsers { respond_to })
+        .await
+        .unwrap();
     timeout(Duration::from_millis(300), recv)
         .await
         .expect("timed out")
@@ -77,7 +87,9 @@ async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> 
 
 async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progress> {
     let (respond_to, recv) = oneshot::channel();
-    tx.send(StorageMsg::RetrieveChats { respond_to }).await.unwrap();
+    tx.send(StorageMsg::RetrieveChats { respond_to })
+        .await
+        .unwrap();
     timeout(Duration::from_millis(300), recv)
         .await
         .expect("timed out")
@@ -129,7 +141,10 @@ async fn posts_roundtrip_save_then_retrieve() {
 
     let got = retrieve_posts(&tx).await;
     assert_eq!(posts.len(), got.len());
-    assert_eq!(posts.get(&id).unwrap().content, got.get(&id).unwrap().content);
+    assert_eq!(
+        posts.get(&id).unwrap().content,
+        got.get(&id).unwrap().content
+    );
 
     drop(tx);
     let _ = task.await;

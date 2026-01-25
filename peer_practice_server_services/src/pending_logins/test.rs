@@ -1,8 +1,8 @@
-use crate::pending_logins::{handle_pending_logins, PendingLoginsMsg};
+use crate::pending_logins::{PendingLoginsMsg, handle_pending_logins};
 use peer_practice_messages::current::email::Email;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 
 async fn arrange() -> (mpsc::Sender<PendingLoginsMsg>, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<PendingLoginsMsg>(16);
@@ -12,9 +12,12 @@ async fn arrange() -> (mpsc::Sender<PendingLoginsMsg>, JoinHandle<()>) {
 
 async fn get_code(tx: &mpsc::Sender<PendingLoginsMsg>, address: Email) -> Option<u32> {
     let (respond_to, recv) = oneshot::channel();
-    tx.send(PendingLoginsMsg::GetByAddress { address, respond_to })
-        .await
-        .unwrap();
+    tx.send(PendingLoginsMsg::GetByAddress {
+        address,
+        respond_to,
+    })
+    .await
+    .unwrap();
 
     timeout(Duration::from_millis(300), recv)
         .await
@@ -44,8 +47,8 @@ async fn upsert_then_get_returns_code() {
         address: address.clone(),
         code: 123_456,
     })
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     let got = get_code(&tx, address).await;
     assert_eq!(Some(123_456), got);
@@ -64,15 +67,15 @@ async fn upsert_overwrites_existing_code() {
         address: address.clone(),
         code: 111_111,
     })
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     tx.send(PendingLoginsMsg::Upsert {
         address: address.clone(),
         code: 222_222,
     })
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     let got = get_code(&tx, address).await;
     assert_eq!(Some(222_222), got);
@@ -91,14 +94,14 @@ async fn remove_deletes_entry() {
         address: address.clone(),
         code: 999_999,
     })
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     tx.send(PendingLoginsMsg::Remove {
         address: address.clone(),
     })
-        .await
-        .unwrap();
+    .await
+    .unwrap();
 
     let got = get_code(&tx, address).await;
     assert_eq!(None, got);

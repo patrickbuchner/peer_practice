@@ -1,7 +1,7 @@
 use super::super::user::{User, UserId};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct UserDisplay {
     pub display_name: Option<String>,
     pub id: UserId,

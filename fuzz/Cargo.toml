@@ -1,0 +1,24 @@
+[package]
+name = "peer_practice-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.peer_practice]
+path = "../peer_practice"
+features = ["fuzzing"]
+
+[[bin]]
+name = "message_input_parse"
+path = "fuzz_targets/message_input_parse.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

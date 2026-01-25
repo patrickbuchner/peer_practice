@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 mod topics;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Post {
     pub title: Topics,
     pub content: String,
