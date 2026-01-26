@@ -267,6 +267,23 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
 }
 
 #[tokio::test]
+async fn join_missing_post_is_noop() {
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, mut chat_rx, task) = arrange_empty().await;
+
+    posts_tx
+        .send(PostsMsg::UserJoins(PostId::new(), UserId::new()))
+        .await
+        .unwrap();
+
+    expect_no_message(&mut ws_hub_rx).await;
+    expect_no_message(&mut storage_rx).await;
+    expect_no_message(&mut chat_rx).await;
+
+    drop(posts_tx);
+    let _ = task.await;
+}
+
+#[tokio::test]
 async fn list_returns_all_posts() {
     let (posts_tx, mut storage_rx, mut ws_hub_rx, _chat_rx, task) = arrange_empty().await;
 

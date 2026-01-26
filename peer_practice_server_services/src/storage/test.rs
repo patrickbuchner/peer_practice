@@ -231,3 +231,10 @@ async fn legacy_non_enveloped_json_is_supported() {
     drop(tx);
     let _ = task.await;
 }
+
+#[test]
+fn to_file_path_sanitizes_namespace() {
+    let work_dir = PathBuf::from("/mem");
+    let path = to_file_path(&work_dir, "posts/../bad name");
+    assert_eq!(PathBuf::from("/mem/posts_.._bad_name.json"), path);
+}

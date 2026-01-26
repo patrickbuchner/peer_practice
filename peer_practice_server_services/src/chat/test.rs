@@ -338,3 +338,43 @@ async fn store_msg_for_missing_post_is_noop() {
     drop(chat_tx);
     let _ = task.await;
 }
+
+#[tokio::test]
+async fn store_msg_for_post_broadcasts_and_persists() {
+    let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+
+    let post_id = PostId::new();
+    let chat_id = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
+    let sender = UserId::new();
+    let message = "hello".to_string();
+
+    chat_tx
+        .send(ChatMsg::StoreMsgForPost {
+            post_id,
+            sender,
+            message: message.clone(),
+        })
+        .await
+        .unwrap();
+
+    match recv_timeout(&mut ws_hub_rx).await {
+        WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(sent))) => {
+            assert_eq!(chat_id, sent.chat_id);
+            assert_eq!(sender, sent.sender);
+            assert_eq!(message, sent.message);
+        }
+        other => panic!("expected MessageSent broadcast, got {other:?}"),
+    }
+
+    match recv_timeout(&mut storage_rx).await {
+        StorageMsg::SaveChats(snapshot) => {
+            let saved = snapshot.get(&chat_id).expect("chat should exist");
+            assert_eq!(1, saved.content.len());
+            assert_eq!(message, saved.content[0].message);
+        }
+        other => panic!("expected SaveChats, got {other:?}"),
+    }
+
+    drop(chat_tx);
+    let _ = task.await;
+}

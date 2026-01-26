@@ -4,6 +4,7 @@ use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::{Post, Topics};
 use peer_practice_messages::current::user::display_user::UserDisplay;
 use peer_practice_messages::v2026_01_11::chat::{ChatId, ChatMessage};
+use crate::handler::test_utils::{expect_no_message, test_state};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -64,4 +65,35 @@ fn sample_chat_message(user_id: UserId, chat_id: ChatId) -> ChatMessage {
         message: "Hello from chat.".into(),
         chat_id,
     }
+}
+
+#[test]
+fn serialize_server_message_sets_expected_version() {
+    let msg = ServerToClient::MessageNotYetKnown;
+
+    let current = serialize_server_message(&msg, Version::V2026_01_11).expect("serialize current");
+    let header: EnvelopeHeader = serde_json::from_str(&current).expect("parse header");
+    assert_eq!(Version::V2026_01_11, header.version);
+
+    let legacy = serialize_server_message(&msg, Version::V2025_10_14).expect("serialize legacy");
+    let header: EnvelopeHeader = serde_json::from_str(&legacy).expect("parse header");
+    assert_eq!(Version::V2025_10_14, header.version);
+}
+
+#[tokio::test]
+async fn consume_telegram_rejects_version_mismatch() {
+    let (state, mut rx) = test_state();
+    let user_id = UserId::new();
+    let con_id = ConnectionId::new();
+
+    let text = serde_json::to_string(&Envelope {
+        version: Version::V2025_10_14,
+        data: peer_practice_messages::v2025_10_14::messages::ClientToServer::Hello,
+    })
+    .expect("serialize envelope");
+
+    let res = consume_telegram(&Some(Version::V2026_01_11), &Utf8Bytes::from(text), con_id, user_id, &state).await;
+    assert!(res.is_err(), "expected version mismatch error");
+
+    expect_no_message(&mut rx.ws_hub).await;
 }
