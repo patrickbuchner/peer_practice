@@ -1,3 +1,4 @@
+pub mod clock;
 pub mod chat;
 pub mod email;
 pub mod pending_logins;

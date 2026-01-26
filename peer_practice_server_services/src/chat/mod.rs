@@ -1,4 +1,5 @@
 use crate::chat::message::Message;
+use crate::clock::ClockRef;
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::chat::ChatId;
@@ -33,6 +34,7 @@ pub enum ChatMsg {
 pub async fn handle_chats(
     storage: mpsc::Sender<StorageMsg>,
     ws_hub: mpsc::Sender<WsHubMsg>,
+    clock: ClockRef,
     mut rx: mpsc::Receiver<ChatMsg>,
 ) {
     let mut chats: HashMap<ChatId, Progress> = HashMap::new();
@@ -103,7 +105,7 @@ pub async fn handle_chats(
                         sender,
                         message,
                         chat_id,
-                        timestamp: chrono::Utc::now(),
+                        timestamp: clock.now(),
                     };
                     let outgoing = ServerToClient::Chat(ChatAction::MessageSent((&message).into()));
                     progress.content.push(message);

@@ -1,3 +1,4 @@
+use crate::clock::ClockRef;
 use chrono::{DateTime, Duration, Utc};
 use peer_practice_messages::current::email::Email;
 use std::collections::HashMap;
@@ -21,7 +22,7 @@ pub enum PendingLoginsMsg {
     },
 }
 
-pub async fn handle_pending_logins(mut rx: Receiver<PendingLoginsMsg>) {
+pub async fn handle_pending_logins(clock: ClockRef, mut rx: Receiver<PendingLoginsMsg>) {
     let mut state: HashMap<Email, (u32, DateTime<Utc>)> = HashMap::new();
     while let Some(msg) = rx.recv().await {
         match msg {
@@ -29,7 +30,7 @@ pub async fn handle_pending_logins(mut rx: Receiver<PendingLoginsMsg>) {
                 address,
                 respond_to,
             } => {
-                let now = Utc::now();
+                let now = clock.now();
                 let val = if let Some((code, set_at)) = state.get(&address) {
                     if *set_at + Duration::minutes(15) > now {
                         Some(*code)
@@ -46,7 +47,7 @@ pub async fn handle_pending_logins(mut rx: Receiver<PendingLoginsMsg>) {
                 let _ = respond_to.send(val);
             }
             PendingLoginsMsg::Upsert { address, code } => {
-                state.insert(address, (code, Utc::now()));
+                state.insert(address, (code, clock.now()));
             }
             PendingLoginsMsg::Remove { address } => {
                 state.remove(&address);

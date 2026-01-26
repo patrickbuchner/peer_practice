@@ -1,8 +1,15 @@
 use crate::chat::*;
+use crate::clock::ManualClock;
 use crate::test_utils::{expect_no_message, recv_timeout};
+use chrono::TimeZone;
 use peer_practice_messages::current::user::UserId;
+use std::sync::Arc;
 use test_case::test_case;
 use tokio::task::JoinHandle;
+
+fn test_timestamp() -> chrono::DateTime<chrono::Utc> {
+    chrono::Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap()
+}
 
 async fn arrange_empty() -> (
     mpsc::Sender<ChatMsg>,
@@ -14,7 +21,13 @@ async fn arrange_empty() -> (
     let (ws_hub_tx, ws_hub_rx) = mpsc::channel::<WsHubMsg>(16);
     let (chat_tx, chat_rx) = mpsc::channel::<ChatMsg>(16);
 
-    let task = tokio::spawn(handle_chats(storage_tx, ws_hub_tx, chat_rx));
+    let clock = Arc::new(ManualClock::new(test_timestamp()));
+    let task = tokio::spawn(handle_chats(
+        storage_tx,
+        ws_hub_tx,
+        clock,
+        chat_rx,
+    ));
 
     if let StorageMsg::RetrieveChats { respond_to } = recv_timeout(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
@@ -75,7 +88,7 @@ fn msgs_single(chat_id: ChatId) -> Vec<Message> {
         sender: UserId::default(),
         message: "one".to_string(),
         chat_id,
-        timestamp: chrono::Utc::now(),
+        timestamp: test_timestamp(),
     }]
 }
 
@@ -85,19 +98,19 @@ fn msgs_three(chat_id: ChatId) -> Vec<Message> {
             sender: UserId::default(),
             message: "a".to_string(),
             chat_id,
-            timestamp: chrono::Utc::now(),
+            timestamp: test_timestamp(),
         },
         Message {
             sender: UserId::default(),
             message: "b".to_string(),
             chat_id,
-            timestamp: chrono::Utc::now(),
+            timestamp: test_timestamp(),
         },
         Message {
             sender: UserId::default(),
             message: "c".to_string(),
             chat_id,
-            timestamp: chrono::Utc::now(),
+            timestamp: test_timestamp(),
         },
     ]
 }
@@ -294,7 +307,7 @@ async fn store_msg_unknown_chat_is_noop() {
             sender: UserId::default(),
             message: "missing".to_string(),
             chat_id,
-            timestamp: chrono::Utc::now(),
+            timestamp: test_timestamp(),
         }))
         .await
         .unwrap();

@@ -1,14 +1,26 @@
-use crate::pending_logins::{PendingLoginsMsg, handle_pending_logins};
+use crate::clock::ManualClock;
+use crate::pending_logins::{handle_pending_logins, PendingLoginsMsg};
 use crate::test_utils::TEST_TIMEOUT;
+use chrono::{Duration, TimeZone};
 use peer_practice_messages::current::email::Email;
+use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
 
-async fn arrange() -> (mpsc::Sender<PendingLoginsMsg>, JoinHandle<()>) {
+fn test_timestamp() -> chrono::DateTime<chrono::Utc> {
+    chrono::Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap()
+}
+
+async fn arrange() -> (
+    mpsc::Sender<PendingLoginsMsg>,
+    JoinHandle<()>,
+    Arc<ManualClock>,
+) {
     let (tx, rx) = mpsc::channel::<PendingLoginsMsg>(16);
-    let task = tokio::spawn(handle_pending_logins(rx));
-    (tx, task)
+    let clock = Arc::new(ManualClock::new(test_timestamp()));
+    let task = tokio::spawn(handle_pending_logins(clock.clone(), rx));
+    (tx, task, clock)
 }
 
 async fn get_code(tx: &mpsc::Sender<PendingLoginsMsg>, address: Email) -> Option<u32> {
@@ -28,7 +40,7 @@ async fn get_code(tx: &mpsc::Sender<PendingLoginsMsg>, address: Email) -> Option
 
 #[tokio::test]
 async fn get_missing_returns_none() {
-    let (tx, task) = arrange().await;
+    let (tx, task, _clock) = arrange().await;
 
     let address = Email::new("missing@example.com").unwrap();
     let got = get_code(&tx, address).await;
@@ -41,7 +53,7 @@ async fn get_missing_returns_none() {
 
 #[tokio::test]
 async fn upsert_then_get_returns_code() {
-    let (tx, task) = arrange().await;
+    let (tx, task, _clock) = arrange().await;
 
     let address = Email::new("user@example.com").unwrap();
     tx.send(PendingLoginsMsg::Upsert {
@@ -60,7 +72,7 @@ async fn upsert_then_get_returns_code() {
 
 #[tokio::test]
 async fn upsert_overwrites_existing_code() {
-    let (tx, task) = arrange().await;
+    let (tx, task, _clock) = arrange().await;
 
     let address = Email::new("overwrite@example.com").unwrap();
 
@@ -87,7 +99,7 @@ async fn upsert_overwrites_existing_code() {
 
 #[tokio::test]
 async fn remove_deletes_entry() {
-    let (tx, task) = arrange().await;
+    let (tx, task, _clock) = arrange().await;
 
     let address = Email::new("remove@example.com").unwrap();
 
@@ -103,6 +115,30 @@ async fn remove_deletes_entry() {
     })
     .await
     .unwrap();
+
+    let got = get_code(&tx, address).await;
+    assert_eq!(None, got);
+
+    drop(tx);
+    let _ = task.await;
+}
+
+#[tokio::test]
+async fn expired_entry_returns_none_without_sleeping() {
+    let (tx, task, clock) = arrange().await;
+
+    let address = Email::new("expired@example.com").unwrap();
+    tx.send(PendingLoginsMsg::Upsert {
+        address: address.clone(),
+        code: 333_333,
+    })
+    .await
+    .unwrap();
+
+    let got = get_code(&tx, address.clone()).await;
+    assert_eq!(Some(333_333), got);
+
+    clock.advance(Duration::minutes(16));
 
     let got = get_code(&tx, address).await;
     assert_eq!(None, got);
