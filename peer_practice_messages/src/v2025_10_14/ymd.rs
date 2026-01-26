@@ -64,7 +64,11 @@ fn add_possible_date(
 }
 
 pub fn create_date_options() -> Vec<String> {
-    next_second_and_fourth_fridays(chrono::Local::now().date_naive(), 5)
+    create_date_options_from(chrono::Local::now().date_naive())
+}
+
+pub fn create_date_options_from(today: chrono::NaiveDate) -> Vec<String> {
+    next_second_and_fourth_fridays(today, 5)
         .iter()
         .map(|date| date.format("%Y-%m-%d").to_string())
         .collect()
@@ -76,8 +80,8 @@ mod tests {
     use chrono::{Datelike, NaiveDate, Weekday};
 
     fn parse_dates() -> (Vec<NaiveDate>, NaiveDate) {
-        let today = chrono::Local::now().date_naive();
-        let dates: Vec<NaiveDate> = create_date_options()
+        let today = NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
+        let dates: Vec<NaiveDate> = create_date_options_from(today)
             .into_iter()
             .map(|s| NaiveDate::parse_from_str(&s, "%Y-%m-%d").expect("valid date string"))
             .collect();

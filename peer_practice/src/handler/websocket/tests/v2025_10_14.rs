@@ -4,7 +4,7 @@ mod valid_parsing {
     use super::*;
     use peer_practice_messages::current::messages::client_to_server::{PostAction, UserAction};
     use peer_practice_messages::current::post::PostId;
-    
+
     parse_case!(
         message_not_yet_known,
         r#"{

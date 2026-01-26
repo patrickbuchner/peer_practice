@@ -46,8 +46,9 @@ pub async fn handle_websocket_message(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::{recv_timeout, test_state};
+    use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::messages::server_to_client::UserAction;
+    use peer_practice_messages::test_helpers_impl::recv_timeout;
     use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 
     #[tokio::test]
@@ -61,7 +62,11 @@ mod tests {
             .expect("handler ok");
 
         match recv_timeout(&mut rx.ws_hub).await {
-            WsHubMsg::Send { user_id: got_user, con_id: got_con, msg } => {
+            WsHubMsg::Send {
+                user_id: got_user,
+                con_id: got_con,
+                msg,
+            } => {
                 assert_eq!(user_id, got_user);
                 assert_eq!(con_id, got_con);
                 match msg {

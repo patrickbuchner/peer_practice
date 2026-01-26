@@ -1,22 +1,6 @@
 use crate::app_state::AppState;
 use peer_practice_server_services::{chat, email, pending_logins, posts, users, ws_hub};
 use tokio::sync::mpsc;
-use tokio::time::{Duration, timeout};
-
-pub const TEST_TIMEOUT: Duration = Duration::from_millis(300);
-pub const SHORT_TIMEOUT: Duration = Duration::from_millis(150);
-
-pub async fn recv_timeout<T>(rx: &mut mpsc::Receiver<T>) -> T {
-    timeout(TEST_TIMEOUT, rx.recv())
-        .await
-        .expect("timed out")
-        .expect("channel closed")
-}
-
-pub async fn expect_no_message<T>(rx: &mut mpsc::Receiver<T>) {
-    let got = timeout(SHORT_TIMEOUT, rx.recv()).await;
-    assert!(got.is_err(), "expected no message");
-}
 
 pub struct TestReceivers {
     pub pending_logins: mpsc::Receiver<pending_logins::PendingLoginsMsg>,

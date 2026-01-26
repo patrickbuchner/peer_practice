@@ -71,12 +71,13 @@ async fn send_chat(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::{recv_timeout, test_state};
+    use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::ChatAction as ServerChatAction;
     use peer_practice_messages::current::post::PostId;
-    use peer_practice_server_services::chat::progress::Progress;
+    use peer_practice_messages::test_helpers_impl::{fixed_timestamp, recv_timeout};
     use peer_practice_server_services::chat::message::Message;
+    use peer_practice_server_services::chat::progress::Progress;
     use peer_practice_server_services::ws_hub::ConnectionId;
 
     #[tokio::test]
@@ -126,7 +127,7 @@ mod tests {
                 sender: user_id,
                 message: "hello".to_string(),
                 chat_id,
-                timestamp: chrono::Utc::now(),
+                timestamp: fixed_timestamp(),
             }],
         };
 

@@ -1,8 +1,8 @@
 use crate::chat::*;
 use crate::clock::ManualClock;
-use crate::test_utils::{expect_no_message, recv_timeout};
 use chrono::TimeZone;
 use peer_practice_messages::current::user::UserId;
+use peer_practice_messages::test_helpers_impl::{expect_no_message, recv_timeout};
 use std::sync::Arc;
 use test_case::test_case;
 use tokio::task::JoinHandle;
@@ -22,12 +22,7 @@ async fn arrange_empty() -> (
     let (chat_tx, chat_rx) = mpsc::channel::<ChatMsg>(16);
 
     let clock = Arc::new(ManualClock::new(test_timestamp()));
-    let task = tokio::spawn(handle_chats(
-        storage_tx,
-        ws_hub_tx,
-        clock,
-        chat_rx,
-    ));
+    let task = tokio::spawn(handle_chats(storage_tx, ws_hub_tx, clock, chat_rx));
 
     if let StorageMsg::RetrieveChats { respond_to } = recv_timeout(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
@@ -271,16 +266,15 @@ async fn delete_for_post_removes_and_persists(known: bool) {
         let _ = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
     }
 
-    chat_tx
-        .send(ChatMsg::DeleteForPost(post_id))
-        .await
-        .unwrap();
+    chat_tx.send(ChatMsg::DeleteForPost(post_id)).await.unwrap();
 
     if known {
         match recv_timeout(&mut storage_rx).await {
             StorageMsg::SaveChats(snapshot) => {
                 assert!(
-                    snapshot.values().all(|progress| progress.post_id != post_id),
+                    snapshot
+                        .values()
+                        .all(|progress| progress.post_id != post_id),
                     "deleted chat should not be present in saved snapshot"
                 );
             }

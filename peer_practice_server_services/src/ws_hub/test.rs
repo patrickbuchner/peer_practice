@@ -1,10 +1,11 @@
 use super::{ConnectionHandle, ConnectionId, WsHubMsg, handle_ws_hub_actions};
-use crate::test_utils::{expect_no_message_unbounded, recv_timeout_unbounded, TEST_TIMEOUT};
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::user::UserId;
+use peer_practice_messages::test_helpers_impl::{
+    expect_no_message_unbounded, recv_oneshot_timeout, recv_timeout_unbounded,
+};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::timeout;
 
 async fn arrange() -> (mpsc::Sender<WsHubMsg>, JoinHandle<()>) {
     let (hub_tx, hub_rx) = mpsc::channel::<WsHubMsg>(16);
@@ -28,10 +29,7 @@ async fn join(
         .await
         .unwrap();
 
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 #[tokio::test]

@@ -1,17 +1,18 @@
 use super::{PostsMsg, handle_posts};
 use crate::chat::ChatMsg;
 use crate::storage::StorageMsg;
-use crate::test_utils::{TEST_TIMEOUT, expect_no_message, recv_timeout};
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::post::{Post, PostId, Topics};
 use peer_practice_messages::current::user::UserId;
+use peer_practice_messages::test_helpers_impl::{
+    expect_no_message, fixed_timestamp, recv_oneshot_timeout, recv_timeout,
+};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::timeout;
 
 async fn arrange_empty() -> (
     mpsc::Sender<PostsMsg>,
@@ -42,7 +43,7 @@ fn mk_post(owner: UserId) -> Post {
         content: "hello".to_string(),
         level: Level::Beginner1,
         owner,
-        date: chrono::Utc::now(),
+        date: fixed_timestamp(),
         partaking_users: HashSet::new(),
     }
 }
@@ -88,10 +89,7 @@ async fn new_broadcasts_and_persists_and_returns_id() {
         .await
         .unwrap();
 
-    let id = timeout(TEST_TIMEOUT, id_rx)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed");
+    let id = recv_oneshot_timeout(id_rx).await;
 
     match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, got_post))) => {
@@ -321,12 +319,18 @@ async fn join_leave_unknown_post_is_noop() {
     let post_id = PostId::new();
     let user = UserId::new();
 
-    posts_tx.send(PostsMsg::UserJoins(post_id, user)).await.unwrap();
+    posts_tx
+        .send(PostsMsg::UserJoins(post_id, user))
+        .await
+        .unwrap();
     expect_no_message(&mut ws_hub_rx).await;
     expect_no_message(&mut storage_rx).await;
     expect_no_message(&mut chat_rx).await;
 
-    posts_tx.send(PostsMsg::UserLeaves(post_id, user)).await.unwrap();
+    posts_tx
+        .send(PostsMsg::UserLeaves(post_id, user))
+        .await
+        .unwrap();
     expect_no_message(&mut ws_hub_rx).await;
     expect_no_message(&mut storage_rx).await;
     expect_no_message(&mut chat_rx).await;

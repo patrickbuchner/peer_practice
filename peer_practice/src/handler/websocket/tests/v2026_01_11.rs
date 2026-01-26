@@ -5,7 +5,7 @@ mod valid_parsing {
         ChatAction, PostAction, UserAction,
     };
     use peer_practice_messages::current::post::PostId;
-    
+
     parse_case!(
         hello,
         r#"{

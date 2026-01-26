@@ -76,11 +76,12 @@ pub async fn user_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::{expect_no_message, recv_timeout, test_state};
+    use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::email::Email;
     use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::UserAction as ServerUserAction;
     use peer_practice_messages::current::user::User;
+    use peer_practice_messages::test_helpers_impl::{expect_no_message, recv_timeout};
     use peer_practice_server_services::ws_hub::ConnectionId;
 
     fn sample_user(id: UserId) -> User {
@@ -136,7 +137,11 @@ mod tests {
         handler.await.expect("handler task ok").expect("handler ok");
 
         match recv_timeout(&mut rx.ws_hub).await {
-            WsHubMsg::Send { user_id: got_user, con_id: got_con, msg } => {
+            WsHubMsg::Send {
+                user_id: got_user,
+                con_id: got_con,
+                msg,
+            } => {
                 assert_eq!(user_id, got_user);
                 assert_eq!(con_id, got_con);
                 match msg {

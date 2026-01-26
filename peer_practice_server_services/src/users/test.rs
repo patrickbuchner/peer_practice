@@ -1,15 +1,16 @@
 use super::{UsersMsg, handle_user_actions};
 use crate::storage::StorageMsg;
-use crate::test_utils::{TEST_TIMEOUT, expect_no_message, recv_timeout};
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::user::{User, UserId};
+use peer_practice_messages::test_helpers_impl::{
+    expect_no_message, recv_oneshot_timeout, recv_timeout,
+};
 use std::collections::HashMap;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::timeout;
 
 async fn arrange_empty() -> (
     mpsc::Sender<UsersMsg>,
@@ -39,10 +40,7 @@ async fn get_by_email(users_tx: &mpsc::Sender<UsersMsg>, email: Email) -> Option
         .await
         .unwrap();
 
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 async fn get_by_id(users_tx: &mpsc::Sender<UsersMsg>, id: UserId) -> Option<User> {
@@ -52,10 +50,7 @@ async fn get_by_id(users_tx: &mpsc::Sender<UsersMsg>, id: UserId) -> Option<User
         .await
         .unwrap();
 
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 #[tokio::test]

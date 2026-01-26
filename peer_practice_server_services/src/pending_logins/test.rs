@@ -1,12 +1,11 @@
 use crate::clock::ManualClock;
-use crate::pending_logins::{handle_pending_logins, PendingLoginsMsg};
-use crate::test_utils::TEST_TIMEOUT;
+use crate::pending_logins::{PendingLoginsMsg, handle_pending_logins};
 use chrono::{Duration, TimeZone};
 use peer_practice_messages::current::email::Email;
+use peer_practice_messages::test_helpers_impl::recv_oneshot_timeout;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::timeout;
 
 fn test_timestamp() -> chrono::DateTime<chrono::Utc> {
     chrono::Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap()
@@ -32,10 +31,7 @@ async fn get_code(tx: &mpsc::Sender<PendingLoginsMsg>, address: Email) -> Option
     .await
     .unwrap();
 
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 #[tokio::test]

@@ -134,10 +134,11 @@ pub async fn pin_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::{recv_timeout, test_state};
+    use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::authentication::method::AuthenticationMethod;
     use peer_practice_messages::current::email::Email;
     use peer_practice_messages::current::user::User;
+    use peer_practice_messages::test_helpers_impl::recv_timeout;
     use peer_practice_server_services::email::EmailMsg;
     use peer_practice_server_services::pending_logins::PendingLoginsMsg;
     use peer_practice_server_services::users::UsersMsg;
@@ -163,7 +164,10 @@ mod tests {
         let handler = tokio::spawn(login_handler(State(state), Json(login)));
 
         match recv_timeout(&mut rx.users).await {
-            UsersMsg::GetByEmail { email: got_email, respond_to } => {
+            UsersMsg::GetByEmail {
+                email: got_email,
+                respond_to,
+            } => {
                 assert_eq!(email.value(), got_email.value());
                 let _ = respond_to.send(Some(user_id));
             }
@@ -220,7 +224,10 @@ mod tests {
         }
 
         match recv_timeout(&mut rx.pending_logins).await {
-            PendingLoginsMsg::GetByAddress { address, respond_to } => {
+            PendingLoginsMsg::GetByAddress {
+                address,
+                respond_to,
+            } => {
                 assert_eq!(email.value(), address.value());
                 let _ = respond_to.send(Some(pin));
             }

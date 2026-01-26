@@ -1,10 +1,11 @@
 use super::*;
+use crate::handler::test_utils::test_state;
 use chrono::TimeZone;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::{Post, Topics};
 use peer_practice_messages::current::user::display_user::UserDisplay;
+use peer_practice_messages::test_helpers_impl::expect_no_message;
 use peer_practice_messages::v2026_01_11::chat::{ChatId, ChatMessage};
-use crate::handler::test_utils::{expect_no_message, test_state};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -30,9 +31,9 @@ macro_rules! parse_case {
     };
 }
 
+mod proptest;
 mod v2025_10_14;
 mod v2026_01_11;
-mod proptest;
 
 fn sample_user_display(user_id: UserId) -> UserDisplay {
     UserDisplay {
@@ -92,7 +93,14 @@ async fn consume_telegram_rejects_version_mismatch() {
     })
     .expect("serialize envelope");
 
-    let res = consume_telegram(&Some(Version::V2026_01_11), &Utf8Bytes::from(text), con_id, user_id, &state).await;
+    let res = consume_telegram(
+        &Some(Version::V2026_01_11),
+        &Utf8Bytes::from(text),
+        con_id,
+        user_id,
+        &state,
+    )
+    .await;
     assert!(res.is_err(), "expected version mismatch error");
 
     expect_no_message(&mut rx.ws_hub).await;

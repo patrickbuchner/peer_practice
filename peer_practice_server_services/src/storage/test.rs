@@ -1,12 +1,11 @@
 use super::*;
 use crate::chat::message::Message;
-use crate::test_utils::TEST_TIMEOUT;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::Topics;
+use peer_practice_messages::test_helpers_impl::{fixed_timestamp, recv_oneshot_timeout};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use tokio::time::timeout;
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -69,10 +68,7 @@ async fn retrieve_posts(tx: &mpsc::Sender<StorageMsg>) -> HashMap<PostId, Post> 
     tx.send(StorageMsg::RetrievePosts { respond_to })
         .await
         .unwrap();
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> {
@@ -80,10 +76,7 @@ async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> 
     tx.send(StorageMsg::RetrieveUsers { respond_to })
         .await
         .unwrap();
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progress> {
@@ -91,10 +84,7 @@ async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progre
     tx.send(StorageMsg::RetrieveChats { respond_to })
         .await
         .unwrap();
-    timeout(TEST_TIMEOUT, recv)
-        .await
-        .expect("timed out")
-        .expect("oneshot closed")
+    recv_oneshot_timeout(recv).await
 }
 
 fn mk_post(owner: UserId) -> Post {
@@ -103,7 +93,7 @@ fn mk_post(owner: UserId) -> Post {
         content: "hello".to_string(),
         level: Level::Beginner1,
         owner,
-        date: chrono::Utc::now(),
+        date: fixed_timestamp(),
         partaking_users: Default::default(),
     }
 }
@@ -124,7 +114,7 @@ fn mk_progress(chat_id: ChatId, post_id: PostId) -> Progress {
             sender: UserId::default(),
             message: "hi".to_string(),
             chat_id,
-            timestamp: chrono::Utc::now(),
+            timestamp: fixed_timestamp(),
         }],
     }
 }

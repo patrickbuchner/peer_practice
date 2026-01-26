@@ -96,9 +96,12 @@ pub async fn post_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::{expect_no_message, recv_timeout, test_state};
+    use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::level::Level;
     use peer_practice_messages::current::post::{Post, PostId, Topics};
+    use peer_practice_messages::test_helpers_impl::{
+        expect_no_message, fixed_timestamp, recv_timeout,
+    };
     use peer_practice_server_services::ws_hub::ConnectionId;
     use std::collections::HashSet;
 
@@ -108,7 +111,7 @@ mod tests {
             content: "test".to_string(),
             level: Level::Beginner1,
             owner,
-            date: chrono::Utc::now(),
+            date: fixed_timestamp(),
             partaking_users: HashSet::new(),
         }
     }
