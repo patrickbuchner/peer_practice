@@ -1,5 +1,6 @@
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
+use crate::chat::ChatMsg;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::PostAction;
 use peer_practice_messages::current::post::{Post, PostId};
@@ -25,6 +26,7 @@ mod test;
 pub async fn handle_posts(
     storage: Sender<StorageMsg>,
     ws_hub: Sender<WsHubMsg>,
+    chat: Sender<ChatMsg>,
     mut rx: Receiver<PostsMsg>,
 ) {
     let mut posts: HashMap<PostId, Post> = HashMap::new();
@@ -50,6 +52,7 @@ pub async fn handle_posts(
                     )))
                     .await;
                 let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+                let _ = chat.send(ChatMsg::DeleteForPost(id)).await;
             }
             PostsMsg::Get(id, reply) => {
                 let result = posts.get(&id).cloned();
@@ -69,6 +72,7 @@ pub async fn handle_posts(
                     )))
                     .await;
                 let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+                let _ = chat.send(ChatMsg::CreateForPost(id)).await;
             }
             PostsMsg::UserJoins(post_id, user) => {
                 if let Some(post) = posts.get_mut(&post_id) {

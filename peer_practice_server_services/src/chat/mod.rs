@@ -20,6 +20,7 @@ pub enum ChatMsg {
     GetChat(ChatId, oneshot::Sender<Result<Progress, ()>>),
     StoreMsg(Message),
     CreateForPost(PostId),
+    DeleteForPost(PostId),
     Delete(ChatId),
 }
 
@@ -60,6 +61,13 @@ pub async fn handle_chats(
                             content: Vec::new(),
                         },
                     );
+                    let _ = storage.send(StorageMsg::SaveChats(chats.clone())).await;
+                }
+            }
+            ChatMsg::DeleteForPost(post_id) => {
+                if let Some(chat_id) = post_to_chat.remove(&post_id)
+                    && chats.remove(&chat_id).is_some()
+                {
                     let _ = storage.send(StorageMsg::SaveChats(chats.clone())).await;
                 }
             }

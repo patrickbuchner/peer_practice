@@ -34,8 +34,8 @@ impl AppState {
         let users = spawn(64, |rx| {
             handle_user_actions(storage.clone(), ws_hub.clone(), rx)
         });
-        let posts = spawn(100, |rx| handle_posts(storage.clone(), ws_hub.clone(), rx));
         let chat = spawn(100, |rx| handle_chats(storage.clone(), ws_hub.clone(), rx));
+        let posts = spawn(100, |rx| handle_posts(storage.clone(), ws_hub.clone(), chat.clone(), rx));
 
         Self {
             jwt_secret: config.server.jwt_secret.clone(),

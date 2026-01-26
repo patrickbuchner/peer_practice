@@ -1,4 +1,5 @@
 use super::{PostsMsg, handle_posts};
+use crate::chat::ChatMsg;
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::level::Level;
@@ -22,13 +23,15 @@ async fn arrange_empty() -> (
     mpsc::Sender<PostsMsg>,
     mpsc::Receiver<StorageMsg>,
     mpsc::Receiver<WsHubMsg>,
+    mpsc::Receiver<ChatMsg>,
     JoinHandle<()>,
 ) {
     let (storage_tx, mut storage_rx) = mpsc::channel::<StorageMsg>(16);
     let (ws_hub_tx, ws_hub_rx) = mpsc::channel::<WsHubMsg>(16);
+    let (chat_tx, chat_rx) = mpsc::channel::<ChatMsg>(16);
     let (posts_tx, posts_rx) = mpsc::channel::<PostsMsg>(16);
 
-    let task = tokio::spawn(handle_posts(storage_tx, ws_hub_tx, posts_rx));
+    let task = tokio::spawn(handle_posts(storage_tx, ws_hub_tx, chat_tx, posts_rx));
 
     if let StorageMsg::RetrievePosts { respond_to } = next(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
@@ -36,7 +39,7 @@ async fn arrange_empty() -> (
         panic!("expected RetrievePosts");
     }
 
-    (posts_tx, storage_rx, ws_hub_rx, task)
+    (posts_tx, storage_rx, ws_hub_rx, chat_rx, task)
 }
 
 fn mk_post(owner: UserId) -> Post {
@@ -67,7 +70,7 @@ async fn list(posts_tx: &mpsc::Sender<PostsMsg>) -> Vec<(PostId, Post)> {
 
 #[tokio::test]
 async fn get_missing_returns_none() {
-    let (posts_tx, _storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, _storage_rx, _ws_hub_rx, _chat_rx, task) = arrange_empty().await;
 
     let missing = PostId::new();
     let got = get(&posts_tx, missing).await;
@@ -80,7 +83,7 @@ async fn get_missing_returns_none() {
 
 #[tokio::test]
 async fn new_broadcasts_and_persists_and_returns_id() {
-    let (posts_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, mut chat_rx, task) = arrange_empty().await;
 
     let owner = UserId::default();
     let post = mk_post(owner);
@@ -113,6 +116,10 @@ async fn new_broadcasts_and_persists_and_returns_id() {
         }
         other => panic!("expected SavePosts, got {other:?}"),
     }
+    match next(&mut chat_rx).await {
+        ChatMsg::CreateForPost(got_id) => assert_eq!(id, got_id),
+        other => panic!("expected CreateForPost, got {other:?}"),
+    }
 
     drop(posts_tx);
     let _ = task.await;
@@ -120,7 +127,7 @@ async fn new_broadcasts_and_persists_and_returns_id() {
 
 #[tokio::test]
 async fn upsert_then_get_returns_post() {
-    let (posts_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, _chat_rx, task) = arrange_empty().await;
 
     let id = PostId::new();
     let owner = UserId::default();
@@ -151,7 +158,7 @@ async fn upsert_then_get_returns_post() {
 
 #[tokio::test]
 async fn remove_broadcasts_and_persists() {
-    let (posts_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, mut chat_rx, task) = arrange_empty().await;
 
     let id = PostId::new();
     let post = mk_post(UserId::default());
@@ -178,6 +185,10 @@ async fn remove_broadcasts_and_persists() {
         }
         other => panic!("expected SavePosts, got {other:?}"),
     }
+    match next(&mut chat_rx).await {
+        ChatMsg::DeleteForPost(got_id) => assert_eq!(id, got_id),
+        other => panic!("expected DeleteForPost, got {other:?}"),
+    }
 
     assert!(get(&posts_tx, id).await.is_none());
 
@@ -187,7 +198,7 @@ async fn remove_broadcasts_and_persists() {
 
 #[tokio::test]
 async fn join_then_leave_updates_partaking_users_and_persists() {
-    let (posts_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, _chat_rx, task) = arrange_empty().await;
 
     let id = PostId::new();
     let owner = UserId::default();
@@ -239,7 +250,7 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
 
 #[tokio::test]
 async fn list_returns_all_posts() {
-    let (posts_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, _chat_rx, task) = arrange_empty().await;
 
     let id1 = PostId::new();
     let id2 = PostId::new();

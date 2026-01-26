@@ -260,3 +260,45 @@ async fn delete_removes_and_persists(known: bool) {
     drop(chat_tx);
     let _ = task.await;
 }
+
+#[test_case(false ; "missing post => no-op (no save)")]
+#[test_case(true  ; "existing post => removes chat and persists")]
+#[tokio::test]
+async fn delete_for_post_removes_and_persists(known: bool) {
+    let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+
+    let post_id = PostId::default();
+
+    if known {
+        let _ = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
+    }
+
+    chat_tx
+        .send(ChatMsg::DeleteForPost(post_id))
+        .await
+        .unwrap();
+
+    if known {
+        match next(&mut storage_rx).await {
+            StorageMsg::SaveChats(snapshot) => {
+                assert!(
+                    snapshot.values().all(|progress| progress.post_id != post_id),
+                    "deleted chat should not be present in saved snapshot"
+                );
+            }
+            other => panic!("expected SaveChats after DeleteForPost, got {other:?}"),
+        }
+
+        let res = get_for_post(&chat_tx, post_id).await;
+        assert!(res.is_err(), "deleted chat should not be retrievable");
+    } else {
+        let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
+        assert!(
+            got.is_err(),
+            "expected no storage write when deleting unknown post chat"
+        );
+    }
+
+    drop(chat_tx);
+    let _ = task.await;
+}
