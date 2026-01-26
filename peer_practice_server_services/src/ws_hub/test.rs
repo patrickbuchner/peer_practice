@@ -1,9 +1,10 @@
 use super::{ConnectionHandle, ConnectionId, WsHubMsg, handle_ws_hub_actions};
+use crate::test_utils::{expect_no_message_unbounded, recv_timeout_unbounded, TEST_TIMEOUT};
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::user::UserId;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, timeout};
+use tokio::time::timeout;
 
 async fn arrange() -> (mpsc::Sender<WsHubMsg>, JoinHandle<()>) {
     let (hub_tx, hub_rx) = mpsc::channel::<WsHubMsg>(16);
@@ -27,18 +28,10 @@ async fn join(
         .await
         .unwrap();
 
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")
-}
-
-async fn next_unbounded(
-    rx: &mut tokio::sync::mpsc::UnboundedReceiver<ServerToClient>,
-) -> Option<ServerToClient> {
-    timeout(Duration::from_millis(300), rx.recv())
-        .await
-        .expect("timed out")
 }
 
 #[tokio::test]
@@ -56,7 +49,7 @@ async fn join_returns_handle_and_receiver() {
         .await
         .unwrap();
 
-    let received = next_unbounded(&mut rx).await;
+    let received = recv_timeout_unbounded(&mut rx).await;
     assert!(matches!(received, Some(ServerToClient::MessageNotYetKnown)));
 
     drop(hub_tx);
@@ -80,11 +73,11 @@ async fn broadcast_all_delivers_to_all_connections() {
         .unwrap();
 
     assert!(matches!(
-        next_unbounded(&mut rx1).await,
+        recv_timeout_unbounded(&mut rx1).await,
         Some(ServerToClient::MessageNotYetKnown)
     ));
     assert!(matches!(
-        next_unbounded(&mut rx2).await,
+        recv_timeout_unbounded(&mut rx2).await,
         Some(ServerToClient::MessageNotYetKnown)
     ));
 
@@ -112,12 +105,11 @@ async fn broadcast_user_only_delivers_to_that_user() {
         .unwrap();
 
     assert!(matches!(
-        next_unbounded(&mut rx1).await,
+        recv_timeout_unbounded(&mut rx1).await,
         Some(ServerToClient::MessageNotYetKnown)
     ));
 
-    let got = timeout(Duration::from_millis(150), rx2.recv()).await;
-    assert!(got.is_err(), "user2 should not receive user1 broadcast");
+    expect_no_message_unbounded(&mut rx2).await;
 
     drop(hub_tx);
     task.abort();
@@ -146,12 +138,11 @@ async fn send_delivers_only_to_specific_connection() {
         .unwrap();
 
     assert!(matches!(
-        next_unbounded(&mut rx1).await,
+        recv_timeout_unbounded(&mut rx1).await,
         Some(ServerToClient::MessageNotYetKnown)
     ));
 
-    let got = timeout(Duration::from_millis(150), rx2.recv()).await;
-    assert!(got.is_err(), "other connection should not receive Send");
+    expect_no_message_unbounded(&mut rx2).await;
 
     // sanity: sending to the other id should reach rx2
     hub_tx
@@ -164,7 +155,7 @@ async fn send_delivers_only_to_specific_connection() {
         .unwrap();
 
     assert!(matches!(
-        next_unbounded(&mut rx2).await,
+        recv_timeout_unbounded(&mut rx2).await,
         Some(ServerToClient::MessageNotYetKnown)
     ));
 
@@ -183,7 +174,7 @@ async fn dropping_handle_leaves_and_closes_receiver() {
     drop(handle); // triggers Leave via Drop
 
     // after Leave, the hub drops the sender, so the receiver should close
-    let got = next_unbounded(&mut rx).await;
+    let got = recv_timeout_unbounded(&mut rx).await;
     assert!(got.is_none());
 
     drop(hub_tx);

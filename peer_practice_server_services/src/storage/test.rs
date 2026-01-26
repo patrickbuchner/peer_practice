@@ -1,11 +1,12 @@
 use super::*;
 use crate::chat::message::Message;
+use crate::test_utils::TEST_TIMEOUT;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::Topics;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use tokio::time::{Duration, timeout};
+use tokio::time::timeout;
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -68,7 +69,7 @@ async fn retrieve_posts(tx: &mpsc::Sender<StorageMsg>) -> HashMap<PostId, Post> 
     tx.send(StorageMsg::RetrievePosts { respond_to })
         .await
         .unwrap();
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")
@@ -79,7 +80,7 @@ async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> 
     tx.send(StorageMsg::RetrieveUsers { respond_to })
         .await
         .unwrap();
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")
@@ -90,7 +91,7 @@ async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progre
     tx.send(StorageMsg::RetrieveChats { respond_to })
         .await
         .unwrap();
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")

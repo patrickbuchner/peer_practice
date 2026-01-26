@@ -72,3 +72,81 @@ pub async fn user_handler(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::handler::test_utils::{expect_no_message, recv_timeout, test_state};
+    use peer_practice_messages::current::email::Email;
+    use peer_practice_messages::current::messages::ServerToClient;
+    use peer_practice_messages::current::messages::server_to_client::UserAction as ServerUserAction;
+    use peer_practice_messages::current::user::User;
+    use peer_practice_server_services::ws_hub::ConnectionId;
+
+    fn sample_user(id: UserId) -> User {
+        User {
+            id,
+            email: Email::new("user@example.com").unwrap(),
+            display_name: Some("Tester".to_string()),
+        }
+    }
+
+    #[tokio::test]
+    async fn update_user_ignores_mismatched_user_id() {
+        let (state, mut rx) = test_state();
+        let user_id = UserId::new();
+        let other_id = UserId::new();
+        let display = peer_practice_messages::current::user::display_user::UserDisplay {
+            id: other_id,
+            display_name: Some("New".to_string()),
+        };
+
+        user_handler(
+            UserAction::Update(display),
+            &state,
+            user_id,
+            ConnectionId::new(),
+        )
+        .await
+        .expect("handler ok");
+
+        expect_no_message(&mut rx.users).await;
+    }
+
+    #[tokio::test]
+    async fn get_user_sends_user_when_found() {
+        let (state, mut rx) = test_state();
+        let user_id = UserId::new();
+        let con_id = ConnectionId::new();
+        let user = sample_user(user_id);
+
+        let state = state.clone();
+        let handler = tokio::spawn(async move {
+            user_handler(UserAction::Get(user_id), &state, user_id, con_id).await
+        });
+
+        match recv_timeout(&mut rx.users).await {
+            UsersMsg::GetById { id, respond_to } => {
+                assert_eq!(user_id, id);
+                let _ = respond_to.send(Some(user.clone()));
+            }
+            _ => panic!("expected UsersMsg::GetById"),
+        }
+
+        handler.await.expect("handler task ok").expect("handler ok");
+
+        match recv_timeout(&mut rx.ws_hub).await {
+            WsHubMsg::Send { user_id: got_user, con_id: got_con, msg } => {
+                assert_eq!(user_id, got_user);
+                assert_eq!(con_id, got_con);
+                match msg {
+                    ServerToClient::User(ServerUserAction::User(got_id, _)) => {
+                        assert_eq!(user_id, got_id);
+                    }
+                    _ => panic!("expected User message"),
+                }
+            }
+            _ => panic!("expected WsHubMsg::Send"),
+        }
+    }
+}

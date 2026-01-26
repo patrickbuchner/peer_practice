@@ -92,3 +92,74 @@ pub async fn post_handler(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::handler::test_utils::{expect_no_message, recv_timeout, test_state};
+    use peer_practice_messages::current::level::Level;
+    use peer_practice_messages::current::post::{Post, PostId, Topics};
+    use peer_practice_server_services::ws_hub::ConnectionId;
+    use std::collections::HashSet;
+
+    fn sample_post(owner: UserId) -> Post {
+        Post {
+            title: Topics::default(),
+            content: "test".to_string(),
+            level: Level::Beginner1,
+            owner,
+            date: chrono::Utc::now(),
+            partaking_users: HashSet::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn update_post_ignores_non_owner() {
+        let (state, mut rx) = test_state();
+        let owner = UserId::new();
+        let other = UserId::new();
+        let post = sample_post(owner);
+
+        post_handler(
+            PostAction::UpdatePost(PostId::new(), post),
+            &state,
+            other,
+            ConnectionId::new(),
+        )
+        .await
+        .expect("handler ok");
+
+        expect_no_message(&mut rx.posts).await;
+    }
+
+    #[tokio::test]
+    async fn delete_post_ignores_non_owner() {
+        let (state, mut rx) = test_state();
+        let owner = UserId::new();
+        let other = UserId::new();
+        let post_id = PostId::new();
+        let post = sample_post(owner);
+
+        let state = state.clone();
+        let handler = tokio::spawn(async move {
+            post_handler(
+                PostAction::DeletePost(post_id),
+                &state,
+                other,
+                ConnectionId::new(),
+            )
+            .await
+        });
+
+        match recv_timeout(&mut rx.posts).await {
+            PostsMsg::Get(id, respond_to) => {
+                assert_eq!(post_id, id);
+                let _ = respond_to.send(Some(post));
+            }
+            _ => panic!("expected PostsMsg::Get"),
+        }
+
+        handler.await.expect("handler task ok").expect("handler ok");
+        expect_no_message(&mut rx.posts).await;
+    }
+}

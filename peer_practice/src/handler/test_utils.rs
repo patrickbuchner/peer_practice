@@ -1,0 +1,59 @@
+use crate::app_state::AppState;
+use peer_practice_server_services::{chat, email, pending_logins, posts, users, ws_hub};
+use tokio::sync::mpsc;
+use tokio::time::{Duration, timeout};
+
+pub const TEST_TIMEOUT: Duration = Duration::from_millis(300);
+pub const SHORT_TIMEOUT: Duration = Duration::from_millis(150);
+
+pub async fn recv_timeout<T>(rx: &mut mpsc::Receiver<T>) -> T {
+    timeout(TEST_TIMEOUT, rx.recv())
+        .await
+        .expect("timed out")
+        .expect("channel closed")
+}
+
+pub async fn expect_no_message<T>(rx: &mut mpsc::Receiver<T>) {
+    let got = timeout(SHORT_TIMEOUT, rx.recv()).await;
+    assert!(got.is_err(), "expected no message");
+}
+
+pub struct TestReceivers {
+    pub pending_logins: mpsc::Receiver<pending_logins::PendingLoginsMsg>,
+    pub users: mpsc::Receiver<users::UsersMsg>,
+    pub email: mpsc::Receiver<email::EmailMsg>,
+    pub posts: mpsc::Receiver<posts::PostsMsg>,
+    pub ws_hub: mpsc::Receiver<ws_hub::WsHubMsg>,
+    pub chat: mpsc::Receiver<chat::ChatMsg>,
+}
+
+pub fn test_state() -> (AppState, TestReceivers) {
+    let (pending_logins, pending_logins_rx) = mpsc::channel(8);
+    let (users, users_rx) = mpsc::channel(8);
+    let (email, email_rx) = mpsc::channel(8);
+    let (posts, posts_rx) = mpsc::channel(8);
+    let (ws_hub, ws_hub_rx) = mpsc::channel(8);
+    let (chat, chat_rx) = mpsc::channel(8);
+
+    let state = AppState {
+        jwt_secret: "test-secret".to_string(),
+        pending_logins,
+        users,
+        email,
+        posts,
+        ws_hub,
+        chat,
+    };
+
+    (
+        state,
+        TestReceivers {
+            pending_logins: pending_logins_rx,
+            users: users_rx,
+            email: email_rx,
+            posts: posts_rx,
+            ws_hub: ws_hub_rx,
+            chat: chat_rx,
+        },
+    )
+}

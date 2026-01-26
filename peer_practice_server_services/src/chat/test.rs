@@ -1,15 +1,8 @@
 use crate::chat::*;
+use crate::test_utils::{expect_no_message, recv_timeout};
 use peer_practice_messages::current::user::UserId;
 use test_case::test_case;
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, timeout};
-
-async fn next<T>(rx: &mut mpsc::Receiver<T>) -> T {
-    timeout(Duration::from_millis(300), rx.recv())
-        .await
-        .expect("timed out")
-        .expect("channel closed")
-}
 
 async fn arrange_empty() -> (
     mpsc::Sender<ChatMsg>,
@@ -23,7 +16,7 @@ async fn arrange_empty() -> (
 
     let task = tokio::spawn(handle_chats(storage_tx, ws_hub_tx, chat_rx));
 
-    if let StorageMsg::RetrieveChats { respond_to } = next(&mut storage_rx).await {
+    if let StorageMsg::RetrieveChats { respond_to } = recv_timeout(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
     } else {
         panic!("expected RetrieveChats");
@@ -38,7 +31,7 @@ async fn create_chat_for_post(
     post_id: PostId,
 ) -> ChatId {
     chat_tx.send(ChatMsg::CreateForPost(post_id)).await.unwrap();
-    match next(storage_rx).await {
+    match recv_timeout(storage_rx).await {
         StorageMsg::SaveChats(snapshot) => {
             assert_eq!(
                 1,
@@ -127,11 +120,11 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
 
     let mut last_snapshot: Option<HashMap<ChatId, Progress>> = None;
     for _ in 0..expected_texts.len() {
-        match next(&mut ws_hub_rx).await {
+        match recv_timeout(&mut ws_hub_rx).await {
             WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(_))) => {}
             other => panic!("unexpected ws msg: {other:?}"),
         }
-        match next(&mut storage_rx).await {
+        match recv_timeout(&mut storage_rx).await {
             StorageMsg::SaveChats(snapshot) => last_snapshot = Some(snapshot),
             other => panic!("unexpected storage msg: {other:?}"),
         }
@@ -166,16 +159,12 @@ async fn create_for_post_is_idempotent(first_time: bool) {
     chat_tx.send(ChatMsg::CreateForPost(post_id)).await.unwrap();
 
     if first_time {
-        match next(&mut storage_rx).await {
+        match recv_timeout(&mut storage_rx).await {
             StorageMsg::SaveChats(snapshot) => assert_eq!(1, snapshot.len()),
             other => panic!("expected SaveChats, got {other:?}"),
         }
     } else {
-        let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
-        assert!(
-            got.is_err(),
-            "expected no storage write on duplicate CreateForPost"
-        );
+        expect_no_message(&mut storage_rx).await;
     }
 
     drop(chat_tx);
@@ -237,7 +226,7 @@ async fn delete_removes_and_persists(known: bool) {
     chat_tx.send(ChatMsg::Delete(chat_id)).await.unwrap();
 
     if known {
-        match next(&mut storage_rx).await {
+        match recv_timeout(&mut storage_rx).await {
             StorageMsg::SaveChats(snapshot) => {
                 assert!(
                     !snapshot.contains_key(&chat_id),
@@ -250,11 +239,7 @@ async fn delete_removes_and_persists(known: bool) {
         let res = get_by_id(&chat_tx, chat_id).await;
         assert!(res.is_err(), "deleted chat should not be retrievable");
     } else {
-        let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
-        assert!(
-            got.is_err(),
-            "expected no storage write when deleting unknown chat"
-        );
+        expect_no_message(&mut storage_rx).await;
     }
 
     drop(chat_tx);
@@ -279,7 +264,7 @@ async fn delete_for_post_removes_and_persists(known: bool) {
         .unwrap();
 
     if known {
-        match next(&mut storage_rx).await {
+        match recv_timeout(&mut storage_rx).await {
             StorageMsg::SaveChats(snapshot) => {
                 assert!(
                     snapshot.values().all(|progress| progress.post_id != post_id),
@@ -292,12 +277,50 @@ async fn delete_for_post_removes_and_persists(known: bool) {
         let res = get_for_post(&chat_tx, post_id).await;
         assert!(res.is_err(), "deleted chat should not be retrievable");
     } else {
-        let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
-        assert!(
-            got.is_err(),
-            "expected no storage write when deleting unknown post chat"
-        );
+        expect_no_message(&mut storage_rx).await;
     }
+
+    drop(chat_tx);
+    let _ = task.await;
+}
+
+#[tokio::test]
+async fn store_msg_unknown_chat_is_noop() {
+    let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+
+    let chat_id = ChatId::new();
+    chat_tx
+        .send(ChatMsg::StoreMsg(Message {
+            sender: UserId::default(),
+            message: "missing".to_string(),
+            chat_id,
+            timestamp: chrono::Utc::now(),
+        }))
+        .await
+        .unwrap();
+
+    expect_no_message(&mut ws_hub_rx).await;
+    expect_no_message(&mut storage_rx).await;
+
+    drop(chat_tx);
+    let _ = task.await;
+}
+
+#[tokio::test]
+async fn store_msg_for_missing_post_is_noop() {
+    let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+
+    chat_tx
+        .send(ChatMsg::StoreMsgForPost {
+            post_id: PostId::new(),
+            sender: UserId::default(),
+            message: "missing".to_string(),
+        })
+        .await
+        .unwrap();
+
+    expect_no_message(&mut ws_hub_rx).await;
+    expect_no_message(&mut storage_rx).await;
 
     drop(chat_tx);
     let _ = task.await;

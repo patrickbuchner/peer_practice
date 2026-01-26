@@ -5,3 +5,6 @@ pub mod posts;
 pub mod storage;
 pub mod users;
 pub mod ws_hub;
+
+#[cfg(test)]
+pub mod test_utils;

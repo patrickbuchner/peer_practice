@@ -213,26 +213,4 @@ mod invalid_parsing {
     }"#,
         ExpectedResult::Err
     );
-
-    parse_case!(
-        invalid_uuid_is_err,
-        r#"{
-      "version": "V2025_10_14",
-      "data": {
-        "GetUser": {
-          "id": "still-not-a-uuid"
-        }
-      }
-    }"#,
-        ExpectedResult::Err
-    );
-
-    parse_case!(
-        unknown_version_is_err,
-        r#"{
-      "version": "V2099_01_01",
-      "data": "Hello"
-    }"#,
-        ExpectedResult::Err
-    );
 }

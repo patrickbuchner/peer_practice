@@ -1,5 +1,6 @@
 use super::{UsersMsg, handle_user_actions};
 use crate::storage::StorageMsg;
+use crate::test_utils::{TEST_TIMEOUT, expect_no_message, recv_timeout};
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
@@ -8,14 +9,7 @@ use peer_practice_messages::current::user::{User, UserId};
 use std::collections::HashMap;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, timeout};
-
-async fn next<T>(rx: &mut mpsc::Receiver<T>) -> T {
-    timeout(Duration::from_millis(300), rx.recv())
-        .await
-        .expect("timed out")
-        .expect("channel closed")
-}
+use tokio::time::timeout;
 
 async fn arrange_empty() -> (
     mpsc::Sender<UsersMsg>,
@@ -29,7 +23,7 @@ async fn arrange_empty() -> (
 
     let task = tokio::spawn(handle_user_actions(storage_tx, ws_hub_tx, users_rx));
 
-    if let StorageMsg::RetrieveUsers { respond_to } = next(&mut storage_rx).await {
+    if let StorageMsg::RetrieveUsers { respond_to } = recv_timeout(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
     } else {
         panic!("expected RetrieveUsers");
@@ -45,7 +39,7 @@ async fn get_by_email(users_tx: &mpsc::Sender<UsersMsg>, email: Email) -> Option
         .await
         .unwrap();
 
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")
@@ -58,7 +52,7 @@ async fn get_by_id(users_tx: &mpsc::Sender<UsersMsg>, id: UserId) -> Option<User
         .await
         .unwrap();
 
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")
@@ -87,7 +81,7 @@ async fn get_by_email_creates_user_persists_and_is_idempotent() {
         .await
         .expect("should create a new user id");
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(
                 snapshot.contains_key(&id1),
@@ -100,11 +94,7 @@ async fn get_by_email_creates_user_persists_and_is_idempotent() {
     let id2 = get_by_email(&users_tx, email.clone()).await.unwrap();
     assert_eq!(id1, id2, "second GetByEmail should return same id");
 
-    let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
-    assert!(
-        got.is_err(),
-        "expected no storage write on cached GetByEmail"
-    );
+    expect_no_message(&mut storage_rx).await;
 
     drop(users_tx);
     let _ = task.await;
@@ -118,7 +108,7 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
     let id = get_by_email(&users_tx, email.clone()).await.unwrap();
 
     // consume SaveUsers from the create-on-demand in GetByEmail
-    let _ = next(&mut storage_rx).await;
+    let _ = recv_timeout(&mut storage_rx).await;
 
     let updated = User {
         id,
@@ -134,7 +124,7 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
         .await
         .unwrap();
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SaveUsers(snapshot) => {
             let saved = snapshot.get(&id).expect("updated user should be saved");
             assert_eq!(updated.display_name, saved.display_name);
@@ -143,7 +133,7 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
         other => panic!("expected SaveUsers after Update, got {other:?}"),
     }
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::User(UserAction::User(got_id, _))) => {
             assert_eq!(id, got_id);
         }
@@ -166,7 +156,7 @@ async fn update_with_changed_email_updates_email_index() {
     let new_email = Email::new("new@example.com").unwrap();
 
     let id1 = get_by_email(&users_tx, old_email.clone()).await.unwrap();
-    let _ = next(&mut storage_rx).await; // SaveUsers from create
+    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from create
 
     users_tx
         .send(UsersMsg::Update {
@@ -180,8 +170,8 @@ async fn update_with_changed_email_updates_email_index() {
         .await
         .unwrap();
 
-    let _ = next(&mut storage_rx).await; // SaveUsers from update
-    let _ = next(&mut ws_hub_rx).await; // BroadcastAll from update
+    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from update
+    let _ = recv_timeout(&mut ws_hub_rx).await; // BroadcastAll from update
 
     // old email should no longer resolve to id1; it will create a *new* user/id
     let id2 = get_by_email(&users_tx, old_email.clone()).await.unwrap();
@@ -190,7 +180,7 @@ async fn update_with_changed_email_updates_email_index() {
         "old email should no longer map to the updated user id"
     );
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(snapshot.contains_key(&id2));
         }
@@ -201,11 +191,7 @@ async fn update_with_changed_email_updates_email_index() {
     let got = get_by_email(&users_tx, new_email.clone()).await.unwrap();
     assert_eq!(id1, got);
 
-    let got = timeout(Duration::from_millis(150), storage_rx.recv()).await;
-    assert!(
-        got.is_err(),
-        "expected no storage write for cached new-email lookup"
-    );
+    expect_no_message(&mut storage_rx).await;
 
     drop(users_tx);
     let _ = task.await;
@@ -217,11 +203,11 @@ async fn remove_deletes_user_persists_and_email_can_be_recreated() {
 
     let email = Email::new("remove@example.com").unwrap();
     let id1 = get_by_email(&users_tx, email.clone()).await.unwrap();
-    let _ = next(&mut storage_rx).await; // SaveUsers from create
+    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from create
 
     users_tx.send(UsersMsg::Remove { id: id1 }).await.unwrap();
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(
                 !snapshot.contains_key(&id1),
@@ -239,7 +225,7 @@ async fn remove_deletes_user_persists_and_email_can_be_recreated() {
         "removing should allow re-creating the email with a new id"
     );
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(snapshot.contains_key(&id2));
         }

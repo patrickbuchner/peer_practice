@@ -130,3 +130,105 @@ pub async fn pin_handler(
 
     Ok(jar)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::handler::test_utils::{recv_timeout, test_state};
+    use peer_practice_messages::current::authentication::method::AuthenticationMethod;
+    use peer_practice_messages::current::email::Email;
+    use peer_practice_messages::current::user::User;
+    use peer_practice_server_services::email::EmailMsg;
+    use peer_practice_server_services::pending_logins::PendingLoginsMsg;
+    use peer_practice_server_services::users::UsersMsg;
+
+    fn sample_user(id: UserId, email: Email) -> User {
+        User {
+            id,
+            email,
+            display_name: Some("Tester".to_string()),
+        }
+    }
+
+    #[tokio::test]
+    async fn login_handler_sends_pin_and_returns_user_id() {
+        let (state, mut rx) = test_state();
+        let email = Email::new("user@example.com").unwrap();
+        let login = LoginData {
+            email: email.clone(),
+            auth: AuthenticationMethod::EmailOTP,
+        };
+        let user_id = UserId::new();
+
+        let handler = tokio::spawn(login_handler(State(state), Json(login)));
+
+        match recv_timeout(&mut rx.users).await {
+            UsersMsg::GetByEmail { email: got_email, respond_to } => {
+                assert_eq!(email.value(), got_email.value());
+                let _ = respond_to.send(Some(user_id));
+            }
+            _ => panic!("expected UsersMsg::GetByEmail"),
+        }
+
+        let pin = match recv_timeout(&mut rx.pending_logins).await {
+            PendingLoginsMsg::Upsert { address, code } => {
+                assert_eq!(email.value(), address.value());
+                assert!((100_000..=999_999).contains(&code));
+                code
+            }
+            _ => panic!("expected PendingLoginsMsg::Upsert"),
+        };
+
+        match recv_timeout(&mut rx.email).await {
+            EmailMsg::SendLoginMail {
+                target,
+                validation_code,
+                respond_to: _,
+            } => {
+                assert_eq!(email.value(), target.to_string());
+                assert_eq!(pin, validation_code);
+            }
+        }
+
+        let result = handler.await.expect("handler task ok");
+        let Json(got) = result.expect("handler ok");
+        assert_eq!(Some(user_id), got);
+    }
+
+    #[tokio::test]
+    async fn pin_handler_sets_access_cookie_on_success() {
+        let (state, mut rx) = test_state();
+        let email = Email::new("user@example.com").unwrap();
+        let user_id = UserId::new();
+        let pin = 123_456u32;
+
+        let handler = tokio::spawn(pin_handler(
+            State(state),
+            CookieJar::new(),
+            Json(PinLogin {
+                pin: pin.to_string(),
+                id: user_id,
+            }),
+        ));
+
+        match recv_timeout(&mut rx.users).await {
+            UsersMsg::GetById { id, respond_to } => {
+                assert_eq!(user_id, id);
+                let _ = respond_to.send(Some(sample_user(user_id, email.clone())));
+            }
+            _ => panic!("expected UsersMsg::GetById"),
+        }
+
+        match recv_timeout(&mut rx.pending_logins).await {
+            PendingLoginsMsg::GetByAddress { address, respond_to } => {
+                assert_eq!(email.value(), address.value());
+                let _ = respond_to.send(Some(pin));
+            }
+            _ => panic!("expected PendingLoginsMsg::GetByAddress"),
+        }
+
+        let jar = handler.await.expect("handler task ok").expect("handler ok");
+        let cookie = jar.get("access_token").expect("missing access_token");
+        assert!(!cookie.value().is_empty());
+    }
+}

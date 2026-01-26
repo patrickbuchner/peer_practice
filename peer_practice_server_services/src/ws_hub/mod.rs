@@ -13,6 +13,12 @@ pub struct ConnectionId {
 #[cfg(test)]
 mod test;
 
+impl ConnectionId {
+    pub fn new() -> Self {
+        Self { id: Uuid::new_v4() }
+    }
+}
+
 #[cfg_attr(test, derive(Debug))]
 pub enum WsHubMsg {
     Join {

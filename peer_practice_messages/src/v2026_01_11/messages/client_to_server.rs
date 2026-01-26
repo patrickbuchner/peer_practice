@@ -79,3 +79,23 @@ mod transformations_v2025_10_14 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::v2025_10_14::messages::ClientToServer as Old;
+
+    #[test]
+    fn current_chat_action_maps_to_legacy_unknown() {
+        let msg = ClientToServer::Chat(ChatAction::GetChatFor(PostId::new()));
+        let legacy: Old = msg.into();
+        assert!(matches!(legacy, Old::MessageNotYetKnown));
+    }
+
+    #[test]
+    fn current_post_messages_maps_to_legacy_unknown() {
+        let msg = ClientToServer::Post(PostAction::GetPostMessages(PostId::new()));
+        let legacy: Old = msg.into();
+        assert!(matches!(legacy, Old::MessageNotYetKnown));
+    }
+}

@@ -67,3 +67,94 @@ async fn send_chat(
         .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::handler::test_utils::{recv_timeout, test_state};
+    use peer_practice_messages::current::messages::ServerToClient;
+    use peer_practice_messages::current::messages::server_to_client::ChatAction as ServerChatAction;
+    use peer_practice_messages::current::post::PostId;
+    use peer_practice_server_services::chat::progress::Progress;
+    use peer_practice_server_services::chat::message::Message;
+    use peer_practice_server_services::ws_hub::ConnectionId;
+
+    #[tokio::test]
+    async fn get_chat_for_missing_sends_not_found() {
+        let (state, mut rx) = test_state();
+        let user_id = UserId::new();
+        let con_id = ConnectionId::new();
+        let post_id = PostId::new();
+
+        let state = state.clone();
+        let handler = tokio::spawn(async move {
+            chat_handler(ChatAction::GetChatFor(post_id), &state, user_id, con_id).await
+        });
+
+        match recv_timeout(&mut rx.chat).await {
+            ChatMsg::GetChatForPost(got_post, respond_to) => {
+                assert_eq!(post_id, got_post);
+                let _ = respond_to.send(Err(()));
+            }
+            _ => panic!("expected ChatMsg::GetChatForPost"),
+        }
+
+        handler.await.expect("handler task ok").expect("handler ok");
+
+        match recv_timeout(&mut rx.ws_hub).await {
+            WsHubMsg::Send { msg, .. } => match msg {
+                ServerToClient::Chat(ServerChatAction::ChatDoesNotExistForPost(got_post)) => {
+                    assert_eq!(post_id, got_post);
+                }
+                _ => panic!("expected ChatDoesNotExistForPost"),
+            },
+            _ => panic!("expected WsHubMsg::Send"),
+        }
+    }
+
+    #[tokio::test]
+    async fn get_chat_sends_chat_contents() {
+        let (state, mut rx) = test_state();
+        let user_id = UserId::new();
+        let con_id = ConnectionId::new();
+        let post_id = PostId::new();
+        let chat_id = peer_practice_messages::current::chat::ChatId::new();
+        let progress = Progress {
+            chat_id,
+            post_id,
+            content: vec![Message {
+                sender: user_id,
+                message: "hello".to_string(),
+                chat_id,
+                timestamp: chrono::Utc::now(),
+            }],
+        };
+
+        let state = state.clone();
+        let handler = tokio::spawn(async move {
+            chat_handler(ChatAction::GetChat(chat_id), &state, user_id, con_id).await
+        });
+
+        match recv_timeout(&mut rx.chat).await {
+            ChatMsg::GetChat(got_id, respond_to) => {
+                assert_eq!(chat_id, got_id);
+                let _ = respond_to.send(Ok(progress.clone()));
+            }
+            _ => panic!("expected ChatMsg::GetChat"),
+        }
+
+        handler.await.expect("handler task ok").expect("handler ok");
+
+        match recv_timeout(&mut rx.ws_hub).await {
+            WsHubMsg::Send { msg, .. } => match msg {
+                ServerToClient::Chat(ServerChatAction::Chat(got_id, messages)) => {
+                    assert_eq!(chat_id, got_id);
+                    assert_eq!(1, messages.len());
+                    assert_eq!("hello", messages[0].message);
+                }
+                _ => panic!("expected Chat message"),
+            },
+            _ => panic!("expected WsHubMsg::Send"),
+        }
+    }
+}

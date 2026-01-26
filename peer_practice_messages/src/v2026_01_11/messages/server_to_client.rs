@@ -62,3 +62,16 @@ pub mod transformations_v2025_10_14 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::v2025_10_14::messages::ServerToClient as Old;
+
+    #[test]
+    fn chat_actions_map_to_legacy_unknown() {
+        let msg = ServerToClient::Chat(ChatAction::ChatDoesNotExistForPost(PostId::new()));
+        let legacy: Old = msg.into();
+        assert!(matches!(legacy, Old::MessageNotYetKnown));
+    }
+}

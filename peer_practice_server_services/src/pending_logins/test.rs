@@ -1,8 +1,9 @@
 use crate::pending_logins::{PendingLoginsMsg, handle_pending_logins};
+use crate::test_utils::TEST_TIMEOUT;
 use peer_practice_messages::current::email::Email;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, timeout};
+use tokio::time::timeout;
 
 async fn arrange() -> (mpsc::Sender<PendingLoginsMsg>, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<PendingLoginsMsg>(16);
@@ -19,7 +20,7 @@ async fn get_code(tx: &mpsc::Sender<PendingLoginsMsg>, address: Email) -> Option
     .await
     .unwrap();
 
-    timeout(Duration::from_millis(300), recv)
+    timeout(TEST_TIMEOUT, recv)
         .await
         .expect("timed out")
         .expect("oneshot closed")

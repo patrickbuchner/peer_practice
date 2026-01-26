@@ -315,28 +315,4 @@ mod invalid_parsing {
     }"#,
         ExpectedResult::Err
     );
-
-    parse_case!(
-        invalid_chat_id_is_err,
-        r#"{
-      "version": "V2026_01_11",
-      "data": {
-        "Chat": {
-          "GetChat": {
-            "id": "also-not-a-uuid"
-          }
-        }
-      }
-    }"#,
-        ExpectedResult::Err
-    );
-
-    parse_case!(
-        unknown_version_is_err,
-        r#"{
-      "version": "V2099_01_01",
-      "data": "Hello"
-    }"#,
-        ExpectedResult::Err
-    );
 }

@@ -1,6 +1,7 @@
 use super::{PostsMsg, handle_posts};
 use crate::chat::ChatMsg;
 use crate::storage::StorageMsg;
+use crate::test_utils::{TEST_TIMEOUT, expect_no_message, recv_timeout};
 use crate::ws_hub::WsHubMsg;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::messages::ServerToClient;
@@ -10,14 +11,7 @@ use peer_practice_messages::current::user::UserId;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use tokio::time::{Duration, timeout};
-
-async fn next<T>(rx: &mut mpsc::Receiver<T>) -> T {
-    timeout(Duration::from_millis(300), rx.recv())
-        .await
-        .expect("timed out")
-        .expect("channel closed")
-}
+use tokio::time::timeout;
 
 async fn arrange_empty() -> (
     mpsc::Sender<PostsMsg>,
@@ -33,7 +27,7 @@ async fn arrange_empty() -> (
 
     let task = tokio::spawn(handle_posts(storage_tx, ws_hub_tx, chat_tx, posts_rx));
 
-    if let StorageMsg::RetrievePosts { respond_to } = next(&mut storage_rx).await {
+    if let StorageMsg::RetrievePosts { respond_to } = recv_timeout(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
     } else {
         panic!("expected RetrievePosts");
@@ -94,12 +88,12 @@ async fn new_broadcasts_and_persists_and_returns_id() {
         .await
         .unwrap();
 
-    let id = timeout(Duration::from_millis(300), id_rx)
+    let id = timeout(TEST_TIMEOUT, id_rx)
         .await
         .expect("timed out")
         .expect("oneshot closed");
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, got_post))) => {
             assert_eq!(id, got_id);
             assert_eq!(post.content, got_post.content);
@@ -107,7 +101,7 @@ async fn new_broadcasts_and_persists_and_returns_id() {
         other => panic!("expected Post broadcast, got {other:?}"),
     }
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => {
             assert!(
                 snapshot.contains_key(&id),
@@ -116,7 +110,7 @@ async fn new_broadcasts_and_persists_and_returns_id() {
         }
         other => panic!("expected SavePosts, got {other:?}"),
     }
-    match next(&mut chat_rx).await {
+    match recv_timeout(&mut chat_rx).await {
         ChatMsg::CreateForPost(got_id) => assert_eq!(id, got_id),
         other => panic!("expected CreateForPost, got {other:?}"),
     }
@@ -138,13 +132,13 @@ async fn upsert_then_get_returns_post() {
         .await
         .unwrap();
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, _))) => {
             assert_eq!(id, got_id);
         }
         other => panic!("expected Post broadcast, got {other:?}"),
     }
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => assert!(snapshot.contains_key(&id)),
         other => panic!("expected SavePosts, got {other:?}"),
     }
@@ -164,19 +158,19 @@ async fn remove_broadcasts_and_persists() {
     let post = mk_post(UserId::default());
 
     posts_tx.send(PostsMsg::Upsert(id, post)).await.unwrap();
-    let _ = next(&mut ws_hub_rx).await;
-    let _ = next(&mut storage_rx).await;
+    let _ = recv_timeout(&mut ws_hub_rx).await;
+    let _ = recv_timeout(&mut storage_rx).await;
 
     posts_tx.send(PostsMsg::Remove(id)).await.unwrap();
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::RemovedPost(got_id))) => {
             assert_eq!(id, got_id);
         }
         other => panic!("expected RemovedPost broadcast, got {other:?}"),
     }
 
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => {
             assert!(
                 !snapshot.contains_key(&id),
@@ -185,7 +179,7 @@ async fn remove_broadcasts_and_persists() {
         }
         other => panic!("expected SavePosts, got {other:?}"),
     }
-    match next(&mut chat_rx).await {
+    match recv_timeout(&mut chat_rx).await {
         ChatMsg::DeleteForPost(got_id) => assert_eq!(id, got_id),
         other => panic!("expected DeleteForPost, got {other:?}"),
     }
@@ -205,28 +199,28 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
     let mut post = mk_post(owner);
     post.partaking_users = HashSet::new();
     posts_tx.send(PostsMsg::Upsert(id, post)).await.unwrap();
-    let _ = next(&mut ws_hub_rx).await;
-    let _ = next(&mut storage_rx).await;
+    let _ = recv_timeout(&mut ws_hub_rx).await;
+    let _ = recv_timeout(&mut storage_rx).await;
 
     let user = UserId::default();
 
     posts_tx.send(PostsMsg::UserJoins(id, user)).await.unwrap();
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, got_post))) => {
             assert_eq!(id, got_id);
             assert!(got_post.partaking_users.contains(&user));
         }
         other => panic!("expected Post broadcast after join, got {other:?}"),
     }
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => {
             let saved = snapshot.get(&id).unwrap();
             assert!(saved.partaking_users.contains(&user));
         }
         other => panic!("expected SavePosts after join, got {other:?}"),
     }
-    match next(&mut chat_rx).await {
+    match recv_timeout(&mut chat_rx).await {
         ChatMsg::StoreMsgForPost {
             post_id: got_id,
             sender: got_user,
@@ -241,21 +235,21 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
 
     posts_tx.send(PostsMsg::UserLeaves(id, user)).await.unwrap();
 
-    match next(&mut ws_hub_rx).await {
+    match recv_timeout(&mut ws_hub_rx).await {
         WsHubMsg::BroadcastAll(ServerToClient::Post(PostAction::Post(got_id, got_post))) => {
             assert_eq!(id, got_id);
             assert!(!got_post.partaking_users.contains(&user));
         }
         other => panic!("expected Post broadcast after leave, got {other:?}"),
     }
-    match next(&mut storage_rx).await {
+    match recv_timeout(&mut storage_rx).await {
         StorageMsg::SavePosts(snapshot) => {
             let saved = snapshot.get(&id).unwrap();
             assert!(!saved.partaking_users.contains(&user));
         }
         other => panic!("expected SavePosts after leave, got {other:?}"),
     }
-    match next(&mut chat_rx).await {
+    match recv_timeout(&mut chat_rx).await {
         ChatMsg::StoreMsgForPost {
             post_id: got_id,
             sender: got_user,
@@ -283,21 +277,42 @@ async fn list_returns_all_posts() {
         .send(PostsMsg::Upsert(id1, mk_post(UserId::default())))
         .await
         .unwrap();
-    let _ = next(&mut ws_hub_rx).await;
-    let _ = next(&mut storage_rx).await;
+    let _ = recv_timeout(&mut ws_hub_rx).await;
+    let _ = recv_timeout(&mut storage_rx).await;
 
     posts_tx
         .send(PostsMsg::Upsert(id2, mk_post(UserId::default())))
         .await
         .unwrap();
-    let _ = next(&mut ws_hub_rx).await;
-    let _ = next(&mut storage_rx).await;
+    let _ = recv_timeout(&mut ws_hub_rx).await;
+    let _ = recv_timeout(&mut storage_rx).await;
 
     let got = list(&posts_tx).await;
     let ids: HashSet<PostId> = got.into_iter().map(|(id, _)| id).collect();
 
     assert!(ids.contains(&id1));
     assert!(ids.contains(&id2));
+
+    drop(posts_tx);
+    let _ = task.await;
+}
+
+#[tokio::test]
+async fn join_leave_unknown_post_is_noop() {
+    let (posts_tx, mut storage_rx, mut ws_hub_rx, mut chat_rx, task) = arrange_empty().await;
+
+    let post_id = PostId::new();
+    let user = UserId::new();
+
+    posts_tx.send(PostsMsg::UserJoins(post_id, user)).await.unwrap();
+    expect_no_message(&mut ws_hub_rx).await;
+    expect_no_message(&mut storage_rx).await;
+    expect_no_message(&mut chat_rx).await;
+
+    posts_tx.send(PostsMsg::UserLeaves(post_id, user)).await.unwrap();
+    expect_no_message(&mut ws_hub_rx).await;
+    expect_no_message(&mut storage_rx).await;
+    expect_no_message(&mut chat_rx).await;
 
     drop(posts_tx);
     let _ = task.await;
