@@ -5,6 +5,7 @@ use peer_practice_messages::current::chat::ChatId;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::ChatAction;
 use peer_practice_messages::current::post::PostId;
+use peer_practice_messages::current::user::UserId;
 use progress::Progress;
 use std::collections::HashMap;
 use tokio::sync::{mpsc, oneshot};
@@ -19,6 +20,11 @@ pub enum ChatMsg {
     GetChatForPost(PostId, oneshot::Sender<Result<Progress, ()>>),
     GetChat(ChatId, oneshot::Sender<Result<Progress, ()>>),
     StoreMsg(Message),
+    StoreMsgForPost {
+        post_id: PostId,
+        sender: UserId,
+        message: String,
+    },
     CreateForPost(PostId),
     DeleteForPost(PostId),
     Delete(ChatId),
@@ -79,6 +85,26 @@ pub async fn handle_chats(
             }
             ChatMsg::StoreMsg(message) => {
                 if let Some(progress) = chats.get_mut(&message.chat_id) {
+                    let outgoing = ServerToClient::Chat(ChatAction::MessageSent((&message).into()));
+                    progress.content.push(message);
+                    let _ = ws_hub.send(WsHubMsg::BroadcastAll(outgoing)).await;
+                    let _ = storage.send(StorageMsg::SaveChats(chats.clone())).await;
+                }
+            }
+            ChatMsg::StoreMsgForPost {
+                post_id,
+                sender,
+                message,
+            } => {
+                if let Some(chat_id) = post_to_chat.get(&post_id).copied()
+                    && let Some(progress) = chats.get_mut(&chat_id)
+                {
+                    let message = Message {
+                        sender,
+                        message,
+                        chat_id,
+                        timestamp: chrono::Utc::now(),
+                    };
                     let outgoing = ServerToClient::Chat(ChatAction::MessageSent((&message).into()));
                     progress.content.push(message);
                     let _ = ws_hub.send(WsHubMsg::BroadcastAll(outgoing)).await;

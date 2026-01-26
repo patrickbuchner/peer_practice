@@ -76,24 +76,42 @@ pub async fn handle_posts(
             }
             PostsMsg::UserJoins(post_id, user) => {
                 if let Some(post) = posts.get_mut(&post_id) {
-                    post.partaking_users.insert(user);
+                    let joined = post.partaking_users.insert(user);
                     let _ = ws_hub
                         .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
                             PostAction::Post(post_id, post.clone()),
                         )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+                    if joined {
+                        let _ = chat
+                            .send(ChatMsg::StoreMsgForPost {
+                                post_id,
+                                sender: user,
+                                message: "joined the post".to_string(),
+                            })
+                            .await;
+                    }
                 }
             }
             PostsMsg::UserLeaves(post_id, user) => {
                 if let Some(post) = posts.get_mut(&post_id) {
-                    post.partaking_users.remove(&user);
+                    let left = post.partaking_users.remove(&user);
                     let _ = ws_hub
                         .send(WsHubMsg::BroadcastAll(ServerToClient::Post(
                             PostAction::Post(post_id, post.clone()),
                         )))
                         .await;
                     let _ = storage.send(StorageMsg::SavePosts(posts.clone())).await;
+                    if left {
+                        let _ = chat
+                            .send(ChatMsg::StoreMsgForPost {
+                                post_id,
+                                sender: user,
+                                message: "left the post".to_string(),
+                            })
+                            .await;
+                    }
                 }
             }
         }
