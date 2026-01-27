@@ -7,5 +7,17 @@ watch = [
 need_stdout = true
 on_change_strategy = "kill_then_restart"
 
+[jobs.peer-practice-console]
+command = ["cargo", "run", "--", "run", "--config", "/data/peer_practice/config.toml"]
+watch = [
+    "peer_practice",
+    "peer_practice_shared",
+]
+need_stdout = true
+on_change_strategy = "kill_then_restart"
+env = { RUSTFLAGS = "--cfg tokio_unstable" }
+
 [keybindings]
-r = "job:peer-practice"
+f = "job:peer-practice"
+ctrl-f = "job:peer-practice-console"
+shift-t = "job:previous"
