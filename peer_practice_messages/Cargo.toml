@@ -8,7 +8,6 @@ license.workspace = true
 chrono.workspace = true
 serde.workspace = true
 uuid.workspace = true
-tokio ={workspace = true,features = ["sync", "fs", "macros"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 lettre.workspace = true

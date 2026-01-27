@@ -32,6 +32,9 @@ pub enum StorageMsg {
     RetrieveChats {
         respond_to: oneshot::Sender<HashMap<ChatId, Progress>>,
     },
+    Ping {
+        respond_to: oneshot::Sender<()>,
+    },
 }
 
 trait StorageFs: Send + Sync + 'static {
@@ -174,6 +177,9 @@ async fn handle_storage_operations_with_fs(
                 }
 
                 let _ = respond_to.send(chats);
+            }
+            StorageMsg::Ping { respond_to } => {
+                let _ = respond_to.send(());
             }
         }
     }

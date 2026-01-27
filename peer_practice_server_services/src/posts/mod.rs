@@ -18,6 +18,7 @@ pub enum PostsMsg {
     Remove(PostId),
     Get(PostId, oneshot::Sender<Option<Post>>),
     List(oneshot::Sender<Vec<(PostId, Post)>>),
+    Ping(oneshot::Sender<()>),
 }
 
 #[cfg(test)]
@@ -113,6 +114,9 @@ pub async fn handle_posts(
                             .await;
                     }
                 }
+            }
+            PostsMsg::Ping(respond_to) => {
+                let _ = respond_to.send(());
             }
         }
     }

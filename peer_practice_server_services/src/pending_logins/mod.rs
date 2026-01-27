@@ -20,6 +20,9 @@ pub enum PendingLoginsMsg {
     Remove {
         address: Email,
     },
+    Ping {
+        respond_to: oneshot::Sender<()>,
+    },
 }
 
 pub async fn handle_pending_logins(clock: ClockRef, mut rx: Receiver<PendingLoginsMsg>) {
@@ -51,6 +54,9 @@ pub async fn handle_pending_logins(clock: ClockRef, mut rx: Receiver<PendingLogi
             }
             PendingLoginsMsg::Remove { address } => {
                 state.remove(&address);
+            }
+            PendingLoginsMsg::Ping { respond_to } => {
+                let _ = respond_to.send(());
             }
         }
     }

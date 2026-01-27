@@ -75,10 +75,17 @@ mod tests {
     use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::ChatAction as ServerChatAction;
     use peer_practice_messages::current::post::PostId;
-    use peer_practice_messages::test_helpers_impl::{fixed_timestamp, recv_timeout};
+    use peer_practice_messages::test_helpers_impl::fixed_timestamp;
     use peer_practice_server_services::chat::message::Message;
     use peer_practice_server_services::chat::progress::Progress;
     use peer_practice_server_services::ws_hub::ConnectionId;
+
+    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
+        match rx.recv().await {
+            Some(msg) => msg,
+            None => panic!("channel closed"),
+        }
+    }
 
     #[tokio::test]
     async fn get_chat_for_missing_sends_not_found() {
@@ -92,7 +99,7 @@ mod tests {
             chat_handler(ChatAction::GetChatFor(post_id), &state, user_id, con_id).await
         });
 
-        match recv_timeout(&mut rx.chat).await {
+        match recv_msg(&mut rx.chat).await {
             ChatMsg::GetChatForPost(got_post, respond_to) => {
                 assert_eq!(post_id, got_post);
                 let _ = respond_to.send(Err(()));
@@ -102,7 +109,7 @@ mod tests {
 
         handler.await.expect("handler task ok").expect("handler ok");
 
-        match recv_timeout(&mut rx.ws_hub).await {
+        match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send { msg, .. } => match msg {
                 ServerToClient::Chat(ServerChatAction::ChatDoesNotExistForPost(got_post)) => {
                     assert_eq!(post_id, got_post);
@@ -136,7 +143,7 @@ mod tests {
             chat_handler(ChatAction::GetChat(chat_id), &state, user_id, con_id).await
         });
 
-        match recv_timeout(&mut rx.chat).await {
+        match recv_msg(&mut rx.chat).await {
             ChatMsg::GetChat(got_id, respond_to) => {
                 assert_eq!(chat_id, got_id);
                 let _ = respond_to.send(Ok(progress.clone()));
@@ -146,7 +153,7 @@ mod tests {
 
         handler.await.expect("handler task ok").expect("handler ok");
 
-        match recv_timeout(&mut rx.ws_hub).await {
+        match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send { msg, .. } => match msg {
                 ServerToClient::Chat(ServerChatAction::Chat(got_id, messages)) => {
                     assert_eq!(chat_id, got_id);

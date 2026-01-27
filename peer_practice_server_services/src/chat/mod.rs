@@ -29,6 +29,7 @@ pub enum ChatMsg {
     CreateForPost(PostId),
     DeleteForPost(PostId),
     Delete(ChatId),
+    Ping(oneshot::Sender<()>),
 }
 
 pub async fn handle_chats(
@@ -112,6 +113,9 @@ pub async fn handle_chats(
                     let _ = ws_hub.send(WsHubMsg::BroadcastAll(outgoing)).await;
                     let _ = storage.send(StorageMsg::SaveChats(chats.clone())).await;
                 }
+            }
+            ChatMsg::Ping(respond_to) => {
+                let _ = respond_to.send(());
             }
         }
     }

@@ -5,10 +5,8 @@ use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::user::{User, UserId};
-use peer_practice_messages::test_helpers_impl::{
-    expect_no_message, recv_oneshot_timeout, recv_timeout,
-};
 use std::collections::HashMap;
+use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 
@@ -24,13 +22,41 @@ async fn arrange_empty() -> (
 
     let task = tokio::spawn(handle_user_actions(storage_tx, ws_hub_tx, users_rx));
 
-    if let StorageMsg::RetrieveUsers { respond_to } = recv_timeout(&mut storage_rx).await {
+    if let StorageMsg::RetrieveUsers { respond_to } = recv_msg(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
     } else {
         panic!("expected RetrieveUsers");
     }
 
     (users_tx, storage_rx, ws_hub_rx, task)
+}
+
+async fn recv_msg<T>(rx: &mut mpsc::Receiver<T>) -> T {
+    match rx.recv().await {
+        Some(msg) => msg,
+        None => panic!("channel closed"),
+    }
+}
+
+async fn recv_oneshot<T>(rx: oneshot::Receiver<T>) -> T {
+    rx.await.expect("oneshot closed")
+}
+
+fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
+    match rx.try_recv() {
+        Ok(_) => panic!("expected no message"),
+        Err(TryRecvError::Empty) => {}
+        Err(TryRecvError::Disconnected) => panic!("channel closed"),
+    }
+}
+
+async fn ping(users_tx: &mpsc::Sender<UsersMsg>) {
+    let (respond_to, recv) = oneshot::channel();
+    users_tx
+        .send(UsersMsg::Ping { respond_to })
+        .await
+        .unwrap();
+    recv_oneshot(recv).await
 }
 
 async fn get_by_email(users_tx: &mpsc::Sender<UsersMsg>, email: Email) -> Option<UserId> {
@@ -40,7 +66,7 @@ async fn get_by_email(users_tx: &mpsc::Sender<UsersMsg>, email: Email) -> Option
         .await
         .unwrap();
 
-    recv_oneshot_timeout(recv).await
+    recv_oneshot(recv).await
 }
 
 async fn get_by_id(users_tx: &mpsc::Sender<UsersMsg>, id: UserId) -> Option<User> {
@@ -50,16 +76,21 @@ async fn get_by_id(users_tx: &mpsc::Sender<UsersMsg>, id: UserId) -> Option<User
         .await
         .unwrap();
 
-    recv_oneshot_timeout(recv).await
+    recv_oneshot(recv).await
 }
 
 #[tokio::test]
 async fn get_by_id_missing_returns_none() {
+    // Arrange
     let (users_tx, _storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&users_tx).await;
 
     let missing = UserId::new();
+
+    // Act
     let got = get_by_id(&users_tx, missing).await;
 
+    // Assert
     assert!(got.is_none());
 
     drop(users_tx);
@@ -68,15 +99,21 @@ async fn get_by_id_missing_returns_none() {
 
 #[tokio::test]
 async fn get_by_email_creates_user_persists_and_is_idempotent() {
+    // Arrange
     let (users_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&users_tx).await;
 
     let email = Email::new("user@example.com").unwrap();
 
+    // Act
     let id1 = get_by_email(&users_tx, email.clone())
         .await
         .expect("should create a new user id");
+    let saved = recv_msg(&mut storage_rx).await;
+    let id2 = get_by_email(&users_tx, email.clone()).await.unwrap();
 
-    match recv_timeout(&mut storage_rx).await {
+    // Assert
+    match saved {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(
                 snapshot.contains_key(&id1),
@@ -85,11 +122,9 @@ async fn get_by_email_creates_user_persists_and_is_idempotent() {
         }
         other => panic!("expected SaveUsers after first GetByEmail, got {other:?}"),
     }
-
-    let id2 = get_by_email(&users_tx, email.clone()).await.unwrap();
     assert_eq!(id1, id2, "second GetByEmail should return same id");
-
-    expect_no_message(&mut storage_rx).await;
+    ping(&users_tx).await;
+    assert_empty(&mut storage_rx);
 
     drop(users_tx);
     let _ = task.await;
@@ -97,13 +132,15 @@ async fn get_by_email_creates_user_persists_and_is_idempotent() {
 
 #[tokio::test]
 async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
+    // Arrange
     let (users_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&users_tx).await;
 
     let email = Email::new("update@example.com").unwrap();
     let id = get_by_email(&users_tx, email.clone()).await.unwrap();
 
     // consume SaveUsers from the create-on-demand in GetByEmail
-    let _ = recv_timeout(&mut storage_rx).await;
+    let _ = recv_msg(&mut storage_rx).await;
 
     let updated = User {
         id,
@@ -111,6 +148,7 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
         display_name: Some("Tester".to_string()),
     };
 
+    // Act
     users_tx
         .send(UsersMsg::Update {
             id,
@@ -118,8 +156,12 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
         })
         .await
         .unwrap();
+    let saved = recv_msg(&mut storage_rx).await;
+    let broadcast = recv_msg(&mut ws_hub_rx).await;
+    let got = get_by_id(&users_tx, id).await.expect("user should exist");
 
-    match recv_timeout(&mut storage_rx).await {
+    // Assert
+    match saved {
         StorageMsg::SaveUsers(snapshot) => {
             let saved = snapshot.get(&id).expect("updated user should be saved");
             assert_eq!(updated.display_name, saved.display_name);
@@ -127,15 +169,12 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
         }
         other => panic!("expected SaveUsers after Update, got {other:?}"),
     }
-
-    match recv_timeout(&mut ws_hub_rx).await {
+    match broadcast {
         WsHubMsg::BroadcastAll(ServerToClient::User(UserAction::User(got_id, _))) => {
             assert_eq!(id, got_id);
         }
         other => panic!("expected User broadcast after Update, got {other:?}"),
     }
-
-    let got = get_by_id(&users_tx, id).await.expect("user should exist");
     assert_eq!(updated.display_name, got.display_name);
     assert_eq!(updated.email.value(), got.email.value());
 
@@ -145,14 +184,17 @@ async fn update_persists_broadcasts_and_get_by_id_returns_updated_user() {
 
 #[tokio::test]
 async fn update_with_changed_email_updates_email_index() {
+    // Arrange
     let (users_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&users_tx).await;
 
     let old_email = Email::new("old@example.com").unwrap();
     let new_email = Email::new("new@example.com").unwrap();
 
     let id1 = get_by_email(&users_tx, old_email.clone()).await.unwrap();
-    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from create
+    let _ = recv_msg(&mut storage_rx).await; // SaveUsers from create
 
+    // Act
     users_tx
         .send(UsersMsg::Update {
             id: id1,
@@ -164,29 +206,28 @@ async fn update_with_changed_email_updates_email_index() {
         })
         .await
         .unwrap();
-
-    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from update
-    let _ = recv_timeout(&mut ws_hub_rx).await; // BroadcastAll from update
-
-    // old email should no longer resolve to id1; it will create a *new* user/id
+    let saved_update = recv_msg(&mut storage_rx).await; // SaveUsers from update
+    let broadcast = recv_msg(&mut ws_hub_rx).await; // BroadcastAll from update
     let id2 = get_by_email(&users_tx, old_email.clone()).await.unwrap();
+    let saved_recreate = recv_msg(&mut storage_rx).await;
+    let got = get_by_email(&users_tx, new_email.clone()).await.unwrap();
+
+    // Assert
+    assert!(matches!(saved_update, StorageMsg::SaveUsers(_)));
+    assert!(matches!(broadcast, WsHubMsg::BroadcastAll(ServerToClient::User(_))));
     assert_ne!(
         id1, id2,
         "old email should no longer map to the updated user id"
     );
-
-    match recv_timeout(&mut storage_rx).await {
+    match saved_recreate {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(snapshot.contains_key(&id2));
         }
         other => panic!("expected SaveUsers after recreating old email, got {other:?}"),
     }
-
-    // new email should still map to id1 and not trigger another SaveUsers
-    let got = get_by_email(&users_tx, new_email.clone()).await.unwrap();
     assert_eq!(id1, got);
-
-    expect_no_message(&mut storage_rx).await;
+    ping(&users_tx).await;
+    assert_empty(&mut storage_rx);
 
     drop(users_tx);
     let _ = task.await;
@@ -194,15 +235,23 @@ async fn update_with_changed_email_updates_email_index() {
 
 #[tokio::test]
 async fn remove_deletes_user_persists_and_email_can_be_recreated() {
+    // Arrange
     let (users_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&users_tx).await;
 
     let email = Email::new("remove@example.com").unwrap();
     let id1 = get_by_email(&users_tx, email.clone()).await.unwrap();
-    let _ = recv_timeout(&mut storage_rx).await; // SaveUsers from create
+    let _ = recv_msg(&mut storage_rx).await; // SaveUsers from create
 
+    // Act
     users_tx.send(UsersMsg::Remove { id: id1 }).await.unwrap();
+    let saved_remove = recv_msg(&mut storage_rx).await;
+    let got_missing = get_by_id(&users_tx, id1).await;
+    let id2 = get_by_email(&users_tx, email.clone()).await.unwrap();
+    let saved_recreate = recv_msg(&mut storage_rx).await;
 
-    match recv_timeout(&mut storage_rx).await {
+    // Assert
+    match saved_remove {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(
                 !snapshot.contains_key(&id1),
@@ -211,16 +260,12 @@ async fn remove_deletes_user_persists_and_email_can_be_recreated() {
         }
         other => panic!("expected SaveUsers after Remove, got {other:?}"),
     }
-
-    assert!(get_by_id(&users_tx, id1).await.is_none());
-
-    let id2 = get_by_email(&users_tx, email.clone()).await.unwrap();
+    assert!(got_missing.is_none());
     assert_ne!(
         id1, id2,
         "removing should allow re-creating the email with a new id"
     );
-
-    match recv_timeout(&mut storage_rx).await {
+    match saved_recreate {
         StorageMsg::SaveUsers(snapshot) => {
             assert!(snapshot.contains_key(&id2));
         }

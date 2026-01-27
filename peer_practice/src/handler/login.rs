@@ -138,10 +138,16 @@ mod tests {
     use peer_practice_messages::current::authentication::method::AuthenticationMethod;
     use peer_practice_messages::current::email::Email;
     use peer_practice_messages::current::user::User;
-    use peer_practice_messages::test_helpers_impl::recv_timeout;
     use peer_practice_server_services::email::EmailMsg;
     use peer_practice_server_services::pending_logins::PendingLoginsMsg;
     use peer_practice_server_services::users::UsersMsg;
+
+    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
+        match rx.recv().await {
+            Some(msg) => msg,
+            None => panic!("channel closed"),
+        }
+    }
 
     fn sample_user(id: UserId, email: Email) -> User {
         User {
@@ -163,7 +169,7 @@ mod tests {
 
         let handler = tokio::spawn(login_handler(State(state), Json(login)));
 
-        match recv_timeout(&mut rx.users).await {
+        match recv_msg(&mut rx.users).await {
             UsersMsg::GetByEmail {
                 email: got_email,
                 respond_to,
@@ -174,7 +180,7 @@ mod tests {
             _ => panic!("expected UsersMsg::GetByEmail"),
         }
 
-        let pin = match recv_timeout(&mut rx.pending_logins).await {
+        let pin = match recv_msg(&mut rx.pending_logins).await {
             PendingLoginsMsg::Upsert { address, code } => {
                 assert_eq!(email.value(), address.value());
                 assert!((100_000..=999_999).contains(&code));
@@ -183,7 +189,7 @@ mod tests {
             _ => panic!("expected PendingLoginsMsg::Upsert"),
         };
 
-        match recv_timeout(&mut rx.email).await {
+        match recv_msg(&mut rx.email).await {
             EmailMsg::SendLoginMail {
                 target,
                 validation_code,
@@ -215,7 +221,7 @@ mod tests {
             }),
         ));
 
-        match recv_timeout(&mut rx.users).await {
+        match recv_msg(&mut rx.users).await {
             UsersMsg::GetById { id, respond_to } => {
                 assert_eq!(user_id, id);
                 let _ = respond_to.send(Some(sample_user(user_id, email.clone())));
@@ -223,7 +229,7 @@ mod tests {
             _ => panic!("expected UsersMsg::GetById"),
         }
 
-        match recv_timeout(&mut rx.pending_logins).await {
+        match recv_msg(&mut rx.pending_logins).await {
             PendingLoginsMsg::GetByAddress {
                 address,
                 respond_to,

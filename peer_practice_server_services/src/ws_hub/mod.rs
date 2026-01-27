@@ -39,6 +39,9 @@ pub enum WsHubMsg {
         con_id: ConnectionId,
         msg: ServerToClient,
     },
+    Ping {
+        respond_to: oneshot::Sender<()>,
+    },
 }
 
 #[derive(Clone)]
@@ -114,6 +117,9 @@ pub async fn handle_ws_hub_actions(
                 if let Some(sender) = groups.get_mut(&user_id).and_then(|con| con.get(&con_id)) {
                     let _ = sender.send(msg);
                 }
+            }
+            WsHubMsg::Ping { respond_to } => {
+                let _ = respond_to.send(());
             }
         }
     }

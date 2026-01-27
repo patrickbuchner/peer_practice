@@ -3,9 +3,9 @@ use crate::chat::message::Message;
 use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::Topics;
-use peer_practice_messages::test_helpers_impl::{fixed_timestamp, recv_oneshot_timeout};
+use peer_practice_messages::test_helpers_impl::fixed_timestamp;
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -63,12 +63,24 @@ async fn arrange(
     (tx, task, work_dir)
 }
 
+async fn recv_oneshot<T>(rx: oneshot::Receiver<T>) -> T {
+    rx.await.expect("oneshot closed")
+}
+
+async fn ping(tx: &mpsc::Sender<StorageMsg>) {
+    let (respond_to, recv) = oneshot::channel();
+    tx.send(StorageMsg::Ping { respond_to })
+        .await
+        .unwrap();
+    recv_oneshot(recv).await
+}
+
 async fn retrieve_posts(tx: &mpsc::Sender<StorageMsg>) -> HashMap<PostId, Post> {
     let (respond_to, recv) = oneshot::channel();
     tx.send(StorageMsg::RetrievePosts { respond_to })
         .await
         .unwrap();
-    recv_oneshot_timeout(recv).await
+    recv_oneshot(recv).await
 }
 
 async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> {
@@ -76,7 +88,7 @@ async fn retrieve_users(tx: &mpsc::Sender<StorageMsg>) -> HashMap<UserId, User> 
     tx.send(StorageMsg::RetrieveUsers { respond_to })
         .await
         .unwrap();
-    recv_oneshot_timeout(recv).await
+    recv_oneshot(recv).await
 }
 
 async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progress> {
@@ -84,7 +96,7 @@ async fn retrieve_chats(tx: &mpsc::Sender<StorageMsg>) -> HashMap<ChatId, Progre
     tx.send(StorageMsg::RetrieveChats { respond_to })
         .await
         .unwrap();
-    recv_oneshot_timeout(recv).await
+    recv_oneshot(recv).await
 }
 
 fn mk_post(owner: UserId) -> Post {
@@ -121,16 +133,20 @@ fn mk_progress(chat_id: ChatId, post_id: PostId) -> Progress {
 
 #[tokio::test]
 async fn posts_roundtrip_save_then_retrieve() {
+    // Arrange
     let fs = MemFs::default();
     let (tx, task, _work_dir) = arrange(fs).await;
+    ping(&tx).await;
 
     let mut posts = HashMap::new();
     let id = PostId::new();
     posts.insert(id, mk_post(UserId::default()));
 
+    // Act
     tx.send(StorageMsg::SavePosts(posts.clone())).await.unwrap();
-
     let got = retrieve_posts(&tx).await;
+
+    // Assert
     assert_eq!(posts.len(), got.len());
     assert_eq!(
         posts.get(&id).unwrap().content,
@@ -143,16 +159,20 @@ async fn posts_roundtrip_save_then_retrieve() {
 
 #[tokio::test]
 async fn users_roundtrip_save_then_retrieve() {
+    // Arrange
     let fs = MemFs::default();
     let (tx, task, _work_dir) = arrange(fs).await;
+    ping(&tx).await;
 
     let mut users = HashMap::new();
     let id = UserId::new();
     users.insert(id, mk_user(id, "user@example.com"));
 
+    // Act
     tx.send(StorageMsg::SaveUsers(users.clone())).await.unwrap();
-
     let got = retrieve_users(&tx).await;
+
+    // Assert
     assert_eq!(users.len(), got.len());
     assert_eq!(
         users.get(&id).unwrap().email.value(),
@@ -165,17 +185,21 @@ async fn users_roundtrip_save_then_retrieve() {
 
 #[tokio::test]
 async fn chats_roundtrip_save_then_retrieve() {
+    // Arrange
     let fs = MemFs::default();
     let (tx, task, _work_dir) = arrange(fs).await;
+    ping(&tx).await;
 
     let mut chats = HashMap::new();
     let chat_id = ChatId::new();
     let post_id = PostId::new();
     chats.insert(chat_id, mk_progress(chat_id, post_id));
 
+    // Act
     tx.send(StorageMsg::SaveChats(chats.clone())).await.unwrap();
-
     let got = retrieve_chats(&tx).await;
+
+    // Assert
     assert_eq!(chats.len(), got.len());
     assert_eq!(
         chats.get(&chat_id).unwrap().content.len(),
@@ -188,13 +212,18 @@ async fn chats_roundtrip_save_then_retrieve() {
 
 #[tokio::test]
 async fn retrieve_defaults_to_empty_on_corrupted_json() {
+    // Arrange
     let fs = MemFs::default();
     let (tx, task, work_dir) = arrange(fs.clone()).await;
+    ping(&tx).await;
 
     let path = to_file_path(&work_dir, "posts");
     fs.write(path, b"{not valid json".to_vec()).await.unwrap();
 
+    // Act
     let got = retrieve_posts(&tx).await;
+
+    // Assert
     assert!(got.is_empty());
 
     drop(tx);
@@ -203,8 +232,10 @@ async fn retrieve_defaults_to_empty_on_corrupted_json() {
 
 #[tokio::test]
 async fn legacy_non_enveloped_json_is_supported() {
+    // Arrange
     let fs = MemFs::default();
     let (tx, task, work_dir) = arrange(fs.clone()).await;
+    ping(&tx).await;
 
     let id = PostId::new();
     let post = mk_post(UserId::default());
@@ -214,7 +245,10 @@ async fn legacy_non_enveloped_json_is_supported() {
     let path = to_file_path(&work_dir, "posts");
     fs.write(path, legacy_bytes).await.unwrap();
 
+    // Act
     let got = retrieve_posts(&tx).await;
+
+    // Assert
     assert_eq!(1, got.len());
     assert!(got.contains_key(&id));
 
@@ -224,7 +258,12 @@ async fn legacy_non_enveloped_json_is_supported() {
 
 #[test]
 fn to_file_path_sanitizes_namespace() {
+    // Arrange
     let work_dir = PathBuf::from("/mem");
+
+    // Act
     let path = to_file_path(&work_dir, "posts/../bad name");
+
+    // Assert
     assert_eq!(PathBuf::from("/mem/posts_.._bad_name.json"), path);
 }

@@ -4,9 +4,10 @@ use chrono::TimeZone;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::{Post, Topics};
 use peer_practice_messages::current::user::display_user::UserDisplay;
-use peer_practice_messages::test_helpers_impl::expect_no_message;
 use peer_practice_messages::v2026_01_11::chat::{ChatId, ChatMessage};
 use std::collections::HashSet;
+use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::oneshot;
 use uuid::Uuid;
 
 enum ExpectedResult {
@@ -68,6 +69,33 @@ fn sample_chat_message(user_id: UserId, chat_id: ChatId) -> ChatMessage {
     }
 }
 
+async fn sync_ws_hub(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<WsHubMsg>) {
+    let (respond_to, recv) = oneshot::channel();
+    state
+        .ws_hub
+        .send(WsHubMsg::Ping { respond_to })
+        .await
+        .expect("send ping");
+
+    let msg = rx.recv().await.expect("channel closed");
+    match msg {
+        WsHubMsg::Ping { respond_to } => {
+            let _ = respond_to.send(());
+        }
+        _ => panic!("expected WsHubMsg::Ping"),
+    }
+
+    recv.await.expect("ping ack");
+}
+
+fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
+    match rx.try_recv() {
+        Ok(_) => panic!("expected no message"),
+        Err(TryRecvError::Empty) => {}
+        Err(TryRecvError::Disconnected) => panic!("channel closed"),
+    }
+}
+
 #[test]
 fn serialize_server_message_sets_expected_version() {
     let msg = ServerToClient::MessageNotYetKnown;
@@ -103,5 +131,6 @@ async fn consume_telegram_rejects_version_mismatch() {
     .await;
     assert!(res.is_err(), "expected version mismatch error");
 
-    expect_no_message(&mut rx.ws_hub).await;
+    sync_ws_hub(&state, &mut rx.ws_hub).await;
+    assert_empty(&mut rx.ws_hub);
 }

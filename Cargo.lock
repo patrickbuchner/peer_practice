@@ -2636,7 +2636,6 @@ dependencies = [
  "lettre",
  "regex",
  "serde",
- "tokio",
  "uuid",
 ]
 

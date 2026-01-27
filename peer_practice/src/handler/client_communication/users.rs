@@ -81,8 +81,42 @@ mod tests {
     use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::UserAction as ServerUserAction;
     use peer_practice_messages::current::user::User;
-    use peer_practice_messages::test_helpers_impl::{expect_no_message, recv_timeout};
     use peer_practice_server_services::ws_hub::ConnectionId;
+    use tokio::sync::mpsc::error::TryRecvError;
+    use tokio::sync::oneshot;
+
+    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
+        match rx.recv().await {
+            Some(msg) => msg,
+            None => panic!("channel closed"),
+        }
+    }
+
+    async fn sync_users(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<UsersMsg>) {
+        let (respond_to, recv) = oneshot::channel();
+        state
+            .users
+            .send(UsersMsg::Ping { respond_to })
+            .await
+            .expect("send ping");
+
+        match recv_msg(rx).await {
+            UsersMsg::Ping { respond_to } => {
+                let _ = respond_to.send(());
+            }
+            _ => panic!("expected UsersMsg::Ping"),
+        }
+
+        recv.await.expect("ping ack");
+    }
+
+    fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
+        match rx.try_recv() {
+            Ok(_) => panic!("expected no message"),
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => panic!("channel closed"),
+        }
+    }
 
     fn sample_user(id: UserId) -> User {
         User {
@@ -111,7 +145,8 @@ mod tests {
         .await
         .expect("handler ok");
 
-        expect_no_message(&mut rx.users).await;
+        sync_users(&state, &mut rx.users).await;
+        assert_empty(&mut rx.users);
     }
 
     #[tokio::test]
@@ -126,7 +161,7 @@ mod tests {
             user_handler(UserAction::Get(user_id), &state, user_id, con_id).await
         });
 
-        match recv_timeout(&mut rx.users).await {
+        match recv_msg(&mut rx.users).await {
             UsersMsg::GetById { id, respond_to } => {
                 assert_eq!(user_id, id);
                 let _ = respond_to.send(Some(user.clone()));
@@ -136,7 +171,7 @@ mod tests {
 
         handler.await.expect("handler task ok").expect("handler ok");
 
-        match recv_timeout(&mut rx.ws_hub).await {
+        match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send {
                 user_id: got_user,
                 con_id: got_con,

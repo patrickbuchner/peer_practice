@@ -2,9 +2,10 @@ use crate::chat::*;
 use crate::clock::ManualClock;
 use chrono::TimeZone;
 use peer_practice_messages::current::user::UserId;
-use peer_practice_messages::test_helpers_impl::{expect_no_message, recv_timeout};
+use tokio::sync::mpsc::error::TryRecvError;
 use std::sync::Arc;
 use test_case::test_case;
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 
 fn test_timestamp() -> chrono::DateTime<chrono::Utc> {
@@ -24,7 +25,7 @@ async fn arrange_empty() -> (
     let clock = Arc::new(ManualClock::new(test_timestamp()));
     let task = tokio::spawn(handle_chats(storage_tx, ws_hub_tx, clock, chat_rx));
 
-    if let StorageMsg::RetrieveChats { respond_to } = recv_timeout(&mut storage_rx).await {
+    if let StorageMsg::RetrieveChats { respond_to } = recv_msg(&mut storage_rx).await {
         let _ = respond_to.send(HashMap::new());
     } else {
         panic!("expected RetrieveChats");
@@ -33,13 +34,41 @@ async fn arrange_empty() -> (
     (chat_tx, storage_rx, ws_hub_rx, task)
 }
 
+async fn recv_msg<T>(rx: &mut mpsc::Receiver<T>) -> T {
+    match rx.recv().await {
+        Some(msg) => msg,
+        None => panic!("channel closed"),
+    }
+}
+
+async fn recv_oneshot<T>(rx: oneshot::Receiver<T>) -> T {
+    rx.await.expect("oneshot closed")
+}
+
+fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
+    match rx.try_recv() {
+        Ok(_) => panic!("expected no message"),
+        Err(TryRecvError::Empty) => {}
+        Err(TryRecvError::Disconnected) => panic!("channel closed"),
+    }
+}
+
+async fn ping(chat_tx: &mpsc::Sender<ChatMsg>) {
+    let (respond_to, recv) = oneshot::channel();
+    chat_tx
+        .send(ChatMsg::Ping(respond_to))
+        .await
+        .unwrap();
+    recv_oneshot(recv).await
+}
+
 async fn create_chat_for_post(
     chat_tx: &mpsc::Sender<ChatMsg>,
     storage_rx: &mut mpsc::Receiver<StorageMsg>,
     post_id: PostId,
 ) -> ChatId {
     chat_tx.send(ChatMsg::CreateForPost(post_id)).await.unwrap();
-    match recv_timeout(storage_rx).await {
+    match recv_msg(storage_rx).await {
         StorageMsg::SaveChats(snapshot) => {
             assert_eq!(
                 1,
@@ -114,7 +143,9 @@ fn msgs_three(chat_id: ChatId) -> Vec<Message> {
 #[test_case(msgs_three  ; "three messages")]
 #[tokio::test]
 async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
+    // Arrange
     let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
     let chat_id = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
@@ -122,30 +153,35 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
     let messages = builder(chat_id);
     let expected_texts: Vec<String> = messages.iter().map(|m| m.message.clone()).collect();
 
+    // Act
     for m in messages {
         chat_tx.send(ChatMsg::StoreMsg(m)).await.unwrap();
     }
 
+    let mut ws_msgs = Vec::new();
     let mut last_snapshot: Option<HashMap<ChatId, Progress>> = None;
     for _ in 0..expected_texts.len() {
-        match recv_timeout(&mut ws_hub_rx).await {
-            WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(_))) => {}
-            other => panic!("unexpected ws msg: {other:?}"),
-        }
-        match recv_timeout(&mut storage_rx).await {
-            StorageMsg::SaveChats(snapshot) => last_snapshot = Some(snapshot),
-            other => panic!("unexpected storage msg: {other:?}"),
+        ws_msgs.push(recv_msg(&mut ws_hub_rx).await);
+        let storage_msg = recv_msg(&mut storage_rx).await;
+        if let StorageMsg::SaveChats(snapshot) = storage_msg {
+            last_snapshot = Some(snapshot);
         }
     }
 
-    let saved = last_snapshot.unwrap();
+    // Assert
+    for msg in ws_msgs {
+        assert!(matches!(
+            msg,
+            WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(_)))
+        ));
+    }
+    let saved = last_snapshot.expect("SaveChats should be emitted");
     let saved_progress = saved.get(&chat_id).unwrap();
     let saved_texts: Vec<String> = saved_progress
         .content
         .iter()
         .map(|m| m.message.clone())
         .collect();
-
     assert_eq!(expected_texts, saved_texts);
 
     drop(chat_tx);
@@ -156,7 +192,9 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
 #[test_case(false ; "second call is idempotent (no extra save)")]
 #[tokio::test]
 async fn create_for_post_is_idempotent(first_time: bool) {
+    // Arrange
     let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
 
@@ -164,15 +202,23 @@ async fn create_for_post_is_idempotent(first_time: bool) {
         let _ = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
     }
 
+    // Act
     chat_tx.send(ChatMsg::CreateForPost(post_id)).await.unwrap();
+    let saved = if first_time {
+        Some(recv_msg(&mut storage_rx).await)
+    } else {
+        None
+    };
 
+    // Assert
     if first_time {
-        match recv_timeout(&mut storage_rx).await {
+        match saved.expect("SaveChats should be emitted") {
             StorageMsg::SaveChats(snapshot) => assert_eq!(1, snapshot.len()),
             other => panic!("expected SaveChats, got {other:?}"),
         }
     } else {
-        expect_no_message(&mut storage_rx).await;
+        ping(&chat_tx).await;
+        assert_empty(&mut storage_rx);
     }
 
     drop(chat_tx);
@@ -183,7 +229,9 @@ async fn create_for_post_is_idempotent(first_time: bool) {
 #[test_case(true  ; "existing post => Ok")]
 #[tokio::test]
 async fn get_chat_for_post_returns_expected(found: bool) {
+    // Arrange
     let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
 
@@ -191,7 +239,10 @@ async fn get_chat_for_post_returns_expected(found: bool) {
         let _ = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
     }
 
+    // Act
     let res = get_for_post(&chat_tx, post_id).await;
+
+    // Assert
     assert_eq!(found, res.is_ok());
 
     drop(chat_tx);
@@ -202,7 +253,9 @@ async fn get_chat_for_post_returns_expected(found: bool) {
 #[test_case(true  ; "existing chat_id => Ok")]
 #[tokio::test]
 async fn get_chat_by_id_returns_expected(found: bool) {
+    // Arrange
     let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
     let chat_id = if found {
@@ -211,7 +264,10 @@ async fn get_chat_by_id_returns_expected(found: bool) {
         ChatId::new()
     };
 
+    // Act
     let res = get_by_id(&chat_tx, chat_id).await;
+
+    // Assert
     assert_eq!(found, res.is_ok());
 
     drop(chat_tx);
@@ -222,7 +278,9 @@ async fn get_chat_by_id_returns_expected(found: bool) {
 #[test_case(true  ; "deleting existing chat removes it and persists")]
 #[tokio::test]
 async fn delete_removes_and_persists(known: bool) {
+    // Arrange
     let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
     let chat_id = if known {
@@ -231,10 +289,22 @@ async fn delete_removes_and_persists(known: bool) {
         ChatId::new()
     };
 
+    // Act
     chat_tx.send(ChatMsg::Delete(chat_id)).await.unwrap();
+    let saved = if known {
+        Some(recv_msg(&mut storage_rx).await)
+    } else {
+        None
+    };
+    let res = if known {
+        Some(get_by_id(&chat_tx, chat_id).await)
+    } else {
+        None
+    };
 
+    // Assert
     if known {
-        match recv_timeout(&mut storage_rx).await {
+        match saved.expect("SaveChats should be emitted") {
             StorageMsg::SaveChats(snapshot) => {
                 assert!(
                     !snapshot.contains_key(&chat_id),
@@ -244,10 +314,11 @@ async fn delete_removes_and_persists(known: bool) {
             other => panic!("expected SaveChats after Delete, got {other:?}"),
         }
 
-        let res = get_by_id(&chat_tx, chat_id).await;
+        let res = res.expect("get_by_id should run");
         assert!(res.is_err(), "deleted chat should not be retrievable");
     } else {
-        expect_no_message(&mut storage_rx).await;
+        ping(&chat_tx).await;
+        assert_empty(&mut storage_rx);
     }
 
     drop(chat_tx);
@@ -258,7 +329,9 @@ async fn delete_removes_and_persists(known: bool) {
 #[test_case(true  ; "existing post => removes chat and persists")]
 #[tokio::test]
 async fn delete_for_post_removes_and_persists(known: bool) {
+    // Arrange
     let (chat_tx, mut storage_rx, _ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::default();
 
@@ -266,10 +339,22 @@ async fn delete_for_post_removes_and_persists(known: bool) {
         let _ = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
     }
 
+    // Act
     chat_tx.send(ChatMsg::DeleteForPost(post_id)).await.unwrap();
+    let saved = if known {
+        Some(recv_msg(&mut storage_rx).await)
+    } else {
+        None
+    };
+    let res = if known {
+        Some(get_for_post(&chat_tx, post_id).await)
+    } else {
+        None
+    };
 
+    // Assert
     if known {
-        match recv_timeout(&mut storage_rx).await {
+        match saved.expect("SaveChats should be emitted") {
             StorageMsg::SaveChats(snapshot) => {
                 assert!(
                     snapshot
@@ -281,10 +366,11 @@ async fn delete_for_post_removes_and_persists(known: bool) {
             other => panic!("expected SaveChats after DeleteForPost, got {other:?}"),
         }
 
-        let res = get_for_post(&chat_tx, post_id).await;
+        let res = res.expect("get_for_post should run");
         assert!(res.is_err(), "deleted chat should not be retrievable");
     } else {
-        expect_no_message(&mut storage_rx).await;
+        ping(&chat_tx).await;
+        assert_empty(&mut storage_rx);
     }
 
     drop(chat_tx);
@@ -293,9 +379,13 @@ async fn delete_for_post_removes_and_persists(known: bool) {
 
 #[tokio::test]
 async fn store_msg_unknown_chat_is_noop() {
+    // Arrange
     let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let chat_id = ChatId::new();
+
+    // Act
     chat_tx
         .send(ChatMsg::StoreMsg(Message {
             sender: UserId::default(),
@@ -306,8 +396,10 @@ async fn store_msg_unknown_chat_is_noop() {
         .await
         .unwrap();
 
-    expect_no_message(&mut ws_hub_rx).await;
-    expect_no_message(&mut storage_rx).await;
+    // Assert
+    ping(&chat_tx).await;
+    assert_empty(&mut ws_hub_rx);
+    assert_empty(&mut storage_rx);
 
     drop(chat_tx);
     let _ = task.await;
@@ -315,8 +407,11 @@ async fn store_msg_unknown_chat_is_noop() {
 
 #[tokio::test]
 async fn store_msg_for_missing_post_is_noop() {
+    // Arrange
     let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
+    // Act
     chat_tx
         .send(ChatMsg::StoreMsgForPost {
             post_id: PostId::new(),
@@ -326,8 +421,10 @@ async fn store_msg_for_missing_post_is_noop() {
         .await
         .unwrap();
 
-    expect_no_message(&mut ws_hub_rx).await;
-    expect_no_message(&mut storage_rx).await;
+    // Assert
+    ping(&chat_tx).await;
+    assert_empty(&mut ws_hub_rx);
+    assert_empty(&mut storage_rx);
 
     drop(chat_tx);
     let _ = task.await;
@@ -335,13 +432,16 @@ async fn store_msg_for_missing_post_is_noop() {
 
 #[tokio::test]
 async fn store_msg_for_post_broadcasts_and_persists() {
+    // Arrange
     let (chat_tx, mut storage_rx, mut ws_hub_rx, task) = arrange_empty().await;
+    ping(&chat_tx).await;
 
     let post_id = PostId::new();
     let chat_id = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
     let sender = UserId::new();
     let message = "hello".to_string();
 
+    // Act
     chat_tx
         .send(ChatMsg::StoreMsgForPost {
             post_id,
@@ -351,7 +451,11 @@ async fn store_msg_for_post_broadcasts_and_persists() {
         .await
         .unwrap();
 
-    match recv_timeout(&mut ws_hub_rx).await {
+    let ws_msg = recv_msg(&mut ws_hub_rx).await;
+    let storage_msg = recv_msg(&mut storage_rx).await;
+
+    // Assert
+    match ws_msg {
         WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(sent))) => {
             assert_eq!(chat_id, sent.chat_id);
             assert_eq!(sender, sent.sender);
@@ -359,8 +463,7 @@ async fn store_msg_for_post_broadcasts_and_persists() {
         }
         other => panic!("expected MessageSent broadcast, got {other:?}"),
     }
-
-    match recv_timeout(&mut storage_rx).await {
+    match storage_msg {
         StorageMsg::SaveChats(snapshot) => {
             let saved = snapshot.get(&chat_id).expect("chat should exist");
             assert_eq!(1, saved.content.len());

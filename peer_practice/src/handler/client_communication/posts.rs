@@ -99,11 +99,44 @@ mod tests {
     use crate::handler::test_utils::test_state;
     use peer_practice_messages::current::level::Level;
     use peer_practice_messages::current::post::{Post, PostId, Topics};
-    use peer_practice_messages::test_helpers_impl::{
-        expect_no_message, fixed_timestamp, recv_timeout,
-    };
+    use peer_practice_messages::test_helpers_impl::fixed_timestamp;
     use peer_practice_server_services::ws_hub::ConnectionId;
     use std::collections::HashSet;
+    use tokio::sync::mpsc::error::TryRecvError;
+    use tokio::sync::oneshot;
+
+    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
+        match rx.recv().await {
+            Some(msg) => msg,
+            None => panic!("channel closed"),
+        }
+    }
+
+    async fn sync_posts(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<PostsMsg>) {
+        let (respond_to, recv) = oneshot::channel();
+        state
+            .posts
+            .send(PostsMsg::Ping(respond_to))
+            .await
+            .expect("send ping");
+
+        match recv_msg(rx).await {
+            PostsMsg::Ping(respond_to) => {
+                let _ = respond_to.send(());
+            }
+            other => panic!("expected PostsMsg::Ping, got {other:?}"),
+        }
+
+        recv.await.expect("ping ack");
+    }
+
+    fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
+        match rx.try_recv() {
+            Ok(_) => panic!("expected no message"),
+            Err(TryRecvError::Empty) => {}
+            Err(TryRecvError::Disconnected) => panic!("channel closed"),
+        }
+    }
 
     fn sample_post(owner: UserId) -> Post {
         Post {
@@ -132,7 +165,8 @@ mod tests {
         .await
         .expect("handler ok");
 
-        expect_no_message(&mut rx.posts).await;
+        sync_posts(&state, &mut rx.posts).await;
+        assert_empty(&mut rx.posts);
     }
 
     #[tokio::test]
@@ -143,18 +177,18 @@ mod tests {
         let post_id = PostId::new();
         let post = sample_post(owner);
 
-        let state = state.clone();
+        let state_for_handler = state.clone();
         let handler = tokio::spawn(async move {
             post_handler(
                 PostAction::DeletePost(post_id),
-                &state,
+                &state_for_handler,
                 other,
                 ConnectionId::new(),
             )
             .await
         });
 
-        match recv_timeout(&mut rx.posts).await {
+        match recv_msg(&mut rx.posts).await {
             PostsMsg::Get(id, respond_to) => {
                 assert_eq!(post_id, id);
                 let _ = respond_to.send(Some(post));
@@ -163,6 +197,7 @@ mod tests {
         }
 
         handler.await.expect("handler task ok").expect("handler ok");
-        expect_no_message(&mut rx.posts).await;
+        sync_posts(&state, &mut rx.posts).await;
+        assert_empty(&mut rx.posts);
     }
 }

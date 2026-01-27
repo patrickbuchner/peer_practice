@@ -25,6 +25,9 @@ pub enum UsersMsg {
     Remove {
         id: UserId,
     },
+    Ping {
+        respond_to: oneshot::Sender<()>,
+    },
 }
 
 #[cfg(test)]
@@ -96,6 +99,9 @@ pub async fn handle_user_actions(
             UsersMsg::GetById { id, respond_to } => {
                 let val = id_to_user.get(&id).cloned();
                 let _ = respond_to.send(val);
+            }
+            UsersMsg::Ping { respond_to } => {
+                let _ = respond_to.send(());
             }
         }
     }
