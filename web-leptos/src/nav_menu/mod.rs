@@ -1,17 +1,14 @@
 use crate::components::modal::CenterModal;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
+use leptos_router::hooks::use_location;
 
 #[component]
 pub fn NavMenu() -> impl IntoView {
     let (menu_open, set_menu_open) = signal(false);
     let (accent_name, _set_accent_name) = signal(String::from("rosewater"));
-    let location = || {
-        window()
-            .location()
-            .pathname()
-            .unwrap_or_else(|_| "/".to_string())
-    };
+    let location = use_location();
+    let current_path = move || location.pathname.get();
 
     fn nav_link_common_box_style() -> &'static str {
         "display:flex; align-items:center; justify-content:center; width:100%; text-align:center;"
@@ -36,9 +33,10 @@ pub fn NavMenu() -> impl IntoView {
         )
     }
 
-    let current_page_label = move || match location().as_str() {
+    let current_page_label = move || match current_path().as_str() {
         "/" => "Home".to_string(),
         "/settings" => "Settings".to_string(),
+        path if path.starts_with("/chat/") => "Chat".to_string(),
         other => {
             let seg = other.trim_end_matches('/').rsplit('/').next().unwrap_or("");
             if seg.is_empty() {
@@ -96,7 +94,7 @@ pub fn NavMenu() -> impl IntoView {
                                     data-theme="accent"
                                     data-accent="base"
                                     style=move || {
-                                        let active = &location() == "/";
+                                        let active = current_path() == "/";
                                         nav_link_style(active, &accent_name.get())
                                     }
                                 >
@@ -108,7 +106,7 @@ pub fn NavMenu() -> impl IntoView {
                                     data-theme="accent"
                                     data-accent="base"
                                     style=move || {
-                                        let active = &location() == "/settings";
+                                        let active = current_path() == "/settings";
                                         nav_link_style(active, &accent_name.get())
                                     }
                                 >

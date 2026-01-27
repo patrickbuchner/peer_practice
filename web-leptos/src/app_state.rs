@@ -2,6 +2,7 @@ use futures_channel::mpsc::UnboundedSender;
 use futures_util::SinkExt;
 use leptos::prelude::{Get, GetUntracked, ReadSignal, Update, WriteSignal, signal};
 use leptos::task::spawn_local;
+use peer_practice_shared::chat::{ChatId, ChatMessageFromServer};
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::post::{Post, PostId};
 use peer_practice_shared::user::UserId;
@@ -14,6 +15,9 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
     let (posts_read, posts_write) = signal(HashMap::new());
     let (users_read, users_write) = signal(HashMap::new());
     let (pending_route_read, pending_route_write) = signal(None);
+    let (chats_read, chats_write) = signal(HashMap::new());
+    let (chat_posts_read, chat_posts_write) = signal(HashMap::new());
+    let (post_chats_read, post_chats_write) = signal(HashMap::new());
     (
         AppStateReader {
             tx: tx_read,
@@ -21,6 +25,9 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
             posts: posts_read,
             users: users_read,
             pending_route: pending_route_read,
+            chats: chats_read,
+            chat_posts: chat_posts_read,
+            post_chats: post_chats_read,
         },
         AppStateWriter {
             tx: tx_write,
@@ -28,6 +35,9 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
             posts: posts_write,
             users: users_write,
             pending_route: pending_route_write,
+            chats: chats_write,
+            chat_posts: chat_posts_write,
+            post_chats: post_chats_write,
         },
     )
 }
@@ -38,6 +48,9 @@ pub struct AppStateWriter {
     pub posts: WriteSignal<HashMap<PostId, Post>>,
     pub users: WriteSignal<HashMap<UserId, UserDisplay>>,
     pub pending_route: WriteSignal<Option<String>>,
+    pub chats: WriteSignal<HashMap<ChatId, Vec<ChatMessageFromServer>>>,
+    pub chat_posts: WriteSignal<HashMap<ChatId, PostId>>,
+    pub post_chats: WriteSignal<HashMap<PostId, ChatId>>,
 }
 impl AppStateWriter {
     pub(crate) fn set_tx(&self, tx: Option<UnboundedSender<ClientToServer>>) {
@@ -52,6 +65,9 @@ pub struct AppStateReader {
     pub posts: ReadSignal<HashMap<PostId, Post>>,
     pub users: ReadSignal<HashMap<UserId, UserDisplay>>,
     pub pending_route: ReadSignal<Option<String>>,
+    pub chats: ReadSignal<HashMap<ChatId, Vec<ChatMessageFromServer>>>,
+    pub chat_posts: ReadSignal<HashMap<ChatId, PostId>>,
+    pub post_chats: ReadSignal<HashMap<PostId, ChatId>>,
 }
 
 impl AppStateReader {

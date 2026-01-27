@@ -25,6 +25,7 @@ pub(crate) async fn chat_handler(
             let msg = match receiver.await {
                 Ok(Ok(m)) => ServerToClient::Chat(Chat(
                     m.chat_id,
+                    m.post_id,
                     m.content.iter().map(|m| m.into()).collect(),
                 )),
                 _ => ServerToClient::Chat(ChatDoesNotExistForPost(post)),
@@ -38,6 +39,7 @@ pub(crate) async fn chat_handler(
             let msg = match receiver.await {
                 Ok(Ok(m)) => ServerToClient::Chat(Chat(
                     m.chat_id,
+                    m.post_id,
                     m.content.iter().map(|m| m.into()).collect(),
                 )),
                 _ => ServerToClient::Chat(ChatDoesNotExist(id)),
@@ -155,8 +157,9 @@ mod tests {
 
         match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send { msg, .. } => match msg {
-                ServerToClient::Chat(ServerChatAction::Chat(got_id, messages)) => {
+                ServerToClient::Chat(ServerChatAction::Chat(got_id, got_post_id, messages)) => {
                     assert_eq!(chat_id, got_id);
+                    assert_eq!(post_id, got_post_id);
                     assert_eq!(1, messages.len());
                     assert_eq!("hello", messages[0].message);
                 }

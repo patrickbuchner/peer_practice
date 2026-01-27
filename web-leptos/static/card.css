@@ -82,6 +82,20 @@ body > * {
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
+.chat-row {
+    width: min(100%, 58rem);
+    margin: 0 auto;
+    padding: clamp(0.75rem, 2vw, 1.25rem);
+    border-radius: 16px;
+    background: color-mix(in oklab, var(--bg-weak-color) 65%, transparent);
+    border: 1px solid color-mix(in oklab, var(--bg-weak-text) 12%, transparent);
+    box-shadow: 0 24px 60px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent);
+}
+
+.chat-row .card {
+    margin-block: 0;
+}
+
 /* Theme variants (support both data-theme and legacy data-scheme) */
 .card[data-theme="weakest"],
 .card[data-scheme="weakest"] {

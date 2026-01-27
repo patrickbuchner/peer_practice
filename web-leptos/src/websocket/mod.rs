@@ -6,7 +6,7 @@ use leptos::logging::log;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use peer_practice_shared::Envelope;
-use peer_practice_shared::messages::server_to_client::{PostAction, UserAction};
+use peer_practice_shared::messages::server_to_client::{ChatAction, PostAction, UserAction};
 use peer_practice_shared::messages::{ClientToServer, ServerToClient, client_to_server};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -164,6 +164,20 @@ fn handle_websocket_messages(
                 state_writer.posts.write().insert(id, post);
             }
             PostAction::RemovedPost(id) => _ = state_writer.posts.write().remove(&id),
+        },
+        ServerToClient::Chat(chat_action) => match chat_action {
+            ChatAction::ChatDoesNotExistForPost(_) => {}
+            ChatAction::ChatDoesNotExist(_) => {}
+            ChatAction::Chat(chat_id, post_id, messages) => {
+                state_writer.chats.write().insert(chat_id, messages);
+                state_writer.chat_posts.write().insert(chat_id, post_id);
+                state_writer.post_chats.write().insert(post_id, chat_id);
+            }
+            ChatAction::MessageSent(message) => {
+                state_writer.chats.update(|chats| {
+                    chats.entry(message.chat_id).or_default().push(message);
+                });
+            }
         },
         _ => log!("Received unhandled message type"),
     }

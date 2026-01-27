@@ -11,6 +11,7 @@ use peer_practice_shared::ymd;
 use std::collections::HashSet;
 
 mod app_state;
+mod chat;
 mod components;
 pub mod event_card;
 pub mod home;
@@ -153,6 +154,10 @@ pub fn App() -> impl IntoView {
                                     <Route
                                         path=path!("/")
                                         view=move || view! { <home::Home state /> }
+                                    />
+                                    <Route
+                                        path=path!("/chat/:chat_id")
+                                        view=move || view! { <chat::ChatRoute state /> }
                                     />
                                     <Route
                                         path=path!("/settings")

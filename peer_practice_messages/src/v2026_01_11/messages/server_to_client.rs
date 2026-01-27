@@ -29,7 +29,7 @@ pub enum PostAction {
 pub enum ChatAction {
     ChatDoesNotExistForPost(PostId),
     ChatDoesNotExist(ChatId),
-    Chat(ChatId, Vec<ChatMessageFromServer>),
+    Chat(ChatId, PostId, Vec<ChatMessageFromServer>),
     MessageSent(ChatMessageFromServer),
 }
 
