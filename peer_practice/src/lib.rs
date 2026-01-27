@@ -18,6 +18,7 @@ mod app_state;
 mod handler;
 pub mod input;
 mod services;
+mod task;
 
 #[cfg(feature = "fuzzing")]
 pub use handler::websocket::parse_received_message_for_fuzz;
@@ -34,10 +35,10 @@ async fn run(config: Config) -> Result<()> {
     let _logging_guard = init_file_logging(&config.server.data_dir)?;
     let state = AppState::new(config.clone());
 
-    tokio::spawn(services::run_expired_posts_reaper(
-        state.clone(),
-        chrono::Duration::hours(1),
-    ));
+    task::spawn_named(
+        "expired-posts-reaper",
+        services::run_expired_posts_reaper(state.clone(), chrono::Duration::hours(1)),
+    );
 
     info!(
         "Serving static files from: {}",
@@ -79,8 +80,14 @@ async fn run(config: Config) -> Result<()> {
 }
 
 fn init_file_logging(data_dir: &Path) -> Result<WorkerGuard> {
-    // Respect RUST_LOG if set, otherwise default to info
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    // Respect RUST_LOG if set, otherwise default to info (plus tokio=trace for console).
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        if cfg!(tokio_unstable) {
+            EnvFilter::new("info,tokio=trace")
+        } else {
+            EnvFilter::new("info")
+        }
+    });
 
     // Create a daily rolling file appender in the data directory
     let file_appender = tracing_appender::rolling::daily(data_dir, "server.log");
@@ -95,6 +102,14 @@ fn init_file_logging(data_dir: &Path) -> Result<WorkerGuard> {
     let subscriber = tracing_subscriber::registry()
         .with(filter)
         .with(json_file_layer);
+
+    #[cfg(tokio_unstable)]
+    let subscriber = {
+        let console_layer = console_subscriber::ConsoleLayer::builder()
+            .with_default_env()
+            .spawn();
+        subscriber.with(console_layer)
+    };
 
     #[cfg(debug_assertions)]
     let subscriber = {

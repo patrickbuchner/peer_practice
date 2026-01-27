@@ -6,6 +6,9 @@ resolver = "3"
 license = "MIT OR Apache-2.0"
 version = "2026.1.13"
 
+[workspace.lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ["cfg(tokio_unstable)"] }
+
 [workspace.dependencies]
 peer_practice_shared = { path = "peer_practice_shared" }
 peer_practice_messages = { path = "peer_practice_messages" }

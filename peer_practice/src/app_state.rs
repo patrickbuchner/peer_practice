@@ -26,20 +26,24 @@ impl AppState {
     pub fn new(config: Config) -> Self {
         let storage_config = config.server.data_dir.clone();
         let (ws_hub, rx) = mpsc::channel::<ws_hub::WsHubMsg>(128);
-        tokio::spawn(handle_ws_hub_actions(rx, ws_hub.clone()));
+        crate::task::spawn_named("ws-hub", handle_ws_hub_actions(rx, ws_hub.clone()));
 
         let clock = clock::system_clock();
-        let storage = spawn(128, |rx| handle_storage_operations(storage_config, rx));
+        let storage = spawn("storage", 128, |rx| {
+            handle_storage_operations(storage_config, rx)
+        });
         let email_config = config.email.clone().try_into().expect("Invalid email");
-        let email = spawn(64, |rx| handle_email_actions(email_config, rx));
-        let pending_logins = spawn(64, |rx| handle_pending_logins(clock.clone(), rx));
-        let users = spawn(64, |rx| {
+        let email = spawn("email", 64, |rx| handle_email_actions(email_config, rx));
+        let pending_logins = spawn("pending-logins", 64, |rx| {
+            handle_pending_logins(clock.clone(), rx)
+        });
+        let users = spawn("users", 64, |rx| {
             handle_user_actions(storage.clone(), ws_hub.clone(), rx)
         });
-        let chat = spawn(100, |rx| {
+        let chat = spawn("chat", 100, |rx| {
             handle_chats(storage.clone(), ws_hub.clone(), clock.clone(), rx)
         });
-        let posts = spawn(100, |rx| {
+        let posts = spawn("posts", 100, |rx| {
             handle_posts(storage.clone(), ws_hub.clone(), chat.clone(), rx)
         });
 
@@ -57,13 +61,13 @@ impl AppState {
 
 /// Helper function to streamline actor spawning.
 /// It infers the message type M from the closure's receiver.
-fn spawn<M, F, Fut>(buffer: usize, f: F) -> Sender<M>
+fn spawn<M, F, Fut>(name: &'static str, buffer: usize, f: F) -> Sender<M>
 where
     M: Send + 'static,
     F: FnOnce(mpsc::Receiver<M>) -> Fut,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let (tx, rx) = mpsc::channel(buffer);
-    tokio::spawn(f(rx));
-    tx
+        let (tx, rx) = mpsc::channel(buffer);
+        crate::task::spawn_named(name, f(rx));
+        tx
 }
