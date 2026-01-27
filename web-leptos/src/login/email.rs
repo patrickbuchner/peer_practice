@@ -1,5 +1,7 @@
 use leptos::logging::log;
 use leptos::prelude::*;
+use crate::components::text_input::TextInput;
+use crate::components::theme::Theme;
 
 use crate::host;
 use peer_practice_shared::authentication::login_data::LoginData;
@@ -58,26 +60,27 @@ pub fn LoginEmailStep(
     };
 
     view! {
-        <form class="space-y-4" on:submit=on_submit>
-            <h2 class="text-xl font-semibold">"Log in"</h2>
-            <p class="text-sm opacity-90">"What's your email?"</p>
-            <div class="mt-2">
-                <input
-                    type="email"
-                    required
-                    class="w-full px-3 py-2 rounded-md outline-none text-center"
-                    style="background: var(--bg-weak-color); color: var(--bg-base-text);"
-                    placeholder="you@example.com"
-                    prop:value=Signal::derive(move || email_read.get())
+        <form class="stack stack-sm" on:submit=on_submit>
+            <h2 class="text-lg">"Log in"</h2>
+            <p class="text-sm text-muted">"What's your email?"</p>
+            <div>
+                <TextInput
+                    r#type="email".to_string()
+                    required=true
+                    class="input--center".to_string()
+                    placeholder="you@example.com".to_string()
+                    value=Signal::derive(move || email_read.get())
                     autofocus=true
-                    on:input=move |ev| email_write.set(event_target_value(&ev).trim().to_string())
+                    on_input=Callback::new(move |ev| {
+                        email_write.set(event_target_value(&ev).trim().to_string());
+                    })
                 />
             </div>
-            <div class="mt-4 flex gap-2 justify-end">
+            <div class="row row-end">
                 <button
                     type="submit"
-                    class="px-4 py-2 rounded-md font-medium transition-colors \
-                    bg-[var(--primary-base-color)] text-[var(--primary-base-text)] hover:opacity-90"
+                    class="btn"
+                    data-theme=Theme::Primary.as_str()
                 >
                     "Next"
                 </button>

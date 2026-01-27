@@ -1,0 +1,123 @@
+/* Form scaffolding */
+.form {
+    margin-top: 1rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+    align-items: center;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.form-actions--full {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+}
+
+.label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.label--end {
+    justify-self: end;
+}
+
+.label--spaced {
+    margin: 0.25rem 0;
+}
+
+.input {
+    --input-bg: var(--card-bg, var(--bg-weak-color));
+    --input-fg: var(--card-fg, var(--bg-base-text));
+    --input-border-mix: var(--card-border-mix, 18%);
+    --input-border: color-mix(in oklab, var(--card-fg, var(--bg-base-text)) var(--input-border-mix), transparent);
+
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--input-fg);
+    outline: none;
+}
+
+.input[data-theme="weakest"] {
+    --input-bg: var(--bg-weakest-color);
+    --input-fg: var(--bg-weakest-text);
+    --input-border-mix: 10%;
+}
+
+.input[data-theme="weak"] {
+    --input-bg: var(--bg-weak-color);
+    --input-fg: var(--bg-weak-text);
+    --input-border-mix: 12%;
+}
+
+.input[data-theme="base"] {
+    --input-bg: var(--bg-base-color);
+    --input-fg: var(--bg-base-text);
+    --input-border-mix: 14%;
+}
+
+.input[data-theme="strong"] {
+    --input-bg: var(--bg-strong-color);
+    --input-fg: var(--bg-strong-text);
+    --input-border-mix: 16%;
+}
+
+.input[data-theme="strongest"] {
+    --input-bg: var(--bg-strongest-color);
+    --input-fg: var(--bg-strongest-text);
+    --input-border-mix: 18%;
+}
+
+.input[data-theme="accent"] {
+    --_accent-color: var(--accent, var(--teal));
+    --_accent-mix: 28%;
+    --input-bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --input-fg: var(--bg-base-text);
+    --input-border: color-mix(in oklab, var(--_accent-color) 50%, transparent);
+}
+
+.input[data-theme="accent"][data-accent-strength="weakest"]  { --_accent-mix: 10%; }
+.input[data-theme="accent"][data-accent-strength="weak"]     { --_accent-mix: 18%; }
+.input[data-theme="accent"][data-accent-strength="base"]     { --_accent-mix: 28%; }
+.input[data-theme="accent"][data-accent-strength="strong"]   { --_accent-mix: 44%; }
+.input[data-theme="accent"][data-accent-strength="strongest"]{ --_accent-mix: 62%; }
+
+.input:focus-visible {
+    border-color: var(--primary-base-color);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary-base-color) 25%, transparent);
+}
+
+.input[data-accent] {
+    --input-border: color-mix(in oklab, var(--accent, var(--bg-strongest-color)) 65%, transparent);
+}
+
+.input--wide {
+    min-width: 20rem;
+}
+
+.input--center {
+    text-align: center;
+}
+
+.auth-card {
+    width: min(100%, 28rem);
+}
+
+.palette-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+}

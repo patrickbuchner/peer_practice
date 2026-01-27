@@ -4,9 +4,10 @@
 
 .combo {
     /* Define local variables for the component's theme */
-    --_bg: var(--bg-weak-color);
-    --_fg: var(--bg-weak-text);
-    --_border: color-mix(in oklab, var(--bg-base-text) 18%, transparent);
+    --_bg: var(--card-bg, var(--bg-weak-color));
+    --_fg: var(--card-fg, var(--bg-weak-text));
+    --_border-mix: var(--card-border-mix, 18%);
+    --_border: color-mix(in oklab, var(--card-fg, var(--bg-base-text)) var(--_border-mix), transparent);
     --_focus-ring-color: var(--primary-base-color); /* Default focus is primary */
 
     /* Apply variables and base styles */

@@ -1,4 +1,5 @@
 use crate::components::buttons::ServerButton;
+use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
@@ -29,9 +30,10 @@ pub fn ConfirmDangerousModal(
                     aria-labelledby="confirm-title"
                     aria-describedby="confirm-desc"
                     class="card dialog dialog-sheet surface"
-                    data-accent="strong"
+                    data-accent=AccentStrength::Strong.as_str()
                     style="--accent: var(--maroon, #be123c); max-height: 90dvh; overflow: auto;"
-                    data-scheme="base"
+                    data-theme=Theme::Strong.as_str()
+                    data-shadow=CardShadow::Weak.as_str()
                     on:click=|ev| ev.stop_propagation()
                 >
                     <h1 id="confirm-title" class="dialog-title">
@@ -44,7 +46,7 @@ pub fn ConfirmDangerousModal(
                     <div class="dialog-actions">
                         <button
                             class="btn"
-                            data-theme="secondary"
+                            data-theme=Theme::Secondary.as_str()
                             type="button"
                             on:click=move |ev| {
                                 ev.stop_propagation();
@@ -55,7 +57,7 @@ pub fn ConfirmDangerousModal(
                         </button>
                         <ServerButton
                             class=Signal::derive(|| "btn".to_string())
-                            data_theme=Arc::new(|| "danger")
+                            data_theme=Arc::new(|| Theme::Danger)
                             r#type="button".to_string()
                             on_click=Callback::new({ move |_| on_confirm.run(()) })
                         >
@@ -87,14 +89,15 @@ pub fn CenterModal(
                     role="dialog"
                     aria-modal="true"
                     class="card dialog dialog-sheet surface"
-                    data-accent="strong"
+                    data-accent=AccentStrength::Strong.as_str()
                     style=move || {
                         format!(
                             "--accent: {}; max-height: 90dvh; overflow: auto;",
                             accent_color.get(),
                         )
                     }
-                    data-scheme="base"
+                    data-theme=Theme::Strong.as_str()
+                    data-shadow=CardShadow::Weak.as_str()
                 >
                     {children()}
                 </div>

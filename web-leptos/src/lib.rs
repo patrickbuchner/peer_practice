@@ -1,6 +1,7 @@
 use crate::app_state::{AppStateReader, initialize_app_state};
 use crate::event_card::EventCardProps;
 use crate::nav_menu::NavMenu;
+use crate::components::theme::{AccentStrength, Theme};
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
@@ -85,31 +86,27 @@ pub fn App() -> impl IntoView {
         <Router>
             <nav
                 class="navbar"
-                style="display: flex; align-items: center; padding: 0.5rem 0.75rem; gap: 0;"
             >
                 <Show
                     when=logged_in
                     fallback=|| {
                         view! {
-                            <div style="flex: 1; display:flex; align-items:center; justify-content:center;">
-                                <strong style="font-size: 1.375rem;">"Peer Practice"</strong>
+                            <div class="navbar-section navbar-section--center">
+                                <strong class="navbar-title">"Peer Practice"</strong>
                             </div>
                         }
                     }
                 >
-                    <div style="flex: 1; display:flex; align-items:center;">
+                    <div class="navbar-section">
                         <NavMenu />
                     </div>
-                    <div style="flex: 1; display:flex; align-items:center; justify-content:center;">
-                        <strong style="font-size: 1.375rem; color: var(--teal);">
+                    <div class="navbar-section navbar-section--center">
+                        <strong class="navbar-title navbar-title--accent">
                             {active_user_label}
                         </strong>
                     </div>
-                    <div style="flex: 1; display:flex; justify-content:flex-end;">
-                        <div
-                            class="nav-icon-bar"
-                            style="display: flex; align-items: center; gap: 0.5rem;"
-                        >
+                    <div class="navbar-section navbar-section--end">
+                        <div class="nav-icon-bar">
                             <CreateNewPost state read_new_post write_new_post />
                             <ConnectionStatus state />
                         </div>
@@ -185,19 +182,9 @@ fn CreateNewPost(
         <button
             aria-label="Add post"
             title="Add post"
-            style="
-            width: 36px;
-            height: 36px;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--mauve, #14b8a6);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            cursor: pointer;
-            "
+            class="btn btn--fab"
+            data-theme=Theme::Accent.as_str()
+            data-accent-strength=AccentStrength::Strong.as_str()
             on:click=move |_| {
                 let current_user = state.user_id.get();
                 let author_name = current_user
@@ -222,7 +209,7 @@ fn CreateNewPost(
                 }
             }
         >
-            <span style="font-size: 22px; line-height: 1; margin-top: -1px;">
+            <span class="btn-icon">
                 {move || {
                     if read_new_post.get().is_some() { "-".to_string() } else { "+".to_string() }
                 }}
@@ -250,8 +237,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
     let (show_toast, set_show_toast) = signal(false);
     view! {
         <div
-            class="connection-status"
-            style="display:flex; align-items:center; gap:0.35rem; position:relative;"
+            class="status-indicator"
             on:mouseenter=move |_| set_show_toast.set(true)
             on:mouseleave=move |_| set_show_toast.set(false)
         >
@@ -274,20 +260,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
             <Show when=move || show_toast.get()>
                 <div
                     role="status"
-                    style="
-                    position: fixed;
-                    top: calc(var(--navbar-height, 48px) + 6px);
-                    right: 0.75rem;
-                    background: #111827;
-                    color: white;
-                    padding: 0.4rem 0.6rem;
-                    border-radius: 0.375rem;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                    font-size: 0.875rem;
-                    z-index: 2000;
-                    white-space: nowrap;
-                    pointer-events: none;
-                    "
+                    class="toast status-toast"
                 >
                     {status_text}
                 </div>

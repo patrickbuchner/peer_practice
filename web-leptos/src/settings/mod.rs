@@ -1,9 +1,11 @@
 use leptos::prelude::*;
+use crate::components::text_input::TextInput;
 use std::sync::Arc;
 
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ServerButton;
 use crate::components::modal::CenterModal;
+use crate::components::theme::{CardShadow, Theme};
 use peer_practice_shared::accent_colors::AccentColor;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::user::display_user::UserDisplay;
@@ -53,28 +55,26 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
 
     view! {
         <section class="container container-narrow pad-sm">
-            <div class="card">
+            <div
+                class="card"
+                data-theme=Theme::Strong.as_str()
+                data-shadow=CardShadow::Weak.as_str()
+            >
                 <h2 class="card-title">"Settings"</h2>
-                <form class="form" style="margin-top: 1rem;" on:submit=on_submit>
-                    <div
-                        class="grid"
-                        style="display: grid; grid-template-columns: max-content 1fr; column-gap: .75rem; row-gap: .5rem; align-items: center;"
-                    >
-                        <label for="display_name" class="label" style="justify-self: end;">
+                <form class="form" on:submit=on_submit>
+                    <div class="form-grid">
+                        <label for="display_name" class="label label--end">
                             "Display name"
                         </label>
-                        <input
-                            id="display_name"
-                            name="display_name"
-                            type="text"
-                            class="w-full"
-                            data-theme="base"
-                            data-accent=""
-                            data-accent-strength="base"
-                            style="--accent: var(--bg-strongest-color); padding: .6rem .75rem; border-radius: .6rem; border: 1px solid currentColor; min-width: 20rem;"
-                            value=name
-                            on:input=move |ev| set_name.set(event_target_value(&ev))
-                            placeholder="Your name as shown to others"
+                        <TextInput
+                            id="display_name".to_string()
+                            name="display_name".to_string()
+                            r#type="text".to_string()
+                            class="input--wide".to_string()
+                            data_theme=Theme::Strong
+                            value=Signal::derive(move || name.get())
+                            on_input=Callback::new(move |ev| set_name.set(event_target_value(&ev)))
+                            placeholder="Your name as shown to others".to_string()
                         />
                         //
                         // <label class="label" style="justify-self: end;">
@@ -97,13 +97,10 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                         //     </button>
                         // </div>
 
-                        <div
-                            class="actions actions-inline gap-sm align-center"
-                            style="grid-column: 1 / -1; margin-top: .25rem;"
-                        >
+                        <div class="form-actions form-actions--full">
                             <ServerButton
                                 class=Signal::derive(|| "btn".to_string())
-                                data_theme=Arc::new(|| "secondary")
+                                data_theme=Arc::new(|| Theme::Secondary)
                                 r#type="submit".to_string()
                             >
                                 {move || if saving.get() { "Saving..." } else { "Save" }}
@@ -121,22 +118,15 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
         >
             {move || {
                 view! {
-                    <div
-                        class="cluster"
-                        style="--cluster-justify: space-between; margin-bottom: .5rem;"
-                    >
-                        <h3 class="card-title" style="margin: 0;">
+                    <div class="cluster cluster--between">
+                        <h3 class="card-title card-title--tight">
                             "Pick an accent"
                         </h3>
                     </div>
-                    <h4 class="label" style="margin: .25rem 0;">
+                    <h4 class="label label--spaced">
                         "Solid"
                     </h4>
-                    <div style="
-                    display: grid;
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
-                    gap: .5rem;
-                    ">
+                    <div class="palette-grid">
                         {AccentColor::base()
                             .iter()
                             .map(|c| {
@@ -146,7 +136,7 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                                 view! {
                                     <button
                                         class="btn"
-                                        data-theme="accent"
+                                        data-theme=Theme::Accent.as_str()
                                         style=format!("--accent: {}; width: 100%;", var)
                                         title=name.clone()
                                         on:click=move |_| {
@@ -161,16 +151,12 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                             .collect_view()}
                     </div>
 
-                    <div style="border-top: 1px solid var(--border-color, currentColor); opacity: .25; margin: .75rem 0;"></div>
+                    <div class="section-divider"></div>
 
-                    <h4 class="label" style="margin: .25rem 0;">
+                    <h4 class="label label--spaced">
                         "Light"
                     </h4>
-                    <div style="
-                    display: grid;
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
-                    gap: .5rem;
-                    ">
+                    <div class="palette-grid">
                         {AccentColor::light()
                             .iter()
                             .map(|c| {
@@ -180,7 +166,7 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                                 view! {
                                     <button
                                         class="btn"
-                                        data-theme="accent"
+                                        data-theme=Theme::Accent.as_str()
                                         style=format!("--accent: {}; width: 100%;", var)
                                         title=name.clone()
                                         on:click=move |_| {

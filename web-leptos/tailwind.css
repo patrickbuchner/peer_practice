@@ -2,6 +2,8 @@
 @import "./static/color_palette.css";
 @import "./static/button.css";
 @import "./static/card.css";
+@import "./static/layout.css";
+@import "./static/forms.css";
 @import "./static/combo.css";
 @import "./static/headings.css";
 @import "./static/toast.css";

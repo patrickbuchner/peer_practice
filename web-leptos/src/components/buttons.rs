@@ -1,5 +1,6 @@
 use crate::app_state::AppStateReader;
 use crate::components::modal::ConfirmDangerousModal;
+use crate::components::theme::Theme;
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
@@ -14,7 +15,7 @@ pub fn ServerButton(
     #[prop(optional)] r#type: Option<String>,
     #[prop(optional, into)] on_click: Option<Callback<leptos::ev::MouseEvent>>,
     #[prop(optional, into)] disabled: Option<Signal<bool>>,
-    #[prop(optional)] data_theme: Option<Arc<dyn Fn() -> &'static str + Send + Sync>>,
+    #[prop(optional)] data_theme: Option<Arc<dyn Fn() -> Theme + Send + Sync>>,
     children: Children,
 ) -> impl IntoView {
     let state = expect_context::<AppStateReader>();
@@ -25,7 +26,7 @@ pub fn ServerButton(
     let btn_type = r#type.unwrap_or_else(|| "button".to_string());
     let aria = aria_label.unwrap_or_default();
     let style = style.unwrap_or_default();
-    let data_theme = data_theme.unwrap_or_else(|| Arc::new(|| "primary"));
+    let data_theme = data_theme.unwrap_or_else(|| Arc::new(|| Theme::Primary));
 
     let guarded_on_click = on_click.map(|cb| {
         Callback::new(move |ev: leptos::ev::MouseEvent| {
@@ -47,7 +48,7 @@ pub fn ServerButton(
             r#type=btn_type
             disabled=move || is_disabled.get()
             aria-disabled=move || if is_disabled.get() { "true" } else { "false" }
-            data-theme=move || data_theme()
+            data-theme=move || data_theme().as_str()
             on:click=move |ev| {
                 if let Some(cb) = &guarded_on_click {
                     cb.run(ev);
@@ -79,16 +80,15 @@ pub fn ConfirmDeleteButton(
 
     view! {
         <>
-            <button
-                class="btn"
-                type="button"
-                aria-label=aria
-                title=btn_title
-                style="font-size: .9rem; padding: .35rem .6rem;"
-                data-theme="danger"
-                on:click=move |_| {
-                    set_show_confirm.set(true);
-                }
+        <button
+            class="btn btn--sm"
+            type="button"
+            aria-label=aria
+            title=btn_title
+            data-theme=Theme::Danger.as_str()
+            on:click=move |_| {
+                set_show_confirm.set(true);
+            }
             >
                 {btn_label}
             </button>

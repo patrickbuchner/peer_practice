@@ -1,5 +1,7 @@
 use leptos::logging::log;
 use leptos::prelude::*;
+use crate::components::text_input::TextInput;
+use crate::components::theme::Theme;
 
 use crate::app_state::{AppStateReader, AppStateWriter};
 use crate::host;
@@ -64,29 +66,28 @@ pub fn LoginPinStep(
     };
 
     view! {
-        <div class="space-y-4 relative">
-            <h2 class="text-xl font-semibold">"Enter the 6‑digit code"</h2>
-            <p class="text-sm opacity-90">"We sent a code to:"</p>
-            <p class="text-sm font-mono opacity-90">{email.clone()}</p>
+        <div class="stack stack-sm">
+            <h2 class="text-lg">"Enter the 6-digit code"</h2>
+            <p class="text-sm text-muted">"We sent a code to:"</p>
+            <p class="text-sm text-mono text-muted">{email.clone()}</p>
 
             <form
-                class="mt-3 space-y-4"
+                class="stack stack-sm"
                 on:submit=move |ev: leptos::ev::SubmitEvent| {
                     ev.prevent_default();
                     submit_or_toast();
                 }
             >
-                <input
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    maxlength="6"
-                    class="w-full px-3 py-2 rounded-md outline-none text-center \
-                    bg-[var(--bg-weak-color)] text-[var(--bg-base-text)]"
-                    placeholder="6-digit code"
-                    prop:value=Signal::derive({ move || read_pin.get() })
+                <TextInput
+                    r#type="text".to_string()
+                    inputmode="numeric".to_string()
+                    pattern="[0-9]*".to_string()
+                    maxlength="6".to_string()
+                    class="input--center".to_string()
+                    placeholder="6-digit code".to_string()
+                    value=Signal::derive({ move || read_pin.get() })
                     autofocus=true
-                    on:input=move |ev| {
+                    on_input=Callback::new(move |ev| {
                         let cleaned: String = event_target_value(&ev)
                             .chars()
                             .filter(|ch| ch.is_ascii_digit())
@@ -96,14 +97,14 @@ pub fn LoginPinStep(
                         if show_toast_read.get() {
                             show_toast_write.set(false);
                         }
-                    }
+                    })
                 />
 
-                <div class="mt-4 flex items-center justify-between gap-2">
+                <div class="row row-between">
                     <button
                         type="button"
-                        class="px-4 py-2 rounded-md font-medium transition-colors \
-                        bg-[var(--secondary-weak-color)] text-[var(--secondary-weak-text)] hover:opacity-90"
+                        class="btn"
+                        data-theme=Theme::Secondary.as_str()
                         on:click=move |_| {
                             write_pin.set(String::new());
                             show_toast_write.set(false);
@@ -114,20 +115,8 @@ pub fn LoginPinStep(
                     </button>
                     <button
                         type="submit"
-                        class=Signal::derive({
-                            move || {
-                                let base = "px-4 py-2 rounded-md font-medium transition-colors ";
-                                if pin_complete.get() {
-                                    format!(
-                                        "{base}bg-[var(--primary-base-color)] text-[var(--primary-base-text)] hover:opacity-90",
-                                    )
-                                } else {
-                                    format!(
-                                        "{base}bg-[var(--bg-strong-color)] text-[var(--bg-strong-text)] opacity-50",
-                                    )
-                                }
-                            }
-                        })
+                        class=Signal::derive(|| "btn".to_string())
+                        data-theme=Signal::derive(move || if pin_complete.get() { "primary" } else { "secondary" })
                         aria-disabled=Signal::derive(move || {
                             if pin_complete.get() { "false" } else { "true" }
                         })

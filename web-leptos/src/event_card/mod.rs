@@ -1,5 +1,6 @@
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ServerButton;
+use crate::components::theme::Theme;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use peer_practice_shared::level::Level;
@@ -68,25 +69,31 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
     };
 
     view! {
-        <div class="cluster" style="--cluster-justify: space-between; margin-top: 1rem;">
-            <div class="cluster" style="--cluster-gap: .75rem; --cluster-justify: flex-start;">
-                <span style="min-width: 3rem; text-align: left; opacity: .8;">"Joining"</span>
+        <div class="cluster cluster--between event-card-footer">
+            <div class="cluster cluster--start cluster--gap-md">
+                <span class="event-card-label">"Joining"</span>
 
                 <ServerButton
                     class=Signal::derive(move || { "btn".to_string() })
-                    data_theme=Arc::new(move || { if partaking() { "success" } else { "primary" } })
+                    data_theme=Arc::new(move || {
+                        if partaking() {
+                            Theme::Success
+                        } else {
+                            Theme::Primary
+                        }
+                    })
                     on_click=Callback::new(move |_| toggle_join())
                 >
                     {move || if partaking() { "Joined".to_string() } else { "Join".to_string() }}
                 </ServerButton>
 
-                <span style="display: inline-flex; align-items: center; gap: .35rem; opacity: .9;">
+                <span class="event-card-count">
                     "👥 " {move || count}
                 </span>
 
                 <ChatButton post_id state />
             </div>
-            <em style="opacity: .8;">{"by "} {props.author.to_string()}</em>
+            <em class="event-card-author">{"by "} {props.author.to_string()}</em>
         </div>
     }
 }
@@ -114,7 +121,7 @@ fn ChatButton(post_id: PostId, #[prop(into)] state: AppStateReader) -> impl Into
         <ServerButton
             class=Signal::derive(move || { "btn".to_string() })
             disabled=is_disabled
-            data_theme=Arc::new(|| "primary")
+            data_theme=Arc::new(|| Theme::Primary)
             on_click=Callback::new(move |_| {
                 if is_on_chat.get_untracked() {
                     navigate("/", Default::default());

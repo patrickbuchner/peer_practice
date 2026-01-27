@@ -21,6 +21,21 @@
     font-size: 1.1rem; /* A slightly larger base font for readability */
 }
 
+:where(.card, .surface) .markdown-body,
+.markdown-body.surface {
+    --_text-color: var(--surface-fg, var(--card-fg, var(--text)));
+    --_heading-color: var(--surface-fg, var(--card-fg, var(--subtext1)));
+    --_secondary-text-color: color-mix(in oklab, var(--surface-fg, var(--card-fg, var(--subtext0))) 80%, transparent);
+    --_border-color-subtle: color-mix(in oklab, var(--surface-fg, var(--card-fg, var(--surface1))) 18%, transparent);
+    --_link-color: var(--surface-fg, var(--card-fg, var(--blue)));
+    --_link-color-hover: color-mix(in oklab, var(--surface-fg, var(--card-fg, var(--blue))) 80%, var(--accent, var(--lavender)));
+    --_code-inline-bg: color-mix(in oklab, var(--surface-bg, var(--card-bg, var(--surface0))) 85%, transparent);
+    --_code-inline-text: var(--surface-fg, var(--card-fg, var(--peach)));
+    --_code-block-bg: color-mix(in oklab, var(--surface-bg, var(--card-bg, var(--mantle))) 85%, transparent);
+    --_blockquote-border: var(--accent, var(--surface-fg, var(--card-fg, var(--mauve))));
+    --_table-header-bg: color-mix(in oklab, var(--surface-bg, var(--card-bg, var(--surface0))) 80%, transparent);
+}
+
 /*
  * ==========================================================================
  * 1. Typographic Scale & Vertical Rhythm

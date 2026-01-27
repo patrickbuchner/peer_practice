@@ -171,6 +171,12 @@
     font-size: 1.125rem;
 }
 
+.btn--sm {
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+}
+
 /* A specific variant for icon-only buttons for a perfect square shape */
 .btn--icon {
     padding: 0;
@@ -178,4 +184,23 @@
     height: 32px;
     font-size: 1.1rem;
     line-height: 1;
+}
+
+.btn--fab {
+    --accent: var(--mauve, #14b8a6);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+}
+
+.btn-icon {
+    font-size: 22px;
+    line-height: 1;
+    margin-top: -1px;
 }

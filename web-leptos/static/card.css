@@ -61,16 +61,31 @@ body > * {
     align-items: var(--cluster-align);
 }
 
+.cluster--between { --cluster-justify: space-between; }
+.cluster--start { --cluster-justify: flex-start; }
+.cluster--gap-sm { --cluster-gap: 0.5rem; }
+.cluster--gap-md { --cluster-gap: 0.75rem; }
+.cluster--nowrap { flex-wrap: nowrap; }
+.cluster--align-center { align-items: center; }
+
 /* Base: card component aligned with button.css theming */
 .card {
     /* Local variables (mirror button.css naming) */
     --_bg: var(--bg-weak-color);
     --_fg: var(--bg-weak-text);
     --_border: color-mix(in oklab, var(--_fg) 14%, transparent);
+    --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent);
+    --card-bg: var(--_bg);
+    --card-fg: var(--_fg);
+    --card-border-mix: 14%;
+    --surface-bg: var(--card-bg);
+    --surface-fg: var(--card-fg);
+    --surface-border-mix: var(--card-border-mix);
 
     background-color: var(--_bg);
     color: var(--_fg);
     border: 1px solid var(--_border);
+    box-shadow: var(--_shadow);
 
     padding: clamp(1rem, 4vw, 1.6rem);
     border-radius: 12px;
@@ -79,7 +94,11 @@ body > * {
     width: 100%;
     box-sizing: border-box;
     overflow-wrap: anywhere;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card--elevated {
+    --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent);
 }
 
 .chat-row {
@@ -102,13 +121,21 @@ body > * {
     --_bg: var(--bg-weakest-color);
     --_fg: var(--bg-weakest-text);
     --_border: color-mix(in oklab, var(--_fg) 10%, transparent);
+    --card-border-mix: 10%;
 }
+
+/* Shadow variants (override default when needed) */
+.card[data-shadow="none"] { --_shadow: none; }
+.card[data-shadow="weak"] { --_shadow: 0 12px 28px color-mix(in oklab, var(--bg-strongest-color) 22%, transparent); }
+.card[data-shadow="base"] { --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent); }
+.card[data-shadow="strong"] { --_shadow: 0 24px 60px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent); }
 
 .card[data-theme="weak"],
 .card[data-scheme="weak"] {
     --_bg: var(--bg-weak-color);
     --_fg: var(--bg-weak-text);
     --_border: color-mix(in oklab, var(--_fg) 12%, transparent);
+    --card-border-mix: 12%;
 }
 
 .card[data-theme="base"],
@@ -116,6 +143,7 @@ body > * {
     --_bg: var(--bg-base-color);
     --_fg: var(--bg-base-text);
     --_border: color-mix(in oklab, var(--_fg) 14%, transparent);
+    --card-border-mix: 14%;
 }
 
 .card[data-theme="strong"],
@@ -123,6 +151,7 @@ body > * {
     --_bg: var(--bg-strong-color);
     --_fg: var(--bg-strong-text);
     --_border: color-mix(in oklab, var(--_fg) 16%, transparent);
+    --card-border-mix: 16%;
 }
 
 .card[data-theme="strongest"],
@@ -130,15 +159,19 @@ body > * {
     --_bg: var(--bg-strongest-color);
     --_fg: var(--bg-strongest-text);
     --_border: color-mix(in oklab, var(--_fg) 18%, transparent);
+    --card-border-mix: 18%;
 }
 
 /* Accent theme (mirrors button.css accent API) */
 .card[data-theme="accent"] {
     --_accent-color: var(--accent, var(--teal));
     --_accent-mix: 28%;        /* base */
-    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --_bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), transparent);
     --_fg: var(--bg-base-text);
-    --_border: transparent;
+    --_border: color-mix(in oklab, var(--_accent-color) 45%, transparent);
+    --card-border-mix: 0%;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 /* Strength variants for the accent theme */
@@ -167,6 +200,14 @@ body > * {
     color: var(--_fg);
 }
 
+.card .card-title--tight {
+    margin: 0;
+}
+
+.card .card-note {
+    margin-top: 0.35rem;
+}
+
 .card .card-title-input {
     color: var(--_fg);
     border: 1px solid color-mix(in oklab, var(--bg-base-text) 18%, transparent);
@@ -175,18 +216,157 @@ body > * {
     line-height: 1.4;
 }
 
+/* Event card composition helpers */
+.event-card-row {
+    margin-top: 0.75rem;
+}
+
+.event-card-label {
+    min-width: 3rem;
+    text-align: left;
+    opacity: 0.8;
+}
+
+.event-card-badge {
+    display: inline-block;
+    min-width: 12rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.event-card-ideas {
+    flex: 1 1 auto;
+    min-height: 7rem;
+    padding: 0.75rem;
+    border-radius: 0.6rem;
+    overflow: auto;
+}
+
+.event-card-footer {
+    margin-top: 1rem;
+}
+
+.event-card-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    opacity: 0.9;
+}
+
+.event-card-author {
+    opacity: 0.8;
+}
+
+.event-card-header {
+    align-items: center;
+}
+
+.event-card-title-select {
+    flex: 1 1 8rem;
+    min-width: 0;
+}
+
+.event-card-date-select {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 12rem;
+}
+
+.event-card-level-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.event-card-ideas-grid {
+    display: grid;
+    grid-template-columns: var(--ideas-columns, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.event-card-textarea {
+    min-height: 7rem;
+    resize: vertical;
+    padding: 0.75rem;
+    border-radius: 0.6rem;
+}
+
+.event-card-preview {
+    min-height: 7rem;
+    padding: 0.75rem;
+    border-radius: 0.6rem;
+    overflow: auto;
+}
+
+.event-card-actions {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.event-card-actions-end {
+    justify-self: end;
+}
+
 /* Generic accent surfaces (apply to any non-button element via .surface) */
 .surface {
     /* Defaults use weak background/text from theme unless overridden via data-accent */
-    --surface-bg: var(--bg-weak-color);
-    --surface-fg: var(--bg-weak-text);
-    --surface-border-mix: 18%;
+    --surface-bg: var(--card-bg, var(--bg-weak-color));
+    --surface-fg: var(--card-fg, var(--bg-weak-text));
+    --surface-border-mix: var(--card-border-mix, 18%);
 
     background: var(--surface-bg);
     color: var(--surface-fg);
     border: 1px solid color-mix(in oklab, var(--surface-fg) var(--surface-border-mix), transparent);
     border-radius: 0.6rem;
 }
+
+/* Theme variants for surfaces (parallel to card theme tokens) */
+.surface[data-theme="weakest"] {
+    --surface-bg: var(--bg-weakest-color);
+    --surface-fg: var(--bg-weakest-text);
+    --surface-border-mix: 10%;
+}
+
+.surface[data-theme="weak"] {
+    --surface-bg: var(--bg-weak-color);
+    --surface-fg: var(--bg-weak-text);
+    --surface-border-mix: 12%;
+}
+
+.surface[data-theme="base"] {
+    --surface-bg: var(--bg-base-color);
+    --surface-fg: var(--bg-base-text);
+    --surface-border-mix: 14%;
+}
+
+.surface[data-theme="strong"] {
+    --surface-bg: var(--bg-strong-color);
+    --surface-fg: var(--bg-strong-text);
+    --surface-border-mix: 16%;
+}
+
+.surface[data-theme="strongest"] {
+    --surface-bg: var(--bg-strongest-color);
+    --surface-fg: var(--bg-strongest-text);
+    --surface-border-mix: 18%;
+}
+
+.surface[data-theme="accent"] {
+    --_accent-color: var(--accent, var(--teal));
+    --_accent-mix: 28%;
+    --surface-bg: color-mix(in oklab, var(--_accent-color) var(--_accent-mix), var(--bg-base-color));
+    --surface-fg: var(--bg-base-text);
+    --surface-border-mix: 50%;
+}
+
+.surface[data-theme="accent"][data-accent-strength="weakest"]  { --_accent-mix: 10%; }
+.surface[data-theme="accent"][data-accent-strength="weak"]     { --_accent-mix: 18%; }
+.surface[data-theme="accent"][data-accent-strength="base"]     { --_accent-mix: 28%; }
+.surface[data-theme="accent"][data-accent-strength="strong"]   { --_accent-mix: 44%; }
+.surface[data-theme="accent"][data-accent-strength="strongest"]{ --_accent-mix: 62%; }
 
 /* Prevent accidental application to buttons */
 button.surface,

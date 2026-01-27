@@ -1,4 +1,7 @@
 use crate::app_state::AppStateReader;
+use crate::components::card::Card;
+use crate::components::text_box::{SurfaceBox, TextBox};
+use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html};
 use leptos::prelude::*;
 
@@ -8,7 +11,8 @@ pub fn EventCardReadonly(
     #[prop(into)] state: AppStateReader,
     #[prop(optional, into)] accent_color: Option<ReadSignal<String>>,
 ) -> impl IntoView {
-    let ideas_html = markdown_to_safe_html(&props.ideas);
+    let ideas = props.ideas.clone();
+    let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas));
     let accent_color = accent_color.unwrap_or_else(|| {
         let (default_accent, _set_default_accent) =
             signal(String::from("var(--bg-strongest-color)"));
@@ -16,54 +20,39 @@ pub fn EventCardReadonly(
     });
 
     view! {
-        <div
-            class="card"
-            data-accent="base"
-            style=move || { format!("--accent: {};", accent_color.get()) }
+        <Card
+            data_theme=Theme::Strong
+            data_shadow=CardShadow::Strong
+            data_accent=AccentStrength::Strong
+            accent_color=accent_color
         >
-            <div class="cluster" style="--cluster-justify: space-between; --cluster-gap: .5rem;">
+            <div class="cluster cluster--between cluster--gap-sm">
                 <h3 class="card-title">{props.title.clone()}</h3>
-                <span style="opacity: .85;">{props.date.clone()}</span>
+                <span class="text-muted">{props.date.clone()}</span>
             </div>
 
             <div
-                class="cluster"
-                style="--cluster-justify: flex-start; --cluster-gap: .75rem; margin-top: .75rem;"
+                class="cluster cluster--start cluster--gap-md event-card-row"
             >
-                <span style="min-width: 3rem; text-align: left; opacity: .8;">"Level"</span>
-                <div
-                    class="surface"
-                    data-accent="base"
-                    style=move || {
-                        format!(
-                            "--accent: {}; display:inline-block; min-width: 12rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem;",
-                            accent_color.get(),
-                        )
-                    }
-                >
+                <span class="event-card-label">"Level"</span>
+                <SurfaceBox class="event-card-badge".to_string()>
                     {props.level.to_string()}
-                </div>
+                </SurfaceBox>
             </div>
 
             <div
-                class="cluster"
-                style="--cluster-justify: flex-start; --cluster-gap: .75rem; margin-top: .75rem;"
+                class="cluster cluster--start cluster--gap-md event-card-row"
             >
-                <span style="min-width: 3rem; text-align: left; opacity: .8;">"Ideas"</span>
-                <div
-                    class="markdown-body surface"
-                    data-accent="base"
-                    style=move || {
-                        format!(
-                            "--accent: {}; flex: 1 1 auto; min-height: 7rem; padding: .75rem; border-radius: .6rem; overflow:auto;",
-                            accent_color.get(),
-                        )
-                    }
-                    inner_html=ideas_html
+                <span class="event-card-label">"Ideas"</span>
+                <TextBox
+                    class="event-card-ideas".to_string()
+                    data_theme=Theme::Strong
+                    accent_color=accent_color
+                    html=ideas_html
                 />
             </div>
 
             {event_card_footer(props, state)}
-        </div>
+        </Card>
     }
 }

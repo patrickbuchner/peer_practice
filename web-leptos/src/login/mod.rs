@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use crate::components::theme::{CardShadow, Theme};
 use leptos::{IntoView, component};
 
 use crate::app_state::{AppStateReader, AppStateWriter};
@@ -32,14 +33,12 @@ pub fn LoginRoute(
     let on_pin_success = Callback::new(on_pin_success);
 
     view! {
-        <div class="w-full" style="margin-top: 1.25rem;">
-            <div
-                class="w-full"
-                style="min-height: 60vh; display: flex; align-items: center; justify-content: center;"
-            >
+        <div class="page page-pad">
+            <div class="page-center">
                 <div
-                    class="w-full max-w-md rounded-xl shadow-lg p-6"
-                    style="background: var(--bg-weakest-color); color: var(--bg-base-text);"
+                    class="card card--elevated auth-card"
+                    data-theme=Theme::Strong.as_str()
+                    data-shadow=CardShadow::Weak.as_str()
                 >
                     {move || match read_step.get() {
                         LoginStep::Email => {

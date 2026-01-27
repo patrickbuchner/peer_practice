@@ -1,4 +1,6 @@
 use crate::app_state::AppStateReader;
+use crate::components::card::Card;
+use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::{EventCardProps, readonly::EventCardReadonly};
 use leptos::prelude::*;
 use leptos_router::params::Params;
@@ -52,28 +54,28 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
     let has_valid_chat_id = move || chat_id.get().is_some();
 
     view! {
-        <div style="display:flex; flex-direction:column; gap: 1.5rem; padding: 1rem;">
+        <div class="page page-pad page-stack">
             <Show
                 when=has_valid_chat_id
                 fallback=move || view! {
-                    <div class="card" data-theme="weak">
+                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
                         <h3 class="card-title">"Invalid chat id"</h3>
-                        <p style="opacity: 0.8; margin-top: 0.35rem;">
+                        <p class="text-muted text-sm card-note">
                             "The chat id in the URL could not be parsed."
                         </p>
-                    </div>
+                    </Card>
                 }
             >
                 <div class="chat-row">
                     <Show
                         when=move || associated_post().is_some()
                         fallback=move || view! {
-                            <div class="card" data-theme="weak">
+                            <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
                                 <h3 class="card-title">"Associated post unavailable"</h3>
-                                <p style="opacity: 0.8; margin-top: 0.35rem;">
+                                <p class="text-muted text-sm card-note">
                                     "We could not find a post linked to this chat yet."
                                 </p>
-                            </div>
+                            </Card>
                         }
                     >
                         {move || {
@@ -84,31 +86,20 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                 </div>
 
                 <div class="chat-row">
-                    <div class="card" data-theme="weak">
+                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
                     <div
-                        class="cluster"
-                        style="--cluster-justify: space-between; --cluster-gap: .5rem; align-items:center;"
+                        class="cluster cluster--between cluster--gap-sm cluster--align-center"
                     >
                         <h3 class="card-title">"Chat"</h3>
-                        <span style="opacity: .7;">
+                        <span class="text-dim text-sm">
                             {move || messages().map(|m| m.len()).unwrap_or(0)} " messages"
                         </span>
                     </div>
 
-                    <div
-                        style="
-                            display:flex;
-                            flex-direction:column;
-                            gap: .75rem;
-                            margin-top: 1rem;
-                            max-height: 60vh;
-                            overflow:auto;
-                            padding-right: .35rem;
-                        "
-                    >
+                    <div class="chat-messages">
                         <Show
                             when=move || messages().is_some()
-                            fallback=move || view! { <p style="opacity:.75;">"Loading messages..."</p> }
+                            fallback=move || view! { <p class="text-dim">"Loading messages..."</p> }
                         >
                             {move || {
                                 messages()
@@ -122,27 +113,22 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                                             convert_utc_to_local(message.timestamp).format("%H:%M");
                                         view! {
                                             <div
-                                                style=move || {
-                                                    format!(
-                                                        "display:flex; flex-direction:column; align-items:{};",
-                                                        if is_me { "flex-end" } else { "flex-start" }
-                                                    )
+                                                class=if is_me {
+                                                    "chat-message chat-message--mine"
+                                                } else {
+                                                    "chat-message"
                                                 }
                                             >
-                                                <div
-                                                    style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 0.15rem;"
-                                                >
+                                                <div class="chat-meta">
                                                     <span>{sender}</span>
-                                                    <span style="margin-left: 0.5rem;">{timestamp.to_string()}</span>
+                                                    <span>{timestamp.to_string()}</span>
                                                 </div>
                                                 <div
-                                                    class="surface"
-                                                    data-accent=if is_me { "base" } else { "weakest" }
-                                                    style=move || {
-                                                        let align = if is_me { "flex-end" } else { "flex-start" };
-                                                        format!(
-                                                            "max-width: 70%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; align-self: {align};"
-                                                        )
+                                                    class="surface chat-bubble"
+                                                    data-accent=if is_me {
+                                                        AccentStrength::Base.as_str()
+                                                    } else {
+                                                        AccentStrength::Weak.as_str()
                                                     }
                                                 >
                                                     {message.message}
@@ -154,7 +140,7 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                             }}
                         </Show>
                     </div>
-                    </div>
+                    </Card>
                 </div>
             </Show>
         </div>

@@ -5,12 +5,17 @@ use std::sync::Arc;
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ConfirmDeleteButton;
 use crate::components::buttons::ServerButton;
+use crate::components::card::CardForm;
+use crate::components::select_input::SelectInput;
+use crate::components::text_box::TextBox;
+use crate::components::text_input::TextAreaInput;
+use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::editable::draft::{Draft, clear_draft, save_draft};
 use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::PostAction;
-use peer_practice_shared::post::Topics;
+use peer_practice_shared::post::{PostId, Topics};
 use peer_practice_shared::{convert_to_utc, convert_utc_to_local_date, ymd};
 
 mod draft;
@@ -34,6 +39,15 @@ pub fn EventCardEditable(
     });
 
     let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas.get()));
+
+    let is_new_post = props.id == PostId::NULL;
+    let card_theme = if is_new_post { Theme::Accent } else { Theme::Strong };
+    let input_theme = card_theme;
+    let accent_strength = if is_new_post {
+        AccentStrength::Strong
+    } else {
+        AccentStrength::Base
+    };
 
     let date_options = ymd::create_date_options();
     let initial_date = {
@@ -94,70 +108,65 @@ pub fn EventCardEditable(
         }
     });
 
-    view! {
-        <form
-            class="card"
-            data-accent="base"
-            data-scheme="base"
-            style=move || { format!("--accent: {};", accent_color.get()) }
-            on:submit=move |ev| {
-                ev.prevent_default();
-                let Ok(date) = NaiveDate::parse_from_str(&date_selected.get(), "%Y-%m-%d") else {
-                    return;
-                };
-                if let Some(existing) = state.posts.get().get(&post_id) {
-                    let updated = peer_practice_shared::post::Post {
-                        title: topics.get(),
-                        content: ideas.get(),
-                        level: level.get(),
-                        owner: existing.owner,
-                        date: convert_to_utc(date),
-                        partaking_users: existing.partaking_users.clone(),
-                    };
-                    state.send(ClientToServer::Post(PostAction::UpdatePost(post_id, updated)));
-                    clear_draft(post_id);
-                    set_has_draft.set(false);
-                } else {
-                    let Some(owner) = state.user_id.get() else {
-                        return;
-                    };
-                    let new_post = peer_practice_shared::post::Post {
-                        title: topics.get(),
-                        content: ideas.get(),
-                        level: level.get(),
-                        owner,
-                        date: convert_to_utc(date),
-                        partaking_users: Default::default(),
-                    };
-                    state.send(ClientToServer::Post(PostAction::NewPost(new_post)));
-                    clear_draft(post_id);
-                    set_has_draft.set(false);
-                    if let Some(cb) = on_submitted {
-                        cb.run(());
-                    }
-                }
+    let on_submit = Callback::new(move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        let Ok(date) = NaiveDate::parse_from_str(&date_selected.get(), "%Y-%m-%d") else {
+            return;
+        };
+        if let Some(existing) = state.posts.get().get(&post_id) {
+            let updated = peer_practice_shared::post::Post {
+                title: topics.get(),
+                content: ideas.get(),
+                level: level.get(),
+                owner: existing.owner,
+                date: convert_to_utc(date),
+                partaking_users: existing.partaking_users.clone(),
+            };
+            state.send(ClientToServer::Post(PostAction::UpdatePost(post_id, updated)));
+            clear_draft(post_id);
+            set_has_draft.set(false);
+        } else {
+            let Some(owner) = state.user_id.get() else {
+                return;
+            };
+            let new_post = peer_practice_shared::post::Post {
+                title: topics.get(),
+                content: ideas.get(),
+                level: level.get(),
+                owner,
+                date: convert_to_utc(date),
+                partaking_users: Default::default(),
+            };
+            state.send(ClientToServer::Post(PostAction::NewPost(new_post)));
+            clear_draft(post_id);
+            set_has_draft.set(false);
+            if let Some(cb) = on_submitted.as_ref() {
+                cb.run(());
             }
+        }
+    });
+
+    view! {
+        <CardForm
+            data_theme=card_theme
+            data_shadow=CardShadow::Weak
+            data_accent=AccentStrength::Strong
+            data_accent_strength=accent_strength
+            accent_color=accent_color
+            on_submit=on_submit
         >
-            <div
-                class="cluster"
-                style="\
-                --cluster-justify: space-between; --cluster-gap: .5rem; \
-                flex-wrap: nowrap; align-items: center; \
-                "
-            >
-                <select
-                    class="combo card-title-input border-round"
-                    data-theme="accent"
-                    data-accent-strength="base"
-                    style=move || {
-                        format!("flex: 1 1 8rem; min-width: 0; --accent: {};", accent_color.get())
-                    }
-                    prop:value=move || topics.get().to_string()
-                    on:change=move |ev| {
+            <div class="cluster cluster--between cluster--gap-sm cluster--nowrap event-card-header">
+                <SelectInput
+                    class="card-title-input event-card-title-select".to_string()
+                    data_theme=input_theme
+                    data_accent_strength=accent_strength
+                    accent_color=accent_color
+                    value=Signal::derive(move || topics.get().to_string())
+                    on_change=Callback::new(move |ev| {
                         let v = event_target_value(&ev);
                         set_topics.set(v.as_str().into());
                         set_title.set(v);
-                    }
+                    })
                 >
                     {Topics::ALL
                         .iter()
@@ -167,20 +176,15 @@ pub fn EventCardEditable(
                             view! { <option value=v.clone()>{label}</option> }
                         })
                         .collect_view()}
-                </select>
+                </SelectInput>
 
-                <select
-                    class="combo"
-                    data-theme="accent"
-                    data-accent-strength="base"
-                    style=move || {
-                        format!(
-                            "flex: 0 0 auto; width: auto; max-width: 12rem; --accent: {};",
-                            accent_color.get(),
-                        )
-                    }
-                    prop:value=move || date_selected.get()
-                    on:change=move |ev| set_date_selected.set(event_target_value(&ev))
+                <SelectInput
+                    class="event-card-date-select".to_string()
+                    data_theme=input_theme
+                    data_accent_strength=accent_strength
+                    accent_color=accent_color
+                    value=Signal::derive(move || date_selected.get())
+                    on_change=Callback::new(move |ev| set_date_selected.set(event_target_value(&ev)))
                 >
                     {date_options
                         .iter()
@@ -190,35 +194,24 @@ pub fn EventCardEditable(
                             view! { <option value=d_clone>{d}</option> }
                         })
                         .collect_view()}
-                </select>
+                </SelectInput>
             </div>
 
-            <div
-                class="cluster"
-                style="\
-                --cluster-justify: flex-start; --cluster-gap: .75rem; margin-top: .75rem; \
-                flex-wrap: nowrap; \
-                "
-            >
-                <span style="flex: 0 0 auto; min-width: 3rem; text-align: left; opacity: .8;">
+            <div class="cluster cluster--start cluster--gap-md cluster--nowrap event-card-row">
+                <span class="event-card-label">
                     "Level"
                 </span>
 
-                <select
-                    class="combo"
-                    data-theme="accent"
-                    data-accent-strength="base"
-                    style=move || {
-                        format!(
-                            "flex: 1 1 auto; min-width: 0; max-width: 100%; --accent: {};",
-                            accent_color.get(),
-                        )
-                    }
-                    prop:value=move || level.get().as_str().to_string()
-                    on:change=move |ev| {
+                <SelectInput
+                    class="event-card-level-select".to_string()
+                    data_theme=input_theme
+                    data_accent_strength=accent_strength
+                    accent_color=accent_color
+                    value=Signal::derive(move || level.get().as_str().to_string())
+                    on_change=Callback::new(move |ev| {
                         let v = event_target_value(&ev);
                         set_level.set(Level::from(v.as_str()));
-                    }
+                    })
                 >
                     {Level::all()
                         .iter()
@@ -228,14 +221,11 @@ pub fn EventCardEditable(
                             view! { <option value=v.clone()>{label}</option> }
                         })
                         .collect_view()}
-                </select>
+                </SelectInput>
             </div>
 
-            <div
-                class="cluster"
-                style="--cluster-justify: flex-start; --cluster-gap: .75rem; margin-top: .75rem;"
-            >
-                <span style="min-width: 3rem; text-align: left; opacity: .8;">"Ideas"</span>
+            <div class="cluster cluster--start cluster--gap-md event-card-row">
+                <span class="event-card-label">"Ideas"</span>
                 // <button
                 // class="btn btn--icon"
                 // data-theme="ghost"
@@ -266,38 +256,32 @@ pub fn EventCardEditable(
                 // </Show>
                 // </svg>
                 // </button>
-                <div style=move || {
-                    let cols = if show_preview.get() { "1fr 1fr" } else { "1fr" };
-                    format!(
-                        "display: grid; grid-template-columns: {}; gap: .75rem; width: 100%;",
-                        cols,
-                    )
-                }>
-                    <textarea
-                        class="surface"
-                        data-accent="base"
-                        style=move || {
-                            format!(
-                                "--accent: {}; min-height: 7rem; resize: vertical; padding: .75rem; border-radius: .6rem;",
-                                accent_color.get(),
-                            )
-                        }
-                        prop:value=move || ideas.get()
-                        on:input=move |ev| set_ideas.set(event_target_value(&ev))
+                <div
+                    class="event-card-ideas-grid"
+                    style=move || {
+                        let cols = if show_preview.get() { "1fr 1fr" } else { "1fr" };
+                        format!("--ideas-columns: {};", cols)
+                    }
+                >
+                    <TextAreaInput
+                        class="event-card-textarea".to_string()
+                        data_theme=input_theme
+                        data_accent_strength=accent_strength
+                        accent_color=accent_color
+                        value=Signal::derive(move || ideas.get())
+                        on_input=Callback::new(move |ev| {
+                            set_ideas.set(event_target_value(&ev));
+                        })
                     />
                     <Show when=move || show_preview.get()>
-                        <div
-                            class="markdown-body"
-                            data-theme="accent"
-                            role="region"
-                            aria-label="Live preview"
-                            style=move || {
-                                format!(
-                                    "--accent: {}; min-height: 7rem; padding: .75rem; border-radius: .6rem; overflow: auto;",
-                                    accent_color.get(),
-                                )
-                            }
-                            inner_html=ideas_html
+                        <TextBox
+                            class="event-card-preview".to_string()
+                            role="region".to_string()
+                            aria_label="Live preview".to_string()
+                            data_theme=input_theme
+                            data_accent_strength=accent_strength
+                            accent_color=accent_color
+                            html=ideas_html
                         />
                     </Show>
                 </div>
@@ -305,30 +289,25 @@ pub fn EventCardEditable(
 
             {event_card_footer(props, state)}
 
-            <div
-                class="cluster"
-                style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: .75rem;"
-            >
+            <div class="event-card-actions">
                 <div></div>
 
                 <ServerButton
-                    class=Signal::derive(|| "btn".to_string())
-                    data_theme=Arc::new(|| "secondary")
-                    style="font-size: .9rem; padding: .35rem .6rem;".to_string()
+                    class=Signal::derive(|| "btn btn--sm".to_string())
+                    data_theme=Arc::new(|| Theme::Secondary)
                     r#type="submit".to_string()
                 >
                     "Submit"
                 </ServerButton>
 
-                <div style="justify-self: end;">
-                    <div class="cluster" style="--cluster-gap: .5rem; align-items: center;">
+                <div class="event-card-actions-end">
+                    <div class="cluster cluster--gap-sm cluster--align-center">
                         <Show when=move || {
                             has_draft.get() && state.posts.get().contains_key(&post_id)
                         }>
                             <button
-                                class="btn"
-                                data-theme="secondary"
-                                style="font-size: .9rem; padding: .35rem .6rem;"
+                                class="btn btn--sm"
+                                data-theme=Theme::Secondary.as_str()
                                 type="button"
                                 title="Reset to server version (discard local draft)"
                                 on:click=move |_| {
@@ -365,6 +344,6 @@ pub fn EventCardEditable(
                     </div>
                 </div>
             </div>
-        </form>
+        </CardForm>
     }
 }

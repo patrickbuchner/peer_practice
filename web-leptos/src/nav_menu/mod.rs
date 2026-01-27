@@ -1,5 +1,6 @@
 use crate::components::modal::CenterModal;
 use leptos::prelude::*;
+use crate::components::theme::{AccentStrength, Theme};
 use leptos::{IntoView, component};
 use leptos_router::hooks::use_location;
 
@@ -10,10 +11,6 @@ pub fn NavMenu() -> impl IntoView {
     let location = use_location();
     let current_path = move || location.pathname.get();
 
-    fn nav_link_common_box_style() -> &'static str {
-        "display:flex; align-items:center; justify-content:center; width:100%; text-align:center;"
-    }
-
     fn nav_link_accent_vars(active: bool, accent: &str) -> String {
         if active {
             format!("--accent: var(--{0}); --accent-light: var(--{0});", accent)
@@ -23,14 +20,6 @@ pub fn NavMenu() -> impl IntoView {
                 accent
             )
         }
-    }
-
-    fn nav_link_style(active: bool, accent: &str) -> String {
-        format!(
-            "{} {}",
-            nav_link_common_box_style(),
-            nav_link_accent_vars(active, accent)
-        )
     }
 
     let current_page_label = move || match current_path().as_str() {
@@ -57,57 +46,44 @@ pub fn NavMenu() -> impl IntoView {
                 aria-label="Open navigation menu"
                 title="Menu"
                 on:click=move |_| set_menu_open.set(true)
-                class="btn"
-                data-theme="accent"
-                data-accent-strength="strong"
-                style="
-                --accent: var(--rosewater);
-                --accent-light: var(--rosewater-light);
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                height: calc(var(--navbar-height, 48px) * 0.8);
-                box-sizing: border-box;
-                padding: 0.5rem;
-                "
+                class="btn nav-menu-button"
+                data-theme=Theme::Accent.as_str()
+                data-accent-strength=AccentStrength::Strong.as_str()
             >
-                <span
-                    aria-hidden="true"
-                    style="display:inline-flex; flex-direction:column; gap:3px;"
-                >
-                    <span style="width:18px; height:2px; background: currentColor; border-radius:2px;"></span>
-                    <span style="width:18px; height:2px; background: currentColor; border-radius:2px;"></span>
-                    <span style="width:18px; height:2px; background: currentColor; border-radius:2px;"></span>
+                <span aria-hidden="true" class="nav-menu-icon">
+                    <span class="nav-menu-icon-bar"></span>
+                    <span class="nav-menu-icon-bar"></span>
+                    <span class="nav-menu-icon-bar"></span>
                 </span>
-                <span style="font-weight: 600;">{current_page_label}</span>
+                <span class="nav-menu-label">{current_page_label}</span>
             </button>
 
             <Show when=move || menu_open.get()>
                 <CenterModal show=menu_open on_cancel=move || set_menu_open.set(false)>
                     {move || {
                         view! {
-                            <div style="display:flex; flex-direction:column; align-items:center; padding: 0.5rem 0; width: 100%;">
+                            <div class="nav-menu-panel">
                                 <h1>Navigation</h1>
                                 <a
                                     href="/"
-                                    class="btn"
-                                    data-theme="accent"
-                                    data-accent="base"
+                                    class="btn nav-menu-link"
+                                    data-theme=Theme::Accent.as_str()
+                                    data-accent=AccentStrength::Base.as_str()
                                     style=move || {
                                         let active = current_path() == "/";
-                                        nav_link_style(active, &accent_name.get())
+                                        nav_link_accent_vars(active, &accent_name.get())
                                     }
                                 >
                                     "Home"
                                 </a>
                                 <a
                                     href="/settings"
-                                    class="btn"
-                                    data-theme="accent"
-                                    data-accent="base"
+                                    class="btn nav-menu-link"
+                                    data-theme=Theme::Accent.as_str()
+                                    data-accent=AccentStrength::Base.as_str()
                                     style=move || {
                                         let active = current_path() == "/settings";
-                                        nav_link_style(active, &accent_name.get())
+                                        nav_link_accent_vars(active, &accent_name.get())
                                     }
                                 >
                                     "Settings"
