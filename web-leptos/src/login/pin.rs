@@ -1,5 +1,6 @@
 use leptos::logging::log;
 use leptos::prelude::*;
+use crate::components::styles::{ButtonClass, FormClass, LayoutClass, TextClass, ToastClass, pin_theme};
 use crate::components::text_input::TextInput;
 use crate::components::theme::Theme;
 
@@ -66,13 +67,13 @@ pub fn LoginPinStep(
     };
 
     view! {
-        <div class="stack stack-sm">
-            <h2 class="text-lg">"Enter the 6-digit code"</h2>
-            <p class="text-sm text-muted">"We sent a code to:"</p>
-            <p class="text-sm text-mono text-muted">{email.clone()}</p>
+        <div class=LayoutClass::StackSm.as_str()>
+            <h2 class=TextClass::Lg.as_str()>"Enter the 6-digit code"</h2>
+            <p class=TextClass::SmMuted.as_str()>"We sent a code to:"</p>
+            <p class=TextClass::SmMutedMono.as_str()>{email.clone()}</p>
 
             <form
-                class="stack stack-sm"
+                class=LayoutClass::StackSm.as_str()
                 on:submit=move |ev: leptos::ev::SubmitEvent| {
                     ev.prevent_default();
                     submit_or_toast();
@@ -83,7 +84,7 @@ pub fn LoginPinStep(
                     inputmode="numeric".to_string()
                     pattern="[0-9]*".to_string()
                     maxlength="6".to_string()
-                    class="input--center".to_string()
+                    class=FormClass::InputCenter.as_str().to_string()
                     placeholder="6-digit code".to_string()
                     value=Signal::derive({ move || read_pin.get() })
                     autofocus=true
@@ -100,10 +101,10 @@ pub fn LoginPinStep(
                     })
                 />
 
-                <div class="row row-between">
+                <div class=LayoutClass::RowBetween.as_str()>
                     <button
                         type="button"
-                        class="btn"
+                        class=ButtonClass::Base.as_str()
                         data-theme=Theme::Secondary.as_str()
                         on:click=move |_| {
                             write_pin.set(String::new());
@@ -115,8 +116,8 @@ pub fn LoginPinStep(
                     </button>
                     <button
                         type="submit"
-                        class=Signal::derive(|| "btn".to_string())
-                        data-theme=Signal::derive(move || if pin_complete.get() { "primary" } else { "secondary" })
+                        class=Signal::derive(|| ButtonClass::Base.as_str().to_string())
+                        data-theme=Signal::derive(move || pin_theme(pin_complete.get()))
                         aria-disabled=Signal::derive(move || {
                             if pin_complete.get() { "false" } else { "true" }
                         })
@@ -129,7 +130,7 @@ pub fn LoginPinStep(
             {move || {
                 if show_toast_read.get() {
                     view! {
-                        <div class="toast" role="alert">
+                        <div class=ToastClass::Base.as_str() role="alert">
                             "Please enter the full 6-digit code"
                         </div>
                     }

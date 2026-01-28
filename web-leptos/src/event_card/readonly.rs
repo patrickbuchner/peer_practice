@@ -1,8 +1,9 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
+use crate::components::styles::{ClusterClass, CssVar, EventCardClass, TextClass};
 use crate::components::text_box::{SurfaceBox, TextBox};
-use crate::components::theme::{AccentStrength, CardShadow, Theme};
-use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html};
+use crate::components::theme::{CardShadow, Theme};
+use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date};
 use leptos::prelude::*;
 
 #[component]
@@ -15,38 +16,40 @@ pub fn EventCardReadonly(
     let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas));
     let accent_color = accent_color.unwrap_or_else(|| {
         let (default_accent, _set_default_accent) =
-            signal(String::from("var(--bg-strongest-color)"));
+            signal(CssVar::BgStrongest.as_str().to_string());
         default_accent
     });
+    let shadow_color = {
+        let (read, _set) = signal(shadow_color_for_date(&props.date));
+        read
+    };
+
+    let theme = Theme::Strong;
 
     view! {
         <Card
-            data_theme=Theme::Strong
-            data_shadow=CardShadow::Strong
-            data_accent=AccentStrength::Strong
+            data_theme=theme
+            data_shadow=CardShadow::Weakest
+            shadow_color=shadow_color
             accent_color=accent_color
         >
-            <div class="cluster cluster--between cluster--gap-sm">
-                <h3 class="card-title">{props.title.clone()}</h3>
-                <span class="text-muted">{props.date.clone()}</span>
+            <div class=ClusterClass::BetweenGapSm.as_str()>
+                <h3 class=TextClass::CardTitle.as_str()>{props.title.clone()}</h3>
+                <span class=TextClass::Muted.as_str()>{props.date.clone()}</span>
             </div>
 
-            <div
-                class="cluster cluster--start cluster--gap-md event-card-row"
-            >
-                <span class="event-card-label">"Level"</span>
-                <SurfaceBox class="event-card-badge".to_string()>
+            <div class=EventCardClass::Row.as_str()>
+                <span class=EventCardClass::Label.as_str()>"Level"</span>
+                <SurfaceBox class=EventCardClass::Badge.as_str().to_string()>
                     {props.level.to_string()}
                 </SurfaceBox>
             </div>
 
-            <div
-                class="cluster cluster--start cluster--gap-md event-card-row"
-            >
-                <span class="event-card-label">"Ideas"</span>
+            <div class=EventCardClass::Row.as_str()>
+                <span class=EventCardClass::Label.as_str()>"Ideas"</span>
                 <TextBox
-                    class="event-card-ideas".to_string()
-                    data_theme=Theme::Strong
+                    class=EventCardClass::Ideas.as_str().to_string()
+                    data_theme=theme
                     accent_color=accent_color
                     html=ideas_html
                 />

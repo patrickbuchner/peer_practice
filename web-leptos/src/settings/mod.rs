@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use crate::components::styles::{ButtonClass, CardClass, ClusterClass, FormClass, LayoutClass, PaletteStyle, TextClass};
 use crate::components::text_input::TextInput;
 use std::sync::Arc;
 
@@ -54,52 +55,31 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
     };
 
     view! {
-        <section class="container container-narrow pad-sm">
+        <section class=LayoutClass::ContainerNarrowPadSm.as_str()>
             <div
-                class="card"
+                class=CardClass::Base.as_str()
                 data-theme=Theme::Strong.as_str()
-                data-shadow=CardShadow::Weak.as_str()
+                data-shadow=CardShadow::Weakest.as_str()
             >
-                <h2 class="card-title">"Settings"</h2>
-                <form class="form" on:submit=on_submit>
-                    <div class="form-grid">
-                        <label for="display_name" class="label label--end">
+                <h2 class=TextClass::CardTitle.as_str()>"Settings"</h2>
+                <form class=FormClass::Form.as_str() on:submit=on_submit>
+                    <div class=FormClass::Grid.as_str()>
+                        <label for="display_name" class=FormClass::LabelEnd.as_str()>
                             "Display name"
                         </label>
                         <TextInput
                             id="display_name".to_string()
                             name="display_name".to_string()
                             r#type="text".to_string()
-                            class="input--wide".to_string()
+                            class=FormClass::InputWide.as_str().to_string()
                             data_theme=Theme::Strong
                             value=Signal::derive(move || name.get())
                             on_input=Callback::new(move |ev| set_name.set(event_target_value(&ev)))
                             placeholder="Your name as shown to others".to_string()
                         />
-                        //
-                        // <label class="label" style="justify-self: end;">
-                        //     "Accent color"
-                        // </label>
-                        // <div class="cluster" style="--cluster-justify: flex-start;">
-                        //     <button
-                        //         class="btn"
-                        //         data-theme="accent"
-                        //         style=move || {
-                        //             format!("--accent: {}; min-width: 9rem;", accent_css.get())
-                        //         }
-                        //         on:click=move |ev| {
-                        //             ev.prevent_default();
-                        //             set_show_palette.set(true);
-                        //         }
-                        //         title=Signal::derive(move || format!("{}", accent_color.get()))
-                        //     >
-                        //         {move || format!("Choose color ({})", accent_color.get())}
-                        //     </button>
-                        // </div>
-
-                        <div class="form-actions form-actions--full">
+                        <div class=FormClass::ActionsFull.as_str()>
                             <ServerButton
-                                class=Signal::derive(|| "btn".to_string())
+                                class=Signal::derive(|| ButtonClass::Base.as_str().to_string())
                                 data_theme=Arc::new(|| Theme::Secondary)
                                 r#type="submit".to_string()
                             >
@@ -118,15 +98,15 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
         >
             {move || {
                 view! {
-                    <div class="cluster cluster--between">
-                        <h3 class="card-title card-title--tight">
+                    <div class=ClusterClass::Between.as_str()>
+                        <h3 class=TextClass::CardTitleTight.as_str()>
                             "Pick an accent"
                         </h3>
                     </div>
-                    <h4 class="label label--spaced">
+                    <h4 class=FormClass::LabelSpaced.as_str()>
                         "Solid"
                     </h4>
-                    <div class="palette-grid">
+                    <div class=FormClass::PaletteGrid.as_str()>
                         {AccentColor::base()
                             .iter()
                             .map(|c| {
@@ -135,9 +115,9 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                                 let var = color.css_var().to_string();
                                 view! {
                                     <button
-                                        class="btn"
+                                        class=ButtonClass::Base.as_str()
                                         data-theme=Theme::Accent.as_str()
-                                        style=format!("--accent: {}; width: 100%;", var)
+                                        style=PaletteStyle::AccentSwatch.with_accent(&var)
                                         title=name.clone()
                                         on:click=move |_| {
                                             set_accent_color.set(color);
@@ -151,12 +131,12 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                             .collect_view()}
                     </div>
 
-                    <div class="section-divider"></div>
+                    <div class=FormClass::SectionDivider.as_str()></div>
 
-                    <h4 class="label label--spaced">
+                    <h4 class=FormClass::LabelSpaced.as_str()>
                         "Light"
                     </h4>
-                    <div class="palette-grid">
+                    <div class=FormClass::PaletteGrid.as_str()>
                         {AccentColor::light()
                             .iter()
                             .map(|c| {
@@ -165,9 +145,9 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
                                 let var = color.css_var().to_string();
                                 view! {
                                     <button
-                                        class="btn"
+                                        class=ButtonClass::Base.as_str()
                                         data-theme=Theme::Accent.as_str()
-                                        style=format!("--accent: {}; width: 100%;", var)
+                                        style=PaletteStyle::AccentSwatch.with_accent(&var)
                                         title=name.clone()
                                         on:click=move |_| {
                                             set_accent_color.set(color);

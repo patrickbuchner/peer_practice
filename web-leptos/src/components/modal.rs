@@ -1,5 +1,5 @@
 use crate::components::buttons::ServerButton;
-use crate::components::theme::{AccentStrength, CardShadow, Theme};
+use crate::components::theme::{CardShadow, Theme};
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
@@ -30,10 +30,9 @@ pub fn ConfirmDangerousModal(
                     aria-labelledby="confirm-title"
                     aria-describedby="confirm-desc"
                     class="card dialog dialog-sheet surface"
-                    data-accent=AccentStrength::Strong.as_str()
                     style="--accent: var(--maroon, #be123c); max-height: 90dvh; overflow: auto;"
                     data-theme=Theme::Strong.as_str()
-                    data-shadow=CardShadow::Weak.as_str()
+                    data-shadow=CardShadow::Weakest.as_str()
                     on:click=|ev| ev.stop_propagation()
                 >
                     <h1 id="confirm-title" class="dialog-title">
@@ -89,7 +88,6 @@ pub fn CenterModal(
                     role="dialog"
                     aria-modal="true"
                     class="card dialog dialog-sheet surface"
-                    data-accent=AccentStrength::Strong.as_str()
                     style=move || {
                         format!(
                             "--accent: {}; max-height: 90dvh; overflow: auto;",
@@ -97,7 +95,7 @@ pub fn CenterModal(
                         )
                     }
                     data-theme=Theme::Strong.as_str()
-                    data-shadow=CardShadow::Weak.as_str()
+                    data-shadow=CardShadow::Weakest.as_str()
                 >
                     {children()}
                 </div>

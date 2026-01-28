@@ -1,5 +1,6 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
+use crate::components::styles::{ChatClass, ClusterClass, LayoutClass, TextClass};
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::{EventCardProps, readonly::EventCardReadonly};
 use leptos::prelude::*;
@@ -54,25 +55,25 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
     let has_valid_chat_id = move || chat_id.get().is_some();
 
     view! {
-        <div class="page page-pad page-stack">
+        <div class=LayoutClass::PagePadStack.as_str()>
             <Show
                 when=has_valid_chat_id
                 fallback=move || view! {
-                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
-                        <h3 class="card-title">"Invalid chat id"</h3>
-                        <p class="text-muted text-sm card-note">
+                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weakest>
+                        <h3 class=TextClass::CardTitle.as_str()>"Invalid chat id"</h3>
+                        <p class=TextClass::CardNoteMutedSm.as_str()>
                             "The chat id in the URL could not be parsed."
                         </p>
                     </Card>
                 }
             >
-                <div class="chat-row">
+                <div>
                     <Show
                         when=move || associated_post().is_some()
                         fallback=move || view! {
-                            <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
-                                <h3 class="card-title">"Associated post unavailable"</h3>
-                                <p class="text-muted text-sm card-note">
+                            <Card data_theme=Theme::Strong data_shadow=CardShadow::Weakest>
+                                <h3 class=TextClass::CardTitle.as_str()>"Associated post unavailable"</h3>
+                                <p class=TextClass::CardNoteMutedSm.as_str()>
                                     "We could not find a post linked to this chat yet."
                                 </p>
                             </Card>
@@ -85,21 +86,21 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                     </Show>
                 </div>
 
-                <div class="chat-row">
-                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weak>
+                <div>
+                    <Card data_theme=Theme::Strong data_shadow=CardShadow::Weakest>
                     <div
-                        class="cluster cluster--between cluster--gap-sm cluster--align-center"
+                        class=ClusterClass::BetweenGapSmAlignCenter.as_str()
                     >
-                        <h3 class="card-title">"Chat"</h3>
-                        <span class="text-dim text-sm">
+                        <h3 class=TextClass::CardTitle.as_str()>"Chat"</h3>
+                        <span class=TextClass::DimSm.as_str()>
                             {move || messages().map(|m| m.len()).unwrap_or(0)} " messages"
                         </span>
                     </div>
 
-                    <div class="chat-messages">
+                    <div class=ChatClass::Messages.as_str()>
                         <Show
                             when=move || messages().is_some()
-                            fallback=move || view! { <p class="text-dim">"Loading messages..."</p> }
+                            fallback=move || view! { <p class=TextClass::Dim.as_str()>"Loading messages..."</p> }
                         >
                             {move || {
                                 messages()
@@ -114,17 +115,17 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                                         view! {
                                             <div
                                                 class=if is_me {
-                                                    "chat-message chat-message--mine"
+                                                    ChatClass::MessageMine.as_str()
                                                 } else {
-                                                    "chat-message"
+                                                    ChatClass::Message.as_str()
                                                 }
                                             >
-                                                <div class="chat-meta">
+                                                <div class=ChatClass::Meta.as_str()>
                                                     <span>{sender}</span>
                                                     <span>{timestamp.to_string()}</span>
                                                 </div>
                                                 <div
-                                                    class="surface chat-bubble"
+                                                    class=ChatClass::BubbleSurface.as_str()
                                                     data-accent=if is_me {
                                                         AccentStrength::Base.as_str()
                                                     } else {

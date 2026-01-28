@@ -7,11 +7,12 @@ use crate::components::buttons::ConfirmDeleteButton;
 use crate::components::buttons::ServerButton;
 use crate::components::card::CardForm;
 use crate::components::select_input::SelectInput;
+use crate::components::styles::{ButtonClass, ClusterClass, CssVar, EventCardClass, IdeasColumns};
 use crate::components::text_box::TextBox;
 use crate::components::text_input::TextAreaInput;
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::editable::draft::{Draft, clear_draft, save_draft};
-use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html};
+use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::PostAction;
@@ -32,22 +33,24 @@ pub fn EventCardEditable(
     let (show_preview, _set_show_preview) = signal(false);
     let (topics, set_topics) = signal::<Topics>(props.title.as_str().into());
 
-    let accent_color = accent_color.unwrap_or_else(|| {
-        let (default_accent, _set_default_accent) =
-            signal(String::from("var(--bg-strongest-color)"));
-        default_accent
-    });
-
-    let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas.get()));
-
     let is_new_post = props.id == PostId::NULL;
-    let card_theme = if is_new_post { Theme::Accent } else { Theme::Strong };
-    let input_theme = card_theme;
+    let theme = if is_new_post { Theme::Accent } else { Theme::Strong };
     let accent_strength = if is_new_post {
         AccentStrength::Strong
     } else {
         AccentStrength::Base
     };
+    let accent_color = accent_color.unwrap_or_else(|| {
+        let default = if is_new_post {
+            CssVar::Teal.as_str()
+        } else {
+            CssVar::BgStrongest.as_str()
+        };
+        let (default_accent, _set_default_accent) = signal(default.to_string());
+        default_accent
+    });
+
+    let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas.get()));
 
     let date_options = ymd::create_date_options();
     let initial_date = {
@@ -60,6 +63,19 @@ pub fn EventCardEditable(
     };
     let (date_selected, set_date_selected) = signal(initial_date);
     let post_id = props.id;
+    let (shadow_color, set_shadow_color) = signal(if is_new_post {
+        crate::components::styles::ShadowColor::Teal
+    } else {
+        shadow_color_for_date(&date_selected.get_untracked())
+    });
+    Effect::new(move |_| {
+        let next = if is_new_post {
+            crate::components::styles::ShadowColor::Teal
+        } else {
+            shadow_color_for_date(&date_selected.get())
+        };
+        set_shadow_color.set(next);
+    });
 
     let initial_draft = draft::load_draft(post_id);
     if let Some(d) = initial_draft.clone() {
@@ -148,17 +164,17 @@ pub fn EventCardEditable(
 
     view! {
         <CardForm
-            data_theme=card_theme
-            data_shadow=CardShadow::Weak
-            data_accent=AccentStrength::Strong
+            data_theme=theme
+            data_shadow=CardShadow::Weakest
+            shadow_color=shadow_color
             data_accent_strength=accent_strength
             accent_color=accent_color
             on_submit=on_submit
         >
-            <div class="cluster cluster--between cluster--gap-sm cluster--nowrap event-card-header">
+            <div class=EventCardClass::Header.as_str()>
                 <SelectInput
-                    class="card-title-input event-card-title-select".to_string()
-                    data_theme=input_theme
+                    class=EventCardClass::TitleSelect.as_str().to_string()
+                    data_theme=theme
                     data_accent_strength=accent_strength
                     accent_color=accent_color
                     value=Signal::derive(move || topics.get().to_string())
@@ -179,8 +195,8 @@ pub fn EventCardEditable(
                 </SelectInput>
 
                 <SelectInput
-                    class="event-card-date-select".to_string()
-                    data_theme=input_theme
+                    class=EventCardClass::DateSelect.as_str().to_string()
+                    data_theme=theme
                     data_accent_strength=accent_strength
                     accent_color=accent_color
                     value=Signal::derive(move || date_selected.get())
@@ -197,14 +213,14 @@ pub fn EventCardEditable(
                 </SelectInput>
             </div>
 
-            <div class="cluster cluster--start cluster--gap-md cluster--nowrap event-card-row">
-                <span class="event-card-label">
+            <div class=EventCardClass::RowNoWrap.as_str()>
+                <span class=EventCardClass::Label.as_str()>
                     "Level"
                 </span>
 
                 <SelectInput
-                    class="event-card-level-select".to_string()
-                    data_theme=input_theme
+                    class=EventCardClass::LevelSelect.as_str().to_string()
+                    data_theme=theme
                     data_accent_strength=accent_strength
                     accent_color=accent_color
                     value=Signal::derive(move || level.get().as_str().to_string())
@@ -224,48 +240,21 @@ pub fn EventCardEditable(
                 </SelectInput>
             </div>
 
-            <div class="cluster cluster--start cluster--gap-md event-card-row">
-                <span class="event-card-label">"Ideas"</span>
-                // <button
-                // class="btn btn--icon"
-                // data-theme="ghost"
-                // aria-pressed=move || show_preview.get().to_string()
-                // on:click=move |_| set_show_preview.update(|v| *v = !*v)
-                // style="flex: 0 0 auto;"
-                // type="button"
-                // >
-                // <svg
-                // width="18"
-                // height="18"
-                // viewBox="0 0 24 24"
-                // role="img"
-                // aria-hidden="true"
-                // focusable="false"
-                // style="display:block"
-                // >
-                // <circle
-                // cx="12"
-                // cy="12"
-                // r="8"
-                // fill="none"
-                // stroke="currentColor"
-                // stroke-width="2"
-                // />
-                // <Show when=move || !show_preview.get()>
-                // <circle cx="12" cy="12" r="4.25" fill="currentColor" />
-                // </Show>
-                // </svg>
-                // </button>
+            <div class=EventCardClass::Row.as_str()>
+                <span class=EventCardClass::Label.as_str()>"Ideas"</span>
                 <div
-                    class="event-card-ideas-grid"
+                    class=EventCardClass::IdeasGrid.as_str()
                     style=move || {
-                        let cols = if show_preview.get() { "1fr 1fr" } else { "1fr" };
-                        format!("--ideas-columns: {};", cols)
+                        if show_preview.get() {
+                            IdeasColumns::Split.to_style()
+                        } else {
+                            IdeasColumns::Single.to_style()
+                        }
                     }
                 >
                     <TextAreaInput
-                        class="event-card-textarea".to_string()
-                        data_theme=input_theme
+                        class=EventCardClass::Textarea.as_str().to_string()
+                        data_theme=theme
                         data_accent_strength=accent_strength
                         accent_color=accent_color
                         value=Signal::derive(move || ideas.get())
@@ -275,10 +264,10 @@ pub fn EventCardEditable(
                     />
                     <Show when=move || show_preview.get()>
                         <TextBox
-                            class="event-card-preview".to_string()
+                            class=EventCardClass::Preview.as_str().to_string()
                             role="region".to_string()
                             aria_label="Live preview".to_string()
-                            data_theme=input_theme
+                            data_theme=theme
                             data_accent_strength=accent_strength
                             accent_color=accent_color
                             html=ideas_html
@@ -289,24 +278,24 @@ pub fn EventCardEditable(
 
             {event_card_footer(props, state)}
 
-            <div class="event-card-actions">
+            <div class=EventCardClass::Actions.as_str()>
                 <div></div>
 
                 <ServerButton
-                    class=Signal::derive(|| "btn btn--sm".to_string())
+                    class=Signal::derive(|| ButtonClass::Small.as_str().to_string())
                     data_theme=Arc::new(|| Theme::Secondary)
                     r#type="submit".to_string()
                 >
                     "Submit"
                 </ServerButton>
 
-                <div class="event-card-actions-end">
-                    <div class="cluster cluster--gap-sm cluster--align-center">
+                <div class=EventCardClass::ActionsEnd.as_str()>
+                    <div class=ClusterClass::GapSmAlignCenter.as_str()>
                         <Show when=move || {
                             has_draft.get() && state.posts.get().contains_key(&post_id)
                         }>
                             <button
-                                class="btn btn--sm"
+                                class=ButtonClass::Small.as_str()
                                 data-theme=Theme::Secondary.as_str()
                                 type="button"
                                 title="Reset to server version (discard local draft)"

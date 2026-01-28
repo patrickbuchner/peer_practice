@@ -2,6 +2,7 @@ use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
 
+use crate::components::styles::{CardShellClass, ShadowColor};
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
 
 fn card_class(class: Option<String>) -> String {
@@ -36,6 +37,7 @@ pub fn Card(
     #[prop(optional)] style: Option<String>,
     #[prop(optional)] data_theme: Option<Theme>,
     #[prop(optional)] data_shadow: Option<CardShadow>,
+    #[prop(optional)] shadow_color: Option<ReadSignal<ShadowColor>>,
     #[prop(optional)] data_accent: Option<AccentStrength>,
     #[prop(optional)] data_accent_strength: Option<AccentStrength>,
     #[prop(optional)] accent_color: Option<ReadSignal<String>>,
@@ -44,18 +46,25 @@ pub fn Card(
     let class = card_class(class);
     let style = card_style(style.unwrap_or_default(), accent_color);
     let data_theme = data_theme.unwrap_or(Theme::Strong);
-    let data_shadow = data_shadow.unwrap_or(CardShadow::Weak);
+    let data_shadow = data_shadow.unwrap_or(CardShadow::Weakest);
+    let shadow_color = shadow_color.unwrap_or_else(|| {
+        let (read, _set) = signal(ShadowColor::Base);
+        read
+    });
 
     view! {
-        <div
-            class=class
-            style=style
-            data-theme=data_theme.as_str()
-            data-shadow=data_shadow.as_str()
-            attr:data-accent=move || data_accent.map(|accent| accent.as_str())
-            attr:data-accent-strength=move || data_accent_strength.map(|accent| accent.as_str())
-        >
-            {children()}
+        <div class=CardShellClass::Base.as_str()>
+            <div
+                class=class
+                style=style
+                data-theme=data_theme.as_str()
+                data-shadow=data_shadow.as_str()
+                data-shadow-color=move || shadow_color.get().as_str()
+                attr:data-accent=move || data_accent.map(|accent| accent.as_str())
+                attr:data-accent-strength=move || data_accent_strength.map(|accent| accent.as_str())
+            >
+                {children()}
+            </div>
         </div>
     }
 }
@@ -66,6 +75,7 @@ pub fn CardForm(
     #[prop(optional)] style: Option<String>,
     #[prop(optional)] data_theme: Option<Theme>,
     #[prop(optional)] data_shadow: Option<CardShadow>,
+    #[prop(optional)] shadow_color: Option<ReadSignal<ShadowColor>>,
     #[prop(optional)] data_accent: Option<AccentStrength>,
     #[prop(optional)] data_accent_strength: Option<AccentStrength>,
     #[prop(optional)] accent_color: Option<ReadSignal<String>>,
@@ -75,23 +85,30 @@ pub fn CardForm(
     let class = card_class(class);
     let style = card_style(style.unwrap_or_default(), accent_color);
     let data_theme = data_theme.unwrap_or(Theme::Strong);
-    let data_shadow = data_shadow.unwrap_or(CardShadow::Weak);
+    let data_shadow = data_shadow.unwrap_or(CardShadow::Weakest);
+    let shadow_color = shadow_color.unwrap_or_else(|| {
+        let (read, _set) = signal(ShadowColor::Base);
+        read
+    });
 
     view! {
-        <form
-            class=class
-            style=style
-            data-theme=data_theme.as_str()
-            data-shadow=data_shadow.as_str()
-            attr:data-accent=move || data_accent.map(|accent| accent.as_str())
-            attr:data-accent-strength=move || data_accent_strength.map(|accent| accent.as_str())
-            on:submit=move |ev| {
-                if let Some(cb) = &on_submit {
-                    cb.run(ev);
+        <div class=CardShellClass::Base.as_str()>
+            <form
+                class=class
+                style=style
+                data-theme=data_theme.as_str()
+                data-shadow=data_shadow.as_str()
+                data-shadow-color=move || shadow_color.get().as_str()
+                attr:data-accent=move || data_accent.map(|accent| accent.as_str())
+                attr:data-accent-strength=move || data_accent_strength.map(|accent| accent.as_str())
+                on:submit=move |ev| {
+                    if let Some(cb) = &on_submit {
+                        cb.run(ev);
+                    }
                 }
-            }
-        >
-            {children()}
-        </form>
+            >
+                {children()}
+            </form>
+        </div>
     }
 }

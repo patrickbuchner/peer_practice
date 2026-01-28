@@ -1,4 +1,5 @@
 use crate::app_state::AppStateReader;
+use crate::components::styles::{CssVar, EventListClass};
 use crate::event_card::{EventCardProps, editable::EventCardEditable, readonly::EventCardReadonly};
 use leptos::prelude::*;
 use peer_practice_shared::convert_utc_to_local_date;
@@ -17,7 +18,8 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
             }>
                 {move || {
                     let props = read_new_post.get().unwrap();
-                    let (accent_color, _set_accent_teal) = signal(String::from("var(--teal)"));
+                    let (accent_color, _set_accent_teal) =
+                        signal(CssVar::Teal.as_str().to_string());
                     view! {
                         <EventCardEditable
                             props
@@ -64,18 +66,27 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                     .sort_by(|a, b| {
                         a.1.date.cmp(&b.1.date).then_with(|| a.1.title.cmp(&b.1.title))
                     });
-                items
-                    .into_iter()
-                    .map(|(owner, props)| {
-                        if Some(owner) == current_user {
-
-                            view! { <EventCardEditable props state /> }
-                                .into_any()
-                        } else {
-                            view! { <EventCardReadonly props state /> }.into_any()
-                        }
-                    })
-                    .collect_view()
+                let mut views = Vec::new();
+                let mut last_date: Option<String> = None;
+                for (owner, props) in items {
+                    let date = props.date.clone();
+                    let gap_class = if last_date
+                        .as_ref()
+                        .is_some_and(|prev| prev != &props.date)
+                    {
+                        EventListClass::DateGap
+                    } else {
+                        EventListClass::None
+                    };
+                    let card_view = if Some(owner) == current_user {
+                        view! { <EventCardEditable props state /> }.into_any()
+                    } else {
+                        view! { <EventCardReadonly props state /> }.into_any()
+                    };
+                    views.push(view! { <div class=gap_class.as_str()>{card_view}</div> }.into_any());
+                    last_date = Some(date);
+                }
+                views.into_view()
             }}
         </div>
     }

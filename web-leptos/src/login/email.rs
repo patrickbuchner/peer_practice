@@ -1,5 +1,6 @@
 use leptos::logging::log;
 use leptos::prelude::*;
+use crate::components::styles::{ButtonClass, FormClass, LayoutClass, TextClass};
 use crate::components::text_input::TextInput;
 use crate::components::theme::Theme;
 
@@ -60,14 +61,14 @@ pub fn LoginEmailStep(
     };
 
     view! {
-        <form class="stack stack-sm" on:submit=on_submit>
-            <h2 class="text-lg">"Log in"</h2>
-            <p class="text-sm text-muted">"What's your email?"</p>
+        <form class=LayoutClass::StackSm.as_str() on:submit=on_submit>
+            <h2 class=TextClass::Lg.as_str()>"Log in"</h2>
+            <p class=TextClass::SmMuted.as_str()>"What's your email?"</p>
             <div>
                 <TextInput
                     r#type="email".to_string()
                     required=true
-                    class="input--center".to_string()
+                    class=FormClass::InputCenter.as_str().to_string()
                     placeholder="you@example.com".to_string()
                     value=Signal::derive(move || email_read.get())
                     autofocus=true
@@ -76,10 +77,10 @@ pub fn LoginEmailStep(
                     })
                 />
             </div>
-            <div class="row row-end">
+            <div class=LayoutClass::RowEnd.as_str()>
                 <button
                     type="submit"
-                    class="btn"
+                    class=ButtonClass::Base.as_str()
                     data-theme=Theme::Primary.as_str()
                 >
                     "Next"

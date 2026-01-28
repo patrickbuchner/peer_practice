@@ -25,6 +25,8 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --tracking-tight: -0.025em;
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
   }
@@ -198,9 +200,6 @@
     @media (width >= 96rem) {
       max-width: 96rem;
     }
-  }
-  .flex {
-    display: flex;
   }
   .text-lg {
     font-size: var(--text-lg);
@@ -621,9 +620,10 @@ body > * {
   @supports (color: color-mix(in lab, red, red)) {
     --_border: color-mix(in oklab, var(--_fg) 14%, transparent);
   }
-  --_shadow: 0 18px 40px var(--bg-strongest-color);
+  --shadow-color: var(--pink);
+  --_shadow: 0 18px 40px var(--shadow-color);
   @supports (color: color-mix(in lab, red, red)) {
-    --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent);
+    --_shadow: 0 18px 40px color-mix(in oklab, var(--shadow-color) 30%, transparent);
   }
   --card-bg: var(--_bg);
   --card-fg: var(--_fg);
@@ -645,12 +645,12 @@ body > * {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .card--elevated {
-  --_shadow: 0 18px 40px var(--bg-strongest-color);
+  --_shadow: 0 18px 40px var(--shadow-color);
   @supports (color: color-mix(in lab, red, red)) {
-    --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent);
+    --_shadow: 0 18px 40px color-mix(in oklab, var(--shadow-color) 30%, transparent);
   }
 }
-.chat-row {
+.card-shell {
   width: min(100%, 58rem);
   margin: 0 auto;
   padding: clamp(0.75rem, 2vw, 1.25rem);
@@ -663,13 +663,13 @@ body > * {
   @supports (color: color-mix(in lab, red, red)) {
     border: 1px solid color-mix(in oklab, var(--bg-weak-text) 12%, transparent);
   }
-  box-shadow: 0 24px 60px var(--bg-strongest-color);
-  @supports (color: color-mix(in lab, red, red)) {
-    box-shadow: 0 24px 60px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent);
-  }
+  box-shadow: none;
 }
-.chat-row .card {
+.card-shell .card, .card-shell form.card {
   margin-block: 0;
+}
+.event-card-date-gap {
+  margin-top: 0.75rem;
 }
 .card[data-theme="weakest"], .card[data-scheme="weakest"] {
   --_bg: var(--bg-weakest-color);
@@ -683,23 +683,53 @@ body > * {
 .card[data-shadow="none"] {
   --_shadow: none;
 }
-.card[data-shadow="weak"] {
-  --_shadow: 0 12px 28px var(--bg-strongest-color);
+.card[data-shadow="weakest"] {
+  --_shadow: 0 0 36px 12px var(--shadow-color);
   @supports (color: color-mix(in lab, red, red)) {
-    --_shadow: 0 12px 28px color-mix(in oklab, var(--bg-strongest-color) 22%, transparent);
+    --_shadow: 0 0 36px 12px color-mix(in oklab, var(--shadow-color) 38%, transparent);
+  }
+}
+.card[data-shadow="weak"] {
+  --_shadow: 0 0 52px 14px var(--shadow-color);
+  @supports (color: color-mix(in lab, red, red)) {
+    --_shadow: 0 0 52px 14px color-mix(in oklab, var(--shadow-color) 50%, transparent);
   }
 }
 .card[data-shadow="base"] {
-  --_shadow: 0 18px 40px var(--bg-strongest-color);
+  --_shadow: 0 0 72px 16px var(--shadow-color);
   @supports (color: color-mix(in lab, red, red)) {
-    --_shadow: 0 18px 40px color-mix(in oklab, var(--bg-strongest-color) 30%, transparent);
+    --_shadow: 0 0 72px 16px color-mix(in oklab, var(--shadow-color) 60%, transparent);
   }
 }
 .card[data-shadow="strong"] {
-  --_shadow: 0 24px 60px var(--bg-strongest-color);
+  --_shadow: 0 0 96px 20px var(--shadow-color);
   @supports (color: color-mix(in lab, red, red)) {
-    --_shadow: 0 24px 60px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent);
+    --_shadow: 0 0 96px 20px color-mix(in oklab, var(--shadow-color) 68%, transparent);
   }
+}
+.card[data-shadow="strongest"] {
+  --_shadow: 0 0 128px 24px var(--shadow-color);
+  @supports (color: color-mix(in lab, red, red)) {
+    --_shadow: 0 0 128px 24px color-mix(in oklab, var(--shadow-color) 76%, transparent);
+  }
+}
+.card[data-shadow-color="base"] {
+  --shadow-color: var(--bg-base-color);
+}
+.card[data-shadow-color="green"] {
+  --shadow-color: var(--green);
+}
+.card[data-shadow-color="teal"] {
+  --shadow-color: var(--teal);
+}
+.card[data-shadow-color="sky"] {
+  --shadow-color: var(--sky);
+}
+.card[data-shadow-color="mauve"] {
+  --shadow-color: var(--mauve);
+}
+.card[data-shadow-color="lavender"] {
+  --shadow-color: var(--lavender);
 }
 .card[data-theme="weak"], .card[data-scheme="weak"] {
   --_bg: var(--bg-weak-color);

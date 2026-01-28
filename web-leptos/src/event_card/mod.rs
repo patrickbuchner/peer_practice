@@ -1,6 +1,8 @@
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ServerButton;
+use crate::components::styles::{ButtonClass, EventCardClass, ShadowColor};
 use crate::components::theme::Theme;
+use chrono::NaiveDate;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use peer_practice_shared::level::Level;
@@ -9,6 +11,7 @@ use peer_practice_shared::messages::client_to_server::ChatAction;
 use peer_practice_shared::post::PostId;
 use peer_practice_shared::user::UserId;
 use pulldown_cmark::{Options, Parser, html};
+use peer_practice_shared::ymd;
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -69,12 +72,12 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
     };
 
     view! {
-        <div class="cluster cluster--between event-card-footer">
-            <div class="cluster cluster--start cluster--gap-md">
-                <span class="event-card-label">"Joining"</span>
+        <div class=EventCardClass::Footer.as_str()>
+            <div class=EventCardClass::FooterCluster.as_str()>
+                <span class=EventCardClass::Label.as_str()>"Joining"</span>
 
                 <ServerButton
-                    class=Signal::derive(move || { "btn".to_string() })
+                    class=Signal::derive(move || { ButtonClass::Base.as_str().to_string() })
                     data_theme=Arc::new(move || {
                         if partaking() {
                             Theme::Success
@@ -87,13 +90,15 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
                     {move || if partaking() { "Joined".to_string() } else { "Join".to_string() }}
                 </ServerButton>
 
-                <span class="event-card-count">
+                <span class=EventCardClass::Count.as_str()>
                     "👥 " {move || count}
                 </span>
 
                 <ChatButton post_id state />
             </div>
-            <em class="event-card-author">{"by "} {props.author.to_string()}</em>
+            <em class=EventCardClass::Author.as_str()>
+                {"by "} {props.author.to_string()}
+            </em>
         </div>
     }
 }
@@ -119,7 +124,7 @@ fn ChatButton(post_id: PostId, #[prop(into)] state: AppStateReader) -> impl Into
 
     view! {
         <ServerButton
-            class=Signal::derive(move || { "btn".to_string() })
+            class=Signal::derive(move || { ButtonClass::Base.as_str().to_string() })
             disabled=is_disabled
             data_theme=Arc::new(|| Theme::Primary)
             on_click=Callback::new(move |_| {
@@ -154,4 +159,28 @@ fn markdown_to_safe_html(src: &str) -> String {
     html::push_html(&mut html_buf, parser);
 
     ammonia::Builder::default().clean(&html_buf).to_string()
+}
+
+pub fn shadow_color_for_date(date_str: &str) -> ShadowColor {
+    let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") else {
+        return ShadowColor::Base;
+    };
+    let today = chrono::Local::now().date_naive();
+    if date < today {
+        return ShadowColor::Base;
+    }
+
+    let options = ymd::create_date_options();
+    let Some(index) = options.iter().position(|opt| opt == date_str) else {
+        return ShadowColor::Base;
+    };
+
+    match index {
+        0 => ShadowColor::Green,
+        1 => ShadowColor::Teal,
+        2 => ShadowColor::Sky,
+        3 => ShadowColor::Mauve,
+        4 => ShadowColor::Lavender,
+        _ => ShadowColor::Base,
+    }
 }

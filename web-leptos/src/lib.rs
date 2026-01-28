@@ -1,6 +1,7 @@
 use crate::app_state::{AppStateReader, initialize_app_state};
 use crate::event_card::EventCardProps;
 use crate::nav_menu::NavMenu;
+use crate::components::styles::{ButtonClass, NavbarClass, StatusClass, StatusColor, SvgStrokeColor};
 use crate::components::theme::{AccentStrength, Theme};
 use leptos::logging::log;
 use leptos::prelude::*;
@@ -84,29 +85,27 @@ pub fn App() -> impl IntoView {
     };
     view! {
         <Router>
-            <nav
-                class="navbar"
-            >
+            <nav class=NavbarClass::Navbar.as_str()>
                 <Show
                     when=logged_in
                     fallback=|| {
                         view! {
-                            <div class="navbar-section navbar-section--center">
-                                <strong class="navbar-title">"Peer Practice"</strong>
+                            <div class=NavbarClass::SectionCenter.as_str()>
+                                <strong class=NavbarClass::Title.as_str()>"Peer Practice"</strong>
                             </div>
                         }
                     }
                 >
-                    <div class="navbar-section">
+                    <div class=NavbarClass::Section.as_str()>
                         <NavMenu />
                     </div>
-                    <div class="navbar-section navbar-section--center">
-                        <strong class="navbar-title navbar-title--accent">
+                    <div class=NavbarClass::SectionCenter.as_str()>
+                        <strong class=NavbarClass::TitleAccent.as_str()>
                             {active_user_label}
                         </strong>
                     </div>
-                    <div class="navbar-section navbar-section--end">
-                        <div class="nav-icon-bar">
+                    <div class=NavbarClass::SectionEnd.as_str()>
+                        <div class=NavbarClass::IconBar.as_str()>
                             <CreateNewPost state read_new_post write_new_post />
                             <ConnectionStatus state />
                         </div>
@@ -182,7 +181,7 @@ fn CreateNewPost(
         <button
             aria-label="Add post"
             title="Add post"
-            class="btn btn--fab"
+            class=ButtonClass::Fab.as_str()
             data-theme=Theme::Accent.as_str()
             data-accent-strength=AccentStrength::Strong.as_str()
             on:click=move |_| {
@@ -209,7 +208,7 @@ fn CreateNewPost(
                 }
             }
         >
-            <span class="btn-icon">
+            <span class=ButtonClass::Icon.as_str()>
                 {move || {
                     if read_new_post.get().is_some() { "-".to_string() } else { "+".to_string() }
                 }}
@@ -220,13 +219,8 @@ fn CreateNewPost(
 
 #[component]
 fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
-    let color = move || {
-        if state.connected_to_server() {
-            "var(--success-color)"
-        } else {
-            "var(--danger-color)"
-        }
-    };
+    let color =
+        move || StatusColor::from_connected(state.connected_to_server()).as_str();
     let status_text = move || {
         if state.connected_to_server() {
             "Connected to server"
@@ -237,7 +231,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
     let (show_toast, set_show_toast) = signal(false);
     view! {
         <div
-            class="status-indicator"
+            class=StatusClass::Indicator.as_str()
             on:mouseenter=move |_| set_show_toast.set(true)
             on:mouseleave=move |_| set_show_toast.set(false)
         >
@@ -252,7 +246,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
                     cx="12"
                     cy="12"
                     r="8"
-                    stroke="#111827"
+                    stroke=SvgStrokeColor::StatusOutline.as_str()
                     stroke-width="1"
                     fill=move || color().to_string()
                 />
@@ -260,7 +254,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
             <Show when=move || show_toast.get()>
                 <div
                     role="status"
-                    class="toast status-toast"
+                    class=StatusClass::Toast.as_str()
                 >
                     {status_text}
                 </div>

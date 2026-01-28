@@ -57,18 +57,22 @@ impl AccentStrength {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CardShadow {
     None,
+    Weakest,
     Weak,
     Base,
     Strong,
+    Strongest,
 }
 
 impl CardShadow {
     pub const fn as_str(self) -> &'static str {
         match self {
             CardShadow::None => "none",
+            CardShadow::Weakest => "weakest",
             CardShadow::Weak => "weak",
             CardShadow::Base => "base",
             CardShadow::Strong => "strong",
+            CardShadow::Strongest => "strongest",
         }
     }
 }
