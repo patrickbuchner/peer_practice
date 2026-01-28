@@ -86,7 +86,7 @@ prop_compose! {
         -> ChatMessage {
         ChatMessage {
             sender,
-            message,
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text(message),
             chat_id,
         }
     }

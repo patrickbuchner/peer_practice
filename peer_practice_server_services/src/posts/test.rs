@@ -282,11 +282,14 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
         ChatMsg::StoreMsgForPost {
             post_id: got_id,
             sender: got_user,
-            message,
+            kind,
         } => {
             assert_eq!(id, got_id);
             assert_eq!(user, got_user);
-            assert_eq!("joined the post", message);
+            assert!(matches!(
+                kind,
+                peer_practice_messages::current::chat::ChatMessageKind::Joined
+            ));
         }
         other => panic!("expected StoreMsgForPost after join, got {other:?}"),
     }
@@ -308,11 +311,14 @@ async fn join_then_leave_updates_partaking_users_and_persists() {
         ChatMsg::StoreMsgForPost {
             post_id: got_id,
             sender: got_user,
-            message,
+            kind,
         } => {
             assert_eq!(id, got_id);
             assert_eq!(user, got_user);
-            assert_eq!("left the post", message);
+            assert!(matches!(
+                kind,
+                peer_practice_messages::current::chat::ChatMessageKind::Left
+            ));
         }
         other => panic!("expected StoreMsgForPost after leave, got {other:?}"),
     }

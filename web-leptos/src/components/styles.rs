@@ -1,4 +1,5 @@
 use crate::components::theme::Theme;
+use peer_practice_shared::accent_colors::AccentColor;
 
 #[derive(Clone, Copy)]
 pub enum ButtonClass {
@@ -177,8 +178,12 @@ pub enum ChatClass {
     Messages,
     Message,
     MessageMine,
+    MessageSystem,
     Meta,
     BubbleSurface,
+    BubbleSystem,
+    InputBar,
+    InputField,
 }
 
 impl ChatClass {
@@ -188,8 +193,12 @@ impl ChatClass {
             ChatClass::Messages => "chat-messages",
             ChatClass::Message => "chat-message",
             ChatClass::MessageMine => "chat-message chat-message--mine",
+            ChatClass::MessageSystem => "chat-message chat-message--system",
             ChatClass::Meta => "chat-meta",
             ChatClass::BubbleSurface => "surface chat-bubble",
+            ChatClass::BubbleSystem => "chat-bubble chat-bubble--system",
+            ChatClass::InputBar => "chat-input-bar",
+            ChatClass::InputField => "chat-input-field",
         }
     }
 }
@@ -467,4 +476,16 @@ pub fn pin_theme(is_complete: bool) -> &'static str {
     } else {
         Theme::Secondary.as_str()
     }
+}
+
+pub fn chat_accent_style(color: AccentColor) -> String {
+    format!("--accent: {};", color.css_var())
+}
+
+pub fn chat_name_style(color: AccentColor) -> String {
+    format!("color: {};", color.css_var())
+}
+
+pub fn chat_border_style(color: AccentColor) -> String {
+    format!("border-color: {};", color.css_var())
 }

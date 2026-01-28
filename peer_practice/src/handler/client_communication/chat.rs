@@ -5,7 +5,7 @@ use peer_practice_messages::current::messages::server_to_client::ChatAction::{
     Chat, ChatDoesNotExist, ChatDoesNotExistForPost,
 };
 use peer_practice_messages::current::user::UserId;
-use peer_practice_server_services::chat::ChatMsg;
+use peer_practice_server_services::chat::{ChatMsg, ensure_chat_for_post};
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 
@@ -17,18 +17,20 @@ pub(crate) async fn chat_handler(
 ) -> eyre::Result<()> {
     match action {
         ChatAction::GetChatFor(post) => {
-            let (sender, receiver) = oneshot::channel();
-            state
-                .chat
-                .send(ChatMsg::GetChatForPost(post, sender))
-                .await?;
-            let msg = match receiver.await {
-                Ok(Ok(m)) => ServerToClient::Chat(Chat(
-                    m.chat_id,
-                    m.post_id,
-                    m.content.iter().map(|m| m.into()).collect(),
-                )),
-                _ => ServerToClient::Chat(ChatDoesNotExistForPost(post)),
+            let chat_id = ensure_chat_for_post(&state.chat, post).await;
+            let msg = if let Some(chat_id) = chat_id {
+                let (sender, receiver) = oneshot::channel();
+                state.chat.send(ChatMsg::GetChat(chat_id, sender)).await?;
+                match receiver.await {
+                    Ok(Ok(m)) => ServerToClient::Chat(Chat(
+                        m.chat_id,
+                        m.post_id,
+                        m.content.iter().map(|m| m.into()).collect(),
+                    )),
+                    _ => ServerToClient::Chat(ChatDoesNotExistForPost(post)),
+                }
+            } else {
+                ServerToClient::Chat(ChatDoesNotExistForPost(post))
             };
 
             send_chat(state, user_id, con_id, msg).await?;
@@ -81,11 +83,13 @@ mod tests {
     use peer_practice_server_services::chat::message::Message;
     use peer_practice_server_services::chat::progress::Progress;
     use peer_practice_server_services::ws_hub::ConnectionId;
+    use tokio::time::{timeout, Duration};
 
     async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
-        match rx.recv().await {
-            Some(msg) => msg,
-            None => panic!("channel closed"),
+        match timeout(Duration::from_secs(1), rx.recv()).await {
+            Ok(Some(msg)) => msg,
+            Ok(None) => panic!("channel closed"),
+            Err(_) => panic!("timeout waiting for message"),
         }
     }
 
@@ -107,6 +111,19 @@ mod tests {
                 let _ = respond_to.send(Err(()));
             }
             _ => panic!("expected ChatMsg::GetChatForPost"),
+        }
+
+        if let ChatMsg::CreateForPost(got_post) = recv_msg(&mut rx.chat).await {
+            assert_eq!(post_id, got_post);
+        } else {
+            panic!("expected CreateForPost");
+        }
+
+        if let ChatMsg::GetChatForPost(got_post, respond_to) = recv_msg(&mut rx.chat).await {
+            assert_eq!(post_id, got_post);
+            let _ = respond_to.send(Err(()));
+        } else {
+            panic!("expected GetChatForPost after CreateForPost");
         }
 
         handler.await.expect("handler task ok").expect("handler ok");
@@ -134,7 +151,9 @@ mod tests {
             post_id,
             content: vec![Message {
                 sender: user_id,
-                message: "hello".to_string(),
+                kind: peer_practice_messages::current::chat::ChatMessageKind::Text(
+                    "hello".to_string(),
+                ),
                 chat_id,
                 timestamp: fixed_timestamp(),
             }],
@@ -161,7 +180,11 @@ mod tests {
                     assert_eq!(chat_id, got_id);
                     assert_eq!(post_id, got_post_id);
                     assert_eq!(1, messages.len());
-                    assert_eq!("hello", messages[0].message);
+                    assert!(matches!(
+                        messages[0].kind,
+                        peer_practice_messages::current::chat::ChatMessageKind::Text(ref text)
+                            if text == "hello"
+                    ));
                 }
                 _ => panic!("expected Chat message"),
             },

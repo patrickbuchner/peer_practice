@@ -3,16 +3,23 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub enum ChatMessageKind {
+    Text(String),
+    Joined,
+    Left,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ChatMessage {
     pub sender: UserId,
-    pub message: String,
+    pub kind: ChatMessageKind,
     pub chat_id: ChatId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ChatMessageFromServer {
     pub sender: UserId,
-    pub message: String,
+    pub kind: ChatMessageKind,
     pub chat_id: ChatId,
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }

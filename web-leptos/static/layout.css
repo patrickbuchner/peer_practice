@@ -127,6 +127,11 @@
     align-items: flex-end;
 }
 
+.chat-message--system {
+    align-items: center;
+    text-align: center;
+}
+
 .chat-meta {
     font-size: 0.85rem;
     opacity: 0.7;
@@ -145,4 +150,27 @@
 
 .chat-message--mine .chat-bubble {
     align-self: flex-end;
+}
+
+.chat-bubble--system {
+    align-self: center;
+    max-width: 90%;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--bg-strong-color) 75%, transparent);
+    border: 1px solid color-mix(in oklab, var(--bg-strong-text) 18%, transparent);
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.chat-input-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    align-items: center;
+}
+
+.chat-input-field {
+    min-width: 0;
 }

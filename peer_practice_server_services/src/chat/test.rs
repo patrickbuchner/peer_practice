@@ -110,7 +110,7 @@ type MsgBuilder = fn(ChatId) -> Vec<Message>;
 fn msgs_single(chat_id: ChatId) -> Vec<Message> {
     vec![Message {
         sender: UserId::default(),
-        message: "one".to_string(),
+        kind: peer_practice_messages::current::chat::ChatMessageKind::Text("one".to_string()),
         chat_id,
         timestamp: test_timestamp(),
     }]
@@ -120,19 +120,19 @@ fn msgs_three(chat_id: ChatId) -> Vec<Message> {
     vec![
         Message {
             sender: UserId::default(),
-            message: "a".to_string(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("a".to_string()),
             chat_id,
             timestamp: test_timestamp(),
         },
         Message {
             sender: UserId::default(),
-            message: "b".to_string(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("b".to_string()),
             chat_id,
             timestamp: test_timestamp(),
         },
         Message {
             sender: UserId::default(),
-            message: "c".to_string(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("c".to_string()),
             chat_id,
             timestamp: test_timestamp(),
         },
@@ -151,7 +151,13 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
     let chat_id = create_chat_for_post(&chat_tx, &mut storage_rx, post_id).await;
 
     let messages = builder(chat_id);
-    let expected_texts: Vec<String> = messages.iter().map(|m| m.message.clone()).collect();
+    let expected_texts: Vec<String> = messages
+        .iter()
+        .filter_map(|m| match &m.kind {
+            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => Some(text.clone()),
+            _ => None,
+        })
+        .collect();
 
     // Act
     for m in messages {
@@ -180,7 +186,10 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
     let saved_texts: Vec<String> = saved_progress
         .content
         .iter()
-        .map(|m| m.message.clone())
+        .filter_map(|m| match &m.kind {
+            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => Some(text.clone()),
+            _ => None,
+        })
         .collect();
     assert_eq!(expected_texts, saved_texts);
 
@@ -389,7 +398,7 @@ async fn store_msg_unknown_chat_is_noop() {
     chat_tx
         .send(ChatMsg::StoreMsg(Message {
             sender: UserId::default(),
-            message: "missing".to_string(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("missing".to_string()),
             chat_id,
             timestamp: test_timestamp(),
         }))
@@ -416,7 +425,7 @@ async fn store_msg_for_missing_post_is_noop() {
         .send(ChatMsg::StoreMsgForPost {
             post_id: PostId::new(),
             sender: UserId::default(),
-            message: "missing".to_string(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("missing".to_string()),
         })
         .await
         .unwrap();
@@ -446,7 +455,7 @@ async fn store_msg_for_post_broadcasts_and_persists() {
         .send(ChatMsg::StoreMsgForPost {
             post_id,
             sender,
-            message: message.clone(),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text(message.clone()),
         })
         .await
         .unwrap();
@@ -459,7 +468,10 @@ async fn store_msg_for_post_broadcasts_and_persists() {
         WsHubMsg::BroadcastAll(ServerToClient::Chat(ChatAction::MessageSent(sent))) => {
             assert_eq!(chat_id, sent.chat_id);
             assert_eq!(sender, sent.sender);
-            assert_eq!(message, sent.message);
+            assert!(matches!(
+                sent.kind,
+                peer_practice_messages::current::chat::ChatMessageKind::Text(ref text) if text == &message
+            ));
         }
         other => panic!("expected MessageSent broadcast, got {other:?}"),
     }
@@ -467,7 +479,10 @@ async fn store_msg_for_post_broadcasts_and_persists() {
         StorageMsg::SaveChats(snapshot) => {
             let saved = snapshot.get(&chat_id).expect("chat should exist");
             assert_eq!(1, saved.content.len());
-            assert_eq!(message, saved.content[0].message);
+            assert!(matches!(
+                saved.content[0].kind,
+                peer_practice_messages::current::chat::ChatMessageKind::Text(ref text) if text == &message
+            ));
         }
         other => panic!("expected SaveChats, got {other:?}"),
     }

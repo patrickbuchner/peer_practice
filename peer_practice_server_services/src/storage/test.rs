@@ -6,6 +6,7 @@ use peer_practice_messages::current::post::Topics;
 use peer_practice_messages::test_helpers_impl::fixed_timestamp;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, oneshot};
+use peer_practice_messages::v2026_01_11::chat::ChatMessageKind;
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -124,7 +125,7 @@ fn mk_progress(chat_id: ChatId, post_id: PostId) -> Progress {
         post_id,
         content: vec![Message {
             sender: UserId::default(),
-            message: "hi".to_string(),
+            kind: ChatMessageKind::Text("hi".to_string()),
             chat_id,
             timestamp: fixed_timestamp(),
         }],

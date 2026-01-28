@@ -4988,6 +4988,7 @@ dependencies = [
  "serde_json",
  "tracing-wasm",
  "uuid",
+ "wasm-bindgen",
  "web-sys",
 ]
 

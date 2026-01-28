@@ -2,7 +2,7 @@ use crate::chat::message::Message;
 use crate::clock::ClockRef;
 use crate::storage::StorageMsg;
 use crate::ws_hub::WsHubMsg;
-use peer_practice_messages::current::chat::ChatId;
+use peer_practice_messages::current::chat::{ChatId, ChatMessageKind};
 use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::server_to_client::ChatAction;
 use peer_practice_messages::current::post::PostId;
@@ -24,7 +24,7 @@ pub enum ChatMsg {
     StoreMsgForPost {
         post_id: PostId,
         sender: UserId,
-        message: String,
+        kind: ChatMessageKind,
     },
     CreateForPost(PostId),
     DeleteForPost(PostId),
@@ -97,14 +97,14 @@ pub async fn handle_chats(
             ChatMsg::StoreMsgForPost {
                 post_id,
                 sender,
-                message,
+                kind,
             } => {
                 if let Some(chat_id) = post_to_chat.get(&post_id).copied()
                     && let Some(progress) = chats.get_mut(&chat_id)
                 {
                     let message = Message {
                         sender,
-                        message,
+                        kind,
                         chat_id,
                         timestamp: clock.now(),
                     };
@@ -119,6 +119,23 @@ pub async fn handle_chats(
             }
         }
     }
+}
+
+pub async fn ensure_chat_for_post(
+    chat: &mpsc::Sender<ChatMsg>,
+    post_id: PostId,
+) -> Option<ChatId> {
+    let (respond_to, recv) = oneshot::channel();
+    let _ = chat.send(ChatMsg::GetChatForPost(post_id, respond_to)).await;
+    if let Ok(Ok(progress)) = recv.await {
+        return Some(progress.chat_id);
+    }
+
+    let _ = chat.send(ChatMsg::CreateForPost(post_id)).await;
+
+    let (respond_to, recv) = oneshot::channel();
+    let _ = chat.send(ChatMsg::GetChatForPost(post_id, respond_to)).await;
+    recv.await.ok().and_then(|res| res.ok()).map(|p| p.chat_id)
 }
 
 async fn setup(

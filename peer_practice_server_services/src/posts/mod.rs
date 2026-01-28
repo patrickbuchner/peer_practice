@@ -89,7 +89,7 @@ pub async fn handle_posts(
                             .send(ChatMsg::StoreMsgForPost {
                                 post_id,
                                 sender: user,
-                                message: "joined the post".to_string(),
+                                kind: peer_practice_messages::current::chat::ChatMessageKind::Joined,
                             })
                             .await;
                     }
@@ -109,7 +109,7 @@ pub async fn handle_posts(
                             .send(ChatMsg::StoreMsgForPost {
                                 post_id,
                                 sender: user,
-                                message: "left the post".to_string(),
+                                kind: peer_practice_messages::current::chat::ChatMessageKind::Left,
                             })
                             .await;
                     }

@@ -64,7 +64,9 @@ fn sample_chat_id() -> ChatId {
 fn sample_chat_message(user_id: UserId, chat_id: ChatId) -> ChatMessage {
     ChatMessage {
         sender: user_id,
-        message: "Hello from chat.".into(),
+        kind: peer_practice_messages::current::chat::ChatMessageKind::Text(
+            "Hello from chat.".into(),
+        ),
         chat_id,
     }
 }

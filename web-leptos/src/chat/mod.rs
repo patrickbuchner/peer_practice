@@ -1,12 +1,17 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
-use crate::components::styles::{ChatClass, ClusterClass, LayoutClass, TextClass};
+use crate::components::styles::{
+    ButtonClass, ChatClass, ClusterClass, LayoutClass, TextClass, chat_border_style,
+    chat_name_style,
+};
+use crate::components::text_input::TextInput;
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
 use crate::event_card::{EventCardProps, readonly::EventCardReadonly};
 use leptos::prelude::*;
 use leptos_router::params::Params;
 use leptos_router::hooks::use_params;
-use peer_practice_shared::chat::ChatId;
+use peer_practice_shared::accent_colors::AccentColor;
+use peer_practice_shared::chat::{ChatId, ChatMessage, ChatMessageKind};
 use peer_practice_shared::convert_utc_to_local;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::ChatAction;
@@ -14,6 +19,10 @@ use peer_practice_shared::post::PostId;
 use peer_practice_shared::user::UserId;
 use uuid::Uuid;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+use web_sys::window;
 
 #[derive(Params, PartialEq, Clone)]
 struct ChatParams {
@@ -53,6 +62,44 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
     };
 
     let has_valid_chat_id = move || chat_id.get().is_some();
+    let (draft, set_draft) = signal(String::new());
+    let can_send = Signal::derive(move || !draft.get().trim().is_empty());
+    let chat_ref = NodeRef::<leptos::html::Div>::new();
+    let (auto_scroll, set_auto_scroll) = signal(true);
+
+    let handle_scroll = move |_| {
+        if let Some(node) = chat_ref.get() {
+            let scroll_top = node.scroll_top() as f64;
+            let client_height = node.client_height() as f64;
+            let scroll_height = node.scroll_height() as f64;
+            let near_bottom = scroll_top + client_height >= scroll_height - 24.0;
+            set_auto_scroll.set(near_bottom);
+        }
+    };
+
+    Effect::new(move |_| {
+        let _ = messages().map(|msgs| msgs.len());
+        if !auto_scroll.get() {
+            return;
+        }
+        if let Some(node) = chat_ref.get() {
+            let node = node.clone();
+            let _ = window()
+                .and_then(|win| {
+                    let cb = Closure::once(move || {
+                        let height = node.scroll_height();
+                        node.set_scroll_top(height);
+                    });
+                    win.set_timeout_with_callback_and_timeout_and_arguments_0(
+                        cb.as_ref().unchecked_ref(),
+                        0,
+                    )
+                    .ok()?;
+                    cb.forget();
+                    Some(())
+                });
+        }
+    });
 
     view! {
         <div class=LayoutClass::PagePadStack.as_str()>
@@ -97,7 +144,11 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                         </span>
                     </div>
 
-                    <div class=ChatClass::Messages.as_str()>
+                    <div
+                        class=ChatClass::Messages.as_str()
+                        node_ref=chat_ref
+                        on:scroll=handle_scroll
+                    >
                         <Show
                             when=move || messages().is_some()
                             fallback=move || view! { <p class=TextClass::Dim.as_str()>"Loading messages..."</p> }
@@ -112,35 +163,105 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                                             .unwrap_or_else(|| "Unknown".to_string());
                                         let timestamp =
                                             convert_utc_to_local(message.timestamp).format("%H:%M");
-                                        view! {
-                                            <div
-                                                class=if is_me {
-                                                    ChatClass::MessageMine.as_str()
-                                                } else {
-                                                    ChatClass::Message.as_str()
+                                        let accent_color = chat_accent_color(message.chat_id, message.sender);
+                                        match message.kind {
+                                            ChatMessageKind::Text(text) => {
+                                                view! {
+                                                    <div
+                                                        class=if is_me {
+                                                            ChatClass::MessageMine.as_str()
+                                                        } else {
+                                                            ChatClass::Message.as_str()
+                                                        }
+                                                    >
+                                                        <div class=ChatClass::Meta.as_str()>
+                                                            <span style=chat_name_style(accent_color)>{sender}</span>
+                                                            <span>{timestamp.to_string()}</span>
+                                                        </div>
+                                                        <div
+                                                            class=ChatClass::BubbleSurface.as_str()
+                                                            style=chat_border_style(accent_color)
+                                                            data-accent=if is_me {
+                                                                AccentStrength::Base.as_str()
+                                                            } else {
+                                                                AccentStrength::Weak.as_str()
+                                                            }
+                                                        >
+                                                            {text}
+                                                        </div>
+                                                    </div>
                                                 }
-                                            >
-                                                <div class=ChatClass::Meta.as_str()>
-                                                    <span>{sender}</span>
-                                                    <span>{timestamp.to_string()}</span>
-                                                </div>
-                                                <div
-                                                    class=ChatClass::BubbleSurface.as_str()
-                                                    data-accent=if is_me {
-                                                        AccentStrength::Base.as_str()
-                                                    } else {
-                                                        AccentStrength::Weak.as_str()
-                                                    }
-                                                >
-                                                    {message.message}
-                                                </div>
-                                            </div>
+                                                    .into_any()
+                                            }
+                                            ChatMessageKind::Joined => {
+                                                let text = format!("{sender} joined");
+                                                view! {
+                                                    <div class=ChatClass::MessageSystem.as_str()>
+                                                        <div class=ChatClass::BubbleSystem.as_str()>
+                                                            {text}
+                                                        </div>
+                                                    </div>
+                                                }
+                                                    .into_any()
+                                            }
+                                            ChatMessageKind::Left => {
+                                                let text = format!("{sender} left");
+                                                view! {
+                                                    <div class=ChatClass::MessageSystem.as_str()>
+                                                        <div class=ChatClass::BubbleSystem.as_str()>
+                                                            {text}
+                                                        </div>
+                                                    </div>
+                                                }
+                                                    .into_any()
+                                            }
                                         }
                                     })
                                     .collect_view()
                             }}
                         </Show>
                     </div>
+                    <form
+                        class=ChatClass::InputBar.as_str()
+                        on:submit=move |ev| {
+                            ev.prevent_default();
+                            let text = draft.get().trim().to_string();
+                            let Some(chat_id) = chat_id.get() else {
+                                return;
+                            };
+                            let Some(sender) = state.user_id.get() else {
+                                return;
+                            };
+                            if text.is_empty() {
+                                return;
+                            }
+                            state.send(ClientToServer::Chat(ChatAction::SendMessage(ChatMessage {
+                                sender,
+                                kind: ChatMessageKind::Text(text),
+                                chat_id,
+                            })));
+                            set_draft.set(String::new());
+                        }
+                    >
+                        <TextInput
+                            r#type="text".to_string()
+                            class=ChatClass::InputField.as_str().to_string()
+                            placeholder="Write a message...".to_string()
+                            value=Signal::derive(move || draft.get())
+                            on_input=Callback::new(move |ev| {
+                                set_draft.set(event_target_value(&ev));
+                            })
+                            data_theme=Theme::Strong
+                        />
+                        <button
+                            class=ButtonClass::Base.as_str()
+                            data-theme=Theme::Primary.as_str()
+                            type="submit"
+                            aria-disabled=move || (!can_send.get()).to_string()
+                        >
+                            "Send"
+                        </button>
+                    </form>
                     </Card>
                 </div>
             </Show>
@@ -154,6 +275,14 @@ fn display_name(sender: UserId, state: &AppStateReader) -> Option<String> {
         .get()
         .get(&sender)
         .and_then(|u| u.display_name.clone())
+}
+
+fn chat_accent_color(chat_id: ChatId, sender: UserId) -> AccentColor {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    chat_id.hash(&mut hasher);
+    sender.hash(&mut hasher);
+    let idx = (hasher.finish() as usize) % AccentColor::base().len();
+    AccentColor::base()[idx]
 }
 
 fn build_event_card(post_id: PostId, state: &AppStateReader) -> Option<EventCardProps> {

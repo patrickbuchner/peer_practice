@@ -261,7 +261,9 @@ mod valid_parsing {
             "sender": {
               "id": "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8"
             },
-            "message": "Hello from chat.",
+            "kind": {
+              "Text": "Hello from chat."
+            },
             "chat_id": {
               "id": "01234567-89ab-cdef-0123-456789abcdef"
             }
