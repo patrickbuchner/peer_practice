@@ -68,7 +68,8 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                     });
                 let mut views = Vec::new();
                 let mut last_date: Option<String> = None;
-                for (owner, props) in items {
+                let total = items.len();
+                for (idx, (owner, props)) in items.into_iter().enumerate() {
                     let date = props.date.clone();
                     let gap_class = if last_date
                         .as_ref()
@@ -83,7 +84,15 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                     } else {
                         view! { <EventCardReadonly props state /> }.into_any()
                     };
-                    views.push(view! { <div class=gap_class.as_str()>{card_view}</div> }.into_any());
+                    let stack_index = total.saturating_sub(idx);
+                    views.push(view! {
+                        <div
+                            class=gap_class.as_str()
+                            style=format!("position: relative; z-index: {stack_index};")
+                        >
+                            {card_view}
+                        </div>
+                    }.into_any());
                     last_date = Some(date);
                 }
                 views.into_view()
