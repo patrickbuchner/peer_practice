@@ -1,5 +1,5 @@
 use crate::app_state::AppStateReader;
-use crate::components::styles::{CssVar, EventListClass};
+use crate::components::styles::{CssVar, EventListClass, StackStyle};
 use crate::event_card::{EventCardProps, editable::EventCardEditable, readonly::EventCardReadonly};
 use leptos::prelude::*;
 use peer_practice_shared::convert_utc_to_local_date;
@@ -88,7 +88,7 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                     views.push(view! {
                         <div
                             class=gap_class.as_str()
-                            style=format!("position: relative; z-index: {stack_index};")
+                            style=StackStyle::Card.with_z_index(stack_index)
                         >
                             {card_view}
                         </div>
