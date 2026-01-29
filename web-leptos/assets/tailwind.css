@@ -1135,6 +1135,20 @@ button.surface, .surface.btn, button[class*="btn"].surface {
   max-height: 60vh;
   overflow: auto;
   padding-right: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bg-base-text);
+  @supports (color: color-mix(in lab, red, red)) {
+    border: 1px solid color-mix(in oklab, var(--bg-base-text) 28%, transparent);
+  }
+  border-radius: 12px;
+  box-shadow: inset 0 10px 20px var(--bg-strongest-color), inset 0 1px 0 color-mix(in srgb, white 30%, transparent);
+  @supports (color: color-mix(in lab, red, red)) {
+    box-shadow: inset 0 10px 20px color-mix(in oklab, var(--bg-strongest-color) 45%, transparent), inset 0 1px 0 color-mix(in oklab, white 30%, transparent);
+  }
+  background: linear-gradient( 180deg, var(--bg-base-color), var(--bg-weak-color) );
+  @supports (color: color-mix(in lab, red, red)) {
+    background: linear-gradient( 180deg, color-mix(in oklab, var(--bg-base-color) 92%, transparent), color-mix(in oklab, var(--bg-weak-color) 80%, transparent) );
+  }
 }
 .chat-message {
   display: flex;
@@ -1161,6 +1175,11 @@ button.surface, .surface.btn, button[class*="btn"].surface {
   padding: 0.6rem 0.75rem;
   border-radius: 0.75rem;
   align-self: flex-start;
+  background: var(--bg-strong-color);
+  @supports (color: color-mix(in lab, red, red)) {
+    background: color-mix(in oklab, var(--bg-strong-color) 75%, transparent);
+  }
+  border: 1px solid currentColor;
 }
 .chat-message--mine .chat-bubble {
   align-self: flex-end;
@@ -1180,6 +1199,13 @@ button.surface, .surface.btn, button[class*="btn"].surface {
   }
   font-size: 0.85rem;
   opacity: 0.8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.chat-bubble--system span:last-child {
+  font-size: 0.75rem;
+  opacity: 0.8;
 }
 .chat-input-bar {
   display: grid;
@@ -1190,6 +1216,18 @@ button.surface, .surface.btn, button[class*="btn"].surface {
 }
 .chat-input-field {
   min-width: 0;
+  border: 1px solid var(--bg-base-text);
+  @supports (color: color-mix(in lab, red, red)) {
+    border: 1px solid color-mix(in oklab, var(--bg-base-text) 22%, transparent);
+  }
+  box-shadow: 0 8px 16px var(--bg-strongest-color), inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+  @supports (color: color-mix(in lab, red, red)) {
+    box-shadow: 0 8px 16px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent), inset 0 1px 0 color-mix(in oklab, white 45%, transparent);
+  }
+  background: linear-gradient( 180deg, var(--bg-strong-color), var(--bg-base-color) );
+  @supports (color: color-mix(in lab, red, red)) {
+    background: linear-gradient( 180deg, color-mix(in oklab, var(--bg-strong-color) 82%, transparent), color-mix(in oklab, var(--bg-base-color) 88%, transparent) );
+  }
 }
 .form {
   margin-top: 1rem;

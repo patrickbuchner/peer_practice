@@ -44,7 +44,7 @@ pub fn EventCardEditable(
         let default = if is_new_post {
             CssVar::Teal.as_str()
         } else {
-            CssVar::BgStrongest.as_str()
+            CssVar::BgStrong.as_str()
         };
         let (default_accent, _set_default_accent) = signal(default.to_string());
         default_accent

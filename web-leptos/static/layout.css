@@ -115,6 +115,17 @@
     max-height: 60vh;
     overflow: auto;
     padding-right: 0.35rem;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--bg-base-text) 28%, transparent);
+    border-radius: 12px;
+    box-shadow:
+        inset 0 10px 20px color-mix(in oklab, var(--bg-strongest-color) 45%, transparent),
+        inset 0 1px 0 color-mix(in oklab, white 30%, transparent);
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--bg-base-color) 92%, transparent),
+        color-mix(in oklab, var(--bg-weak-color) 80%, transparent)
+    );
 }
 
 .chat-message {
@@ -146,6 +157,8 @@
     padding: 0.6rem 0.75rem;
     border-radius: 0.75rem;
     align-self: flex-start;
+    background: color-mix(in oklab, var(--bg-strong-color) 75%, transparent);
+    border: 1px solid currentColor;
 }
 
 .chat-message--mine .chat-bubble {
@@ -161,6 +174,14 @@
     border: 1px solid color-mix(in oklab, var(--bg-strong-text) 18%, transparent);
     font-size: 0.85rem;
     opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chat-bubble--system span:last-child {
+    font-size: 0.75rem;
+    opacity: 0.8;
 }
 
 .chat-input-bar {
@@ -173,4 +194,13 @@
 
 .chat-input-field {
     min-width: 0;
+    border: 1px solid color-mix(in oklab, var(--bg-base-text) 22%, transparent);
+    box-shadow:
+        0 8px 16px color-mix(in oklab, var(--bg-strongest-color) 35%, transparent),
+        inset 0 1px 0 color-mix(in oklab, white 45%, transparent);
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--bg-strong-color) 82%, transparent),
+        color-mix(in oklab, var(--bg-base-color) 88%, transparent)
+    );
 }

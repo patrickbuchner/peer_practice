@@ -154,17 +154,24 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                             fallback=move || view! { <p class=TextClass::Dim.as_str()>"Loading messages..."</p> }
                         >
                             {move || {
-                                messages()
-                                    .unwrap_or_default()
-                                    .into_iter()
-                                    .map(|message| {
+                                let list = messages().unwrap_or_default();
+                                let mut latest_system: std::collections::HashMap<UserId, usize> =
+                                    std::collections::HashMap::new();
+                                for (idx, msg) in list.iter().enumerate() {
+                                    if !matches!(msg.kind, ChatMessageKind::Text(_)) {
+                                        latest_system.insert(msg.sender, idx);
+                                    }
+                                }
+                                list.into_iter()
+                                    .enumerate()
+                                    .filter_map(|(idx, message)| {
                                         let is_me = state.user_id.get() == Some(message.sender);
                                         let sender = display_name(message.sender, &state)
                                             .unwrap_or_else(|| "Unknown".to_string());
                                         let timestamp =
                                             convert_utc_to_local(message.timestamp).format("%H:%M");
                                         let accent_color = chat_accent_color(message.chat_id, message.sender);
-                                        match message.kind {
+                                        let view = match message.kind {
                                             ChatMessageKind::Text(text) => {
                                                 view! {
                                                     <div
@@ -186,6 +193,7 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                                                             } else {
                                                                 AccentStrength::Weak.as_str()
                                                             }
+                                                            data-theme=Theme::Strong.as_str()
                                                         >
                                                             {text}
                                                         </div>
@@ -194,28 +202,37 @@ pub fn ChatRoute(#[prop(into)] state: AppStateReader) -> impl IntoView {
                                                     .into_any()
                                             }
                                             ChatMessageKind::Joined => {
+                                                if latest_system.get(&message.sender).copied() != Some(idx) {
+                                                    return None;
+                                                }
                                                 let text = format!("{sender} joined");
                                                 view! {
                                                     <div class=ChatClass::MessageSystem.as_str()>
                                                         <div class=ChatClass::BubbleSystem.as_str()>
-                                                            {text}
+                                                            <span>{text}</span>
+                                                            <span>{timestamp.to_string()}</span>
                                                         </div>
                                                     </div>
                                                 }
                                                     .into_any()
                                             }
                                             ChatMessageKind::Left => {
+                                                if latest_system.get(&message.sender).copied() != Some(idx) {
+                                                    return None;
+                                                }
                                                 let text = format!("{sender} left");
                                                 view! {
                                                     <div class=ChatClass::MessageSystem.as_str()>
                                                         <div class=ChatClass::BubbleSystem.as_str()>
-                                                            {text}
+                                                            <span>{text}</span>
+                                                            <span>{timestamp.to_string()}</span>
                                                         </div>
                                                     </div>
                                                 }
                                                     .into_any()
                                             }
-                                        }
+                                        };
+                                        Some(view)
                                     })
                                     .collect_view()
                             }}

@@ -421,6 +421,7 @@ impl IdeasColumns {
 
 #[derive(Clone, Copy)]
 pub enum CssVar {
+    BgStrong,
     BgStrongest,
     Teal,
 }
@@ -430,6 +431,7 @@ impl CssVar {
         match self {
             CssVar::BgStrongest => "var(--bg-strongest-color)",
             CssVar::Teal => "var(--teal)",
+            CssVar::BgStrong => "var(--bg-strong-color)",
         }
     }
 }

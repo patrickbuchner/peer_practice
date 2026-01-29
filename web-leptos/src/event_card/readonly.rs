@@ -16,7 +16,7 @@ pub fn EventCardReadonly(
     let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas));
     let accent_color = accent_color.unwrap_or_else(|| {
         let (default_accent, _set_default_accent) =
-            signal(CssVar::BgStrongest.as_str().to_string());
+            signal(CssVar::BgStrong.as_str().to_string());
         default_accent
     });
     let shadow_color = {
