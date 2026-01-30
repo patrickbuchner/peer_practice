@@ -1,12 +1,8 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
-use crate::components::styles::{
-    ButtonClass, ChatClass, ClusterClass, LayoutClass, TextClass, chat_border_style,
-    chat_name_style,
-};
 use crate::components::text_input::TextInput;
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
-use crate::event_card::{EventCardProps, readonly::EventCardReadonly};
+use crate::event_card::{readonly::EventCardReadonly, EventCardProps};
 use leptos::prelude::*;
 use leptos_router::params::Params;
 use leptos_router::hooks::use_params;
@@ -23,6 +19,12 @@ use std::hash::{Hash, Hasher};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::window;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::chat::ChatClass;
+use crate::components::styles::cluster::ClusterClass;
+use crate::components::styles::color::{chat_border_style, chat_name_style};
+use crate::components::styles::layout::LayoutClass;
+use crate::components::styles::text_class::TextClass;
 
 #[derive(Params, PartialEq, Clone)]
 struct ChatParams {

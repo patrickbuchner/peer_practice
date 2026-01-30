@@ -1,10 +1,13 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
-use crate::components::styles::{ClusterClass, CssVar, EventCardClass, TextClass};
+use crate::components::styles::color::CssVar;
 use crate::components::text_box::{SurfaceBox, TextBox};
 use crate::components::theme::{CardShadow, Theme};
-use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date};
+use crate::event_card::{event_card_footer, markdown_to_safe_html, shadow_color_for_date, EventCardProps};
 use leptos::prelude::*;
+use crate::components::styles::cluster::ClusterClass;
+use crate::components::styles::event_card::EventCardClass;
+use crate::components::styles::text_class::TextClass;
 
 #[component]
 pub fn EventCardReadonly(

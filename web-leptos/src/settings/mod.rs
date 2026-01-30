@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::components::styles::{ButtonClass, CardClass, ClusterClass, FormClass, LayoutClass, PaletteStyle, TextClass};
+use crate::components::styles::color::PaletteStyle;
 use crate::components::text_input::TextInput;
 use std::sync::Arc;
 
@@ -10,6 +10,12 @@ use crate::components::theme::{CardShadow, Theme};
 use peer_practice_shared::accent_colors::AccentColor;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::user::display_user::UserDisplay;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::card::CardClass;
+use crate::components::styles::cluster::ClusterClass;
+use crate::components::styles::form_class::FormClass;
+use crate::components::styles::layout::LayoutClass;
+use crate::components::styles::text_class::TextClass;
 
 #[component]
 pub fn Settings(state: AppStateReader) -> impl IntoView {

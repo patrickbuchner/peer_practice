@@ -1,10 +1,12 @@
 use crate::app_state::AppStateReader;
-use crate::components::styles::{CssVar, EventListClass, StackStyle};
-use crate::event_card::{EventCardProps, editable::EventCardEditable, readonly::EventCardReadonly};
+use crate::components::styles::color::CssVar;
+use crate::event_card::{editable::EventCardEditable, readonly::EventCardReadonly, EventCardProps};
 use leptos::prelude::*;
 use peer_practice_shared::convert_utc_to_local_date;
 use peer_practice_shared::user::UserId;
 use std::collections::HashSet;
+use crate::components::styles::event_card::EventListClass;
+use crate::components::styles::stack::StackStyle;
 
 #[component]
 pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {

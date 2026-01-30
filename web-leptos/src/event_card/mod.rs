@@ -1,6 +1,6 @@
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ServerButton;
-use crate::components::styles::{ButtonClass, EventCardClass, ShadowColor};
+use crate::components::styles::shadow::ShadowColor;
 use crate::components::theme::Theme;
 use chrono::NaiveDate;
 use leptos::prelude::*;
@@ -10,7 +10,7 @@ use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::ChatAction;
 use peer_practice_shared::post::PostId;
 use peer_practice_shared::user::UserId;
-use pulldown_cmark::{Options, Parser, html};
+use pulldown_cmark::{html, Options, Parser};
 use peer_practice_shared::ymd;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -19,6 +19,8 @@ pub mod editable;
 pub mod readonly;
 
 use peer_practice_shared::messages::client_to_server::PostAction;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::event_card::EventCardClass;
 
 #[derive(Clone, PartialEq)]
 pub struct EventCardProps {

@@ -1,10 +1,11 @@
 use leptos::prelude::*;
-use crate::components::styles::{CardClass, LayoutClass};
+use crate::components::styles::card::CardClass;
 use crate::components::theme::{CardShadow, Theme};
-use leptos::{IntoView, component};
+use leptos::{component, IntoView};
 
 use crate::app_state::{AppStateReader, AppStateWriter};
 use peer_practice_shared::user::UserId;
+use crate::components::styles::layout::LayoutClass;
 
 pub mod email;
 pub mod pin;

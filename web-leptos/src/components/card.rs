@@ -1,8 +1,9 @@
 use leptos::callback::Callback;
 use leptos::prelude::*;
-use leptos::{IntoView, component};
+use leptos::{component, IntoView};
 
-use crate::components::styles::{CardShellClass, ShadowColor};
+use crate::components::styles::shadow::ShadowColor;
+use crate::components::styles::card::CardShellClass;
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
 
 fn card_class(class: Option<String>) -> String {

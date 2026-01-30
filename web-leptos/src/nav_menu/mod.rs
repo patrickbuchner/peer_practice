@@ -1,9 +1,12 @@
 use crate::components::modal::CenterModal;
-use crate::components::styles::{AccentName, ButtonClass, NavMenuClass, nav_link_style};
+use crate::components::styles::navbar::nav_link_style;
 use crate::components::theme::{AccentStrength, Theme};
 use leptos::prelude::*;
-use leptos::{IntoView, component};
+use leptos::{component, IntoView};
 use leptos_router::hooks::use_location;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::color::AccentName;
+use crate::components::styles::nav_menu::NavMenuClass;
 
 #[component]
 pub fn NavMenu() -> impl IntoView {

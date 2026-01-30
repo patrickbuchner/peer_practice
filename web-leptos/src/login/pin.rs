@@ -1,6 +1,6 @@
 use leptos::logging::log;
 use leptos::prelude::*;
-use crate::components::styles::{ButtonClass, FormClass, LayoutClass, TextClass, ToastClass, pin_theme};
+use crate::components::styles::pin_theme;
 use crate::components::text_input::TextInput;
 use crate::components::theme::Theme;
 
@@ -9,6 +9,11 @@ use crate::host;
 use crate::websocket::attempt_connect;
 use peer_practice_shared::authentication::login_data::PinLogin;
 use peer_practice_shared::user::UserId;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::form_class::FormClass;
+use crate::components::styles::layout::LayoutClass;
+use crate::components::styles::text_class::TextClass;
+use crate::components::styles::toast::ToastClass;
 
 #[component]
 pub fn LoginPinStep(

@@ -7,17 +7,21 @@ use crate::components::buttons::ConfirmDeleteButton;
 use crate::components::buttons::ServerButton;
 use crate::components::card::CardForm;
 use crate::components::select_input::SelectInput;
-use crate::components::styles::{ButtonClass, ClusterClass, CssVar, EventCardClass, IdeasColumns};
+use crate::components::styles::color::CssVar;
 use crate::components::text_box::TextBox;
 use crate::components::text_input::TextAreaInput;
 use crate::components::theme::{AccentStrength, CardShadow, Theme};
-use crate::event_card::editable::draft::{Draft, clear_draft, save_draft};
-use crate::event_card::{EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date};
+use crate::event_card::editable::draft::{clear_draft, save_draft, Draft};
+use crate::event_card::{event_card_footer, markdown_to_safe_html, shadow_color_for_date, EventCardProps};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::PostAction;
 use peer_practice_shared::post::{PostId, Topics};
 use peer_practice_shared::{convert_to_utc, convert_utc_to_local_date, ymd};
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::cluster::ClusterClass;
+use crate::components::styles::event_card::EventCardClass;
+use crate::components::styles::ideas::IdeasColumns;
 
 mod draft;
 #[component]
@@ -64,13 +68,13 @@ pub fn EventCardEditable(
     let (date_selected, set_date_selected) = signal(initial_date);
     let post_id = props.id;
     let (shadow_color, set_shadow_color) = signal(if is_new_post {
-        crate::components::styles::ShadowColor::Teal
+        crate::components::styles::shadow::ShadowColor::Teal
     } else {
         shadow_color_for_date(&date_selected.get_untracked())
     });
     Effect::new(move |_| {
         let next = if is_new_post {
-            crate::components::styles::ShadowColor::Teal
+            crate::components::styles::shadow::ShadowColor::Teal
         } else {
             shadow_color_for_date(&date_selected.get())
         };

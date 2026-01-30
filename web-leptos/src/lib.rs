@@ -1,16 +1,19 @@
-use crate::app_state::{AppStateReader, initialize_app_state};
+use crate::app_state::{initialize_app_state, AppStateReader};
 use crate::event_card::EventCardProps;
 use crate::nav_menu::NavMenu;
-use crate::components::styles::{ButtonClass, NavbarClass, StatusClass, StatusColor, SvgStrokeColor};
 use crate::components::theme::{AccentStrength, Theme};
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
-use leptos_router::{NavigateOptions, path};
+use leptos_router::{path, NavigateOptions};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::post::PostId;
 use peer_practice_shared::ymd;
 use std::collections::HashSet;
+use components::styles::button_class::ButtonClass;
+use components::styles::color::{StatusColor, SvgStrokeColor};
+use components::styles::navbar::NavbarClass;
+use components::styles::status::StatusClass;
 
 mod app_state;
 mod chat;
