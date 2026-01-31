@@ -2,7 +2,7 @@ use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
 
-use crate::components::theme::{AccentStrength, Theme};
+use crate::components::theme::{AccentStrength, SurfaceTheme, Theme};
 
 fn select_class(class: Option<String>) -> String {
     let extra = class.unwrap_or_default().trim().to_string();
@@ -47,7 +47,7 @@ pub fn SelectInput(
 ) -> impl IntoView {
     let class = select_class(class);
     let style = select_style(style.unwrap_or_default(), accent_color);
-    let data_theme = data_theme.unwrap_or(Theme::Strong);
+    let data_theme = data_theme.unwrap_or(Theme::Surface(SurfaceTheme::Strong));
 
     view! {
         <select

@@ -1,11 +1,11 @@
-use leptos::prelude::*;
 use crate::components::styles::card::CardClass;
-use crate::components::theme::{CardShadow, Theme};
-use leptos::{component, IntoView};
+use crate::components::theme::{CardShadow, SurfaceTheme, Theme};
+use leptos::prelude::*;
+use leptos::{IntoView, component};
 
 use crate::app_state::{AppStateReader, AppStateWriter};
-use peer_practice_shared::user::UserId;
 use crate::components::styles::layout::LayoutClass;
+use peer_practice_shared::user::UserId;
 
 pub mod email;
 pub mod pin;
@@ -39,7 +39,7 @@ pub fn LoginRoute(
             <div class=LayoutClass::PageCenter.as_str()>
                 <div
                     class=CardClass::AuthElevated.as_str()
-                    data-theme=Theme::Strong.as_str()
+                    data-theme=Theme::Surface(SurfaceTheme::Strong).as_str()
                     data-shadow=CardShadow::None.as_str()
                 >
                     {move || match read_step.get() {

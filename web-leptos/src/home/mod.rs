@@ -1,12 +1,12 @@
 use crate::app_state::AppStateReader;
 use crate::components::styles::color::CssVar;
-use crate::event_card::{editable::EventCardEditable, readonly::EventCardReadonly, EventCardProps};
+use crate::components::styles::event_card::EventListClass;
+use crate::components::styles::stack::StackStyle;
+use crate::event_card::{EventCardProps, editable::EventCardEditable, readonly::EventCardReadonly};
 use leptos::prelude::*;
 use peer_practice_shared::convert_utc_to_local_date;
 use peer_practice_shared::user::UserId;
 use std::collections::HashSet;
-use crate::components::styles::event_card::EventListClass;
-use crate::components::styles::stack::StackStyle;
 
 #[component]
 pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
@@ -20,8 +20,9 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
             }>
                 {move || {
                     let props = read_new_post.get().unwrap();
-                    let (accent_color, _set_accent_teal) =
-                        signal(CssVar::Teal.as_str().to_string());
+                    let (accent_color, _set_accent_teal) = signal(
+                        CssVar::Teal.as_str().to_string(),
+                    );
                     view! {
                         <EventCardEditable
                             props
@@ -73,10 +74,7 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                 let total = items.len();
                 for (idx, (owner, props)) in items.into_iter().enumerate() {
                     let date = props.date.clone();
-                    let gap_class = if last_date
-                        .as_ref()
-                        .is_some_and(|prev| prev != &props.date)
-                    {
+                    let gap_class = if last_date.as_ref().is_some_and(|prev| prev != &props.date) {
                         EventListClass::DateGap
                     } else {
                         EventListClass::None
@@ -87,14 +85,18 @@ pub fn Home(#[prop(into)] state: AppStateReader) -> impl IntoView {
                         view! { <EventCardReadonly props state /> }.into_any()
                     };
                     let stack_index = total.saturating_sub(idx);
-                    views.push(view! {
-                        <div
-                            class=gap_class.as_str()
-                            style=StackStyle::Card.with_z_index(stack_index)
-                        >
-                            {card_view}
-                        </div>
-                    }.into_any());
+                    views
+                        .push(
+                            view! {
+                                <div
+                                    class=gap_class.as_str()
+                                    style=StackStyle::Card.with_z_index(stack_index)
+                                >
+                                    {card_view}
+                                </div>
+                            }
+                                .into_any(),
+                        );
                     last_date = Some(date);
                 }
                 views.into_view()

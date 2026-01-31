@@ -1,13 +1,15 @@
 use crate::app_state::AppStateReader;
 use crate::components::card::Card;
-use crate::components::styles::color::CssVar;
-use crate::components::text_box::{SurfaceBox, TextBox};
-use crate::components::theme::{CardShadow, Theme};
-use crate::event_card::{event_card_footer, markdown_to_safe_html, shadow_color_for_date, EventCardProps};
-use leptos::prelude::*;
 use crate::components::styles::cluster::ClusterClass;
+use crate::components::styles::color::CssVar;
 use crate::components::styles::event_card::EventCardClass;
 use crate::components::styles::text_class::TextClass;
+use crate::components::text_box::{SurfaceBox, TextBox};
+use crate::components::theme::{CardShadow, SurfaceTheme, Theme};
+use crate::event_card::{
+    EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date,
+};
+use leptos::prelude::*;
 
 #[component]
 pub fn EventCardReadonly(
@@ -18,8 +20,7 @@ pub fn EventCardReadonly(
     let ideas = props.ideas.clone();
     let ideas_html = Signal::derive(move || markdown_to_safe_html(&ideas));
     let accent_color = accent_color.unwrap_or_else(|| {
-        let (default_accent, _set_default_accent) =
-            signal(CssVar::BgStrong.as_str().to_string());
+        let (default_accent, _set_default_accent) = signal(CssVar::BgStrong.as_str().to_string());
         default_accent
     });
     let shadow_color = {
@@ -27,7 +28,7 @@ pub fn EventCardReadonly(
         read
     };
 
-    let theme = Theme::Strong;
+    let theme = Theme::Surface(SurfaceTheme::Strong);
 
     view! {
         <Card
@@ -43,9 +44,9 @@ pub fn EventCardReadonly(
 
             <div class=EventCardClass::Row.as_str()>
                 <span class=EventCardClass::Label.as_str()>"Level"</span>
-                <SurfaceBox class=EventCardClass::Badge.as_str().to_string()>
-                    {props.level.to_string()}
-                </SurfaceBox>
+                <SurfaceBox class=EventCardClass::Badge
+                    .as_str()
+                    .to_string()>{props.level.to_string()}</SurfaceBox>
             </div>
 
             <div class=EventCardClass::Row.as_str()>

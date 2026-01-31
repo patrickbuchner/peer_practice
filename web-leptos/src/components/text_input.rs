@@ -2,7 +2,7 @@ use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
 
-use crate::components::theme::{AccentStrength, Theme};
+use crate::components::theme::{AccentStrength, SurfaceTheme, Theme};
 
 fn input_class(class: Option<String>) -> String {
     let extra = class.unwrap_or_default().trim().to_string();
@@ -15,7 +15,10 @@ fn input_class(class: Option<String>) -> String {
     format!("input {extra}")
 }
 
-fn input_style(base_style: String, accent_color: Option<ReadSignal<String>>) -> impl Fn() -> String {
+fn input_style(
+    base_style: String,
+    accent_color: Option<ReadSignal<String>>,
+) -> impl Fn() -> String {
     move || {
         let mut style_value = base_style.clone();
         if let Some(accent) = accent_color.as_ref() {
@@ -54,7 +57,7 @@ pub fn TextInput(
 ) -> impl IntoView {
     let class = input_class(class);
     let style = input_style(style.unwrap_or_default(), accent_color);
-    let data_theme = data_theme.unwrap_or(Theme::Strong);
+    let data_theme = data_theme.unwrap_or(Theme::Surface(SurfaceTheme::Strong));
     let input_type = r#type.unwrap_or_else(|| "text".to_string());
     let pattern = pattern.unwrap_or_else(|| ".*".to_string());
 
@@ -106,7 +109,7 @@ pub fn TextAreaInput(
 ) -> impl IntoView {
     let class = input_class(class);
     let style = input_style(style.unwrap_or_default(), accent_color);
-    let data_theme = data_theme.unwrap_or(Theme::Strong);
+    let data_theme = data_theme.unwrap_or(Theme::Surface(SurfaceTheme::Strong));
     let rows = rows.map(|value| value.to_string());
     let cols = cols.map(|value| value.to_string());
 

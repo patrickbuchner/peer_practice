@@ -30,10 +30,7 @@ fn assert_empty_unbounded<T>(rx: &mut mpsc::UnboundedReceiver<T>) {
 
 async fn ping(hub_tx: &mpsc::Sender<WsHubMsg>) {
     let (respond_to, recv) = oneshot::channel();
-    hub_tx
-        .send(WsHubMsg::Ping { respond_to })
-        .await
-        .unwrap();
+    hub_tx.send(WsHubMsg::Ping { respond_to }).await.unwrap();
     recv_oneshot(recv).await
 }
 
@@ -191,8 +188,14 @@ async fn send_delivers_only_to_specific_connection() {
     let received2 = recv_unbounded(&mut rx2).await;
 
     // Assert
-    assert!(matches!(received1, Some(ServerToClient::MessageNotYetKnown)));
-    assert!(matches!(received2, Some(ServerToClient::User(UserAction::YouAre(_)))));
+    assert!(matches!(
+        received1,
+        Some(ServerToClient::MessageNotYetKnown)
+    ));
+    assert!(matches!(
+        received2,
+        Some(ServerToClient::User(UserAction::YouAre(_)))
+    ));
     ping(&hub_tx).await;
     assert_empty_unbounded(&mut rx1);
     assert_empty_unbounded(&mut rx2);

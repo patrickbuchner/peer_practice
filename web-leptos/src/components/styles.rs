@@ -1,4 +1,4 @@
-use crate::components::theme::Theme;
+use crate::components::theme::{IntentTheme, Theme};
 pub mod button_class;
 pub mod card;
 pub mod chat;
@@ -10,16 +10,15 @@ pub mod ideas;
 pub mod layout;
 pub mod nav_menu;
 pub mod navbar;
-pub mod shadow;
 pub mod stack;
 pub mod status;
 pub mod text_class;
 pub mod toast;
 
-pub fn pin_theme(is_complete: bool) -> &'static str {
+pub fn pin_theme(is_complete: bool) -> Theme {
     if is_complete {
-        Theme::Primary.as_str()
+        Theme::Intent(IntentTheme::Primary)
     } else {
-        Theme::Secondary.as_str()
+        Theme::Intent(IntentTheme::Secondary)
     }
 }

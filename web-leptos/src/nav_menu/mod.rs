@@ -1,17 +1,17 @@
 use crate::components::modal::CenterModal;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::nav_menu::NavMenuClass;
 use crate::components::styles::navbar::nav_link_style;
 use crate::components::theme::{AccentStrength, Theme};
 use leptos::prelude::*;
-use leptos::{component, IntoView};
+use leptos::{IntoView, component};
 use leptos_router::hooks::use_location;
-use crate::components::styles::button_class::ButtonClass;
-use crate::components::styles::color::AccentName;
-use crate::components::styles::nav_menu::NavMenuClass;
+use peer_practice_shared::colors::accent_colors::AccentColor;
 
 #[component]
 pub fn NavMenu() -> impl IntoView {
     let (menu_open, set_menu_open) = signal(false);
-    let (accent_name, _set_accent_name) = signal(AccentName::Rosewater.as_str().to_string());
+    let (accent_name, _set_accent_name) = signal(AccentColor::Rosewater);
     let location = use_location();
     let current_path = move || location.pathname.get();
 

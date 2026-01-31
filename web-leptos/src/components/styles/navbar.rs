@@ -1,3 +1,5 @@
+use peer_practice_shared::colors::accent_colors::AccentColor;
+
 #[derive(Clone, Copy)]
 pub enum NavbarClass {
     Navbar,
@@ -43,10 +45,12 @@ impl NavLinkState {
     }
 }
 
-pub fn nav_link_style(active: bool, accent: &str) -> String {
+pub fn nav_link_style(active: bool, accent: &AccentColor) -> String {
     if active {
-        NavLinkState::Active.accent_vars(accent)
+        let color = format!("{accent}");
+        NavLinkState::Active.accent_vars(&color)
     } else {
-        NavLinkState::Inactive.accent_vars(accent)
+        let color = format!("{}", accent.toggle_lightness());
+        NavLinkState::Inactive.accent_vars(&color)
     }
 }

@@ -57,10 +57,7 @@ fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
 
 async fn ping(posts_tx: &mpsc::Sender<PostsMsg>) {
     let (respond_to, recv) = oneshot::channel();
-    posts_tx
-        .send(PostsMsg::Ping(respond_to))
-        .await
-        .unwrap();
+    posts_tx.send(PostsMsg::Ping(respond_to)).await.unwrap();
     recv_oneshot(recv).await
 }
 

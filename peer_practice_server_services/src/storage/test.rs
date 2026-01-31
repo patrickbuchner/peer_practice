@@ -4,9 +4,9 @@ use peer_practice_messages::current::email::Email;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::Topics;
 use peer_practice_messages::test_helpers_impl::fixed_timestamp;
+use peer_practice_messages::v2026_01_11::chat::ChatMessageKind;
 use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, oneshot};
-use peer_practice_messages::v2026_01_11::chat::ChatMessageKind;
 
 #[derive(Clone, Default)]
 struct MemFs {
@@ -70,9 +70,7 @@ async fn recv_oneshot<T>(rx: oneshot::Receiver<T>) -> T {
 
 async fn ping(tx: &mpsc::Sender<StorageMsg>) {
     let (respond_to, recv) = oneshot::channel();
-    tx.send(StorageMsg::Ping { respond_to })
-        .await
-        .unwrap();
+    tx.send(StorageMsg::Ping { respond_to }).await.unwrap();
     recv_oneshot(recv).await
 }
 

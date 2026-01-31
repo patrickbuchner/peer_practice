@@ -67,7 +67,7 @@ where
     F: FnOnce(mpsc::Receiver<M>) -> Fut,
     Fut: Future<Output = ()> + Send + 'static,
 {
-        let (tx, rx) = mpsc::channel(buffer);
-        crate::task::spawn_named(name, f(rx));
-        tx
+    let (tx, rx) = mpsc::channel(buffer);
+    crate::task::spawn_named(name, f(rx));
+    tx
 }

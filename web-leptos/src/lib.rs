@@ -1,19 +1,19 @@
-use crate::app_state::{initialize_app_state, AppStateReader};
+use crate::app_state::{AppStateReader, initialize_app_state};
+use crate::components::theme::{AccentStrength, Theme};
 use crate::event_card::EventCardProps;
 use crate::nav_menu::NavMenu;
-use crate::components::theme::{AccentStrength, Theme};
-use leptos::logging::log;
-use leptos::prelude::*;
-use leptos_router::components::{Route, Router, Routes};
-use leptos_router::{path, NavigateOptions};
-use peer_practice_shared::level::Level;
-use peer_practice_shared::post::PostId;
-use peer_practice_shared::ymd;
-use std::collections::HashSet;
 use components::styles::button_class::ButtonClass;
 use components::styles::color::{StatusColor, SvgStrokeColor};
 use components::styles::navbar::NavbarClass;
 use components::styles::status::StatusClass;
+use leptos::logging::log;
+use leptos::prelude::*;
+use leptos_router::components::{Route, Router, Routes};
+use leptos_router::{NavigateOptions, path};
+use peer_practice_shared::level::Level;
+use peer_practice_shared::post::PostId;
+use peer_practice_shared::ymd;
+use std::collections::HashSet;
 
 mod app_state;
 mod chat;
@@ -103,9 +103,7 @@ pub fn App() -> impl IntoView {
                         <NavMenu />
                     </div>
                     <div class=NavbarClass::SectionCenter.as_str()>
-                        <strong class=NavbarClass::TitleAccent.as_str()>
-                            {active_user_label}
-                        </strong>
+                        <strong class=NavbarClass::TitleAccent.as_str()>{active_user_label}</strong>
                     </div>
                     <div class=NavbarClass::SectionEnd.as_str()>
                         <div class=NavbarClass::IconBar.as_str()>
@@ -211,7 +209,8 @@ fn CreateNewPost(
                 }
             }
         >
-            <span class=ButtonClass::Icon.as_str()>
+            <span class=ButtonClass::Icon
+                .as_str()>
                 {move || {
                     if read_new_post.get().is_some() { "-".to_string() } else { "+".to_string() }
                 }}
@@ -222,8 +221,7 @@ fn CreateNewPost(
 
 #[component]
 fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
-    let color =
-        move || StatusColor::from_connected(state.connected_to_server()).as_str();
+    let color = move || StatusColor::from_connected(state.connected_to_server()).as_str();
     let status_text = move || {
         if state.connected_to_server() {
             "Connected to server"
@@ -255,10 +253,7 @@ fn ConnectionStatus(state: AppStateReader) -> impl IntoView {
                 />
             </svg>
             <Show when=move || show_toast.get()>
-                <div
-                    role="status"
-                    class=StatusClass::Toast.as_str()
-                >
+                <div role="status" class=StatusClass::Toast.as_str()>
                     {status_text}
                 </div>
             </Show>

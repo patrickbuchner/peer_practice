@@ -1,7 +1,7 @@
 use crate::app_state::AppStateReader;
 use crate::components::buttons::ServerButton;
-use crate::components::styles::shadow::ShadowColor;
-use crate::components::theme::Theme;
+use crate::components::styles::color::ShadowColor;
+use crate::components::theme::{IntentTheme, Theme};
 use chrono::NaiveDate;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_navigate};
@@ -10,17 +10,17 @@ use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::ChatAction;
 use peer_practice_shared::post::PostId;
 use peer_practice_shared::user::UserId;
-use pulldown_cmark::{html, Options, Parser};
 use peer_practice_shared::ymd;
+use pulldown_cmark::{Options, Parser, html};
 use std::collections::HashSet;
 use std::sync::Arc;
 
 pub mod editable;
 pub mod readonly;
 
-use peer_practice_shared::messages::client_to_server::PostAction;
 use crate::components::styles::button_class::ButtonClass;
 use crate::components::styles::event_card::EventCardClass;
+use peer_practice_shared::messages::client_to_server::PostAction;
 
 #[derive(Clone, PartialEq)]
 pub struct EventCardProps {
@@ -82,9 +82,9 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
                     class=Signal::derive(move || { ButtonClass::Base.as_str().to_string() })
                     data_theme=Arc::new(move || {
                         if partaking() {
-                            Theme::Success
+                            Theme::Intent(IntentTheme::Success)
                         } else {
-                            Theme::Primary
+                            Theme::Intent(IntentTheme::Primary)
                         }
                     })
                     on_click=Callback::new(move |_| toggle_join())
@@ -92,15 +92,11 @@ fn event_card_footer(props: EventCardProps, state: AppStateReader) -> impl IntoV
                     {move || if partaking() { "Joined".to_string() } else { "Join".to_string() }}
                 </ServerButton>
 
-                <span class=EventCardClass::Count.as_str()>
-                    "👥 " {move || count}
-                </span>
+                <span class=EventCardClass::Count.as_str()>"👥 " {move || count}</span>
 
                 <ChatButton post_id state />
             </div>
-            <em class=EventCardClass::Author.as_str()>
-                {"by "} {props.author.to_string()}
-            </em>
+            <em class=EventCardClass::Author.as_str()>{"by "} {props.author.to_string()}</em>
         </div>
     }
 }
@@ -128,7 +124,7 @@ fn ChatButton(post_id: PostId, #[prop(into)] state: AppStateReader) -> impl Into
         <ServerButton
             class=Signal::derive(move || { ButtonClass::Base.as_str().to_string() })
             disabled=is_disabled
-            data_theme=Arc::new(|| Theme::Primary)
+            data_theme=Arc::new(|| Theme::Intent(IntentTheme::Primary))
             on_click=Callback::new(move |_| {
                 if is_on_chat.get_untracked() {
                     navigate("/", Default::default());

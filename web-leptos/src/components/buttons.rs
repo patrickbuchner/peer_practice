@@ -1,6 +1,6 @@
 use crate::app_state::AppStateReader;
 use crate::components::modal::ConfirmDangerousModal;
-use crate::components::theme::Theme;
+use crate::components::theme::{IntentTheme, Theme};
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
@@ -26,7 +26,7 @@ pub fn ServerButton(
     let btn_type = r#type.unwrap_or_else(|| "button".to_string());
     let aria = aria_label.unwrap_or_default();
     let style = style.unwrap_or_default();
-    let data_theme = data_theme.unwrap_or_else(|| Arc::new(|| Theme::Primary));
+    let data_theme = data_theme.unwrap_or_else(|| Arc::new(|| Theme::Intent(IntentTheme::Primary)));
 
     let guarded_on_click = on_click.map(|cb| {
         Callback::new(move |ev: leptos::ev::MouseEvent| {
@@ -80,15 +80,15 @@ pub fn ConfirmDeleteButton(
 
     view! {
         <>
-        <button
-            class="btn btn--sm"
-            type="button"
-            aria-label=aria
-            title=btn_title
-            data-theme=Theme::Danger.as_str()
-            on:click=move |_| {
-                set_show_confirm.set(true);
-            }
+            <button
+                class="btn btn--sm"
+                type="button"
+                aria-label=aria
+                title=btn_title
+                data-theme=Theme::Intent(IntentTheme::Danger).as_str()
+                on:click=move |_| {
+                    set_show_confirm.set(true);
+                }
             >
                 {btn_label}
             </button>

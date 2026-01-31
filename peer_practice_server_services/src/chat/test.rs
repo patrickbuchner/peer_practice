@@ -2,9 +2,9 @@ use crate::chat::*;
 use crate::clock::ManualClock;
 use chrono::TimeZone;
 use peer_practice_messages::current::user::UserId;
-use tokio::sync::mpsc::error::TryRecvError;
 use std::sync::Arc;
 use test_case::test_case;
+use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 
@@ -55,10 +55,7 @@ fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
 
 async fn ping(chat_tx: &mpsc::Sender<ChatMsg>) {
     let (respond_to, recv) = oneshot::channel();
-    chat_tx
-        .send(ChatMsg::Ping(respond_to))
-        .await
-        .unwrap();
+    chat_tx.send(ChatMsg::Ping(respond_to)).await.unwrap();
     recv_oneshot(recv).await
 }
 
@@ -154,7 +151,9 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
     let expected_texts: Vec<String> = messages
         .iter()
         .filter_map(|m| match &m.kind {
-            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => Some(text.clone()),
+            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => {
+                Some(text.clone())
+            }
             _ => None,
         })
         .collect();
@@ -187,7 +186,9 @@ async fn store_msg_broadcasts_and_persists(builder: MsgBuilder) {
         .content
         .iter()
         .filter_map(|m| match &m.kind {
-            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => Some(text.clone()),
+            peer_practice_messages::current::chat::ChatMessageKind::Text(text) => {
+                Some(text.clone())
+            }
             _ => None,
         })
         .collect();
@@ -398,7 +399,9 @@ async fn store_msg_unknown_chat_is_noop() {
     chat_tx
         .send(ChatMsg::StoreMsg(Message {
             sender: UserId::default(),
-            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("missing".to_string()),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text(
+                "missing".to_string(),
+            ),
             chat_id,
             timestamp: test_timestamp(),
         }))
@@ -425,7 +428,9 @@ async fn store_msg_for_missing_post_is_noop() {
         .send(ChatMsg::StoreMsgForPost {
             post_id: PostId::new(),
             sender: UserId::default(),
-            kind: peer_practice_messages::current::chat::ChatMessageKind::Text("missing".to_string()),
+            kind: peer_practice_messages::current::chat::ChatMessageKind::Text(
+                "missing".to_string(),
+            ),
         })
         .await
         .unwrap();

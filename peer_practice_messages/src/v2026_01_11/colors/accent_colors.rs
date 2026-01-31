@@ -96,6 +96,89 @@ impl AccentColor {
         )
     }
 
+    /// Convert base -> light, keeping the hue; light stays light.
+    pub const fn to_light(self) -> Self {
+        match self {
+            // Base -> Light
+            AccentColor::Rosewater => AccentColor::RosewaterLight,
+            AccentColor::Flamingo => AccentColor::FlamingoLight,
+            AccentColor::Pink => AccentColor::PinkLight,
+            AccentColor::Mauve => AccentColor::MauveLight,
+            AccentColor::Red => AccentColor::RedLight,
+            AccentColor::Maroon => AccentColor::MaroonLight,
+            AccentColor::Peach => AccentColor::PeachLight,
+            AccentColor::Yellow => AccentColor::YellowLight,
+            AccentColor::Green => AccentColor::GreenLight,
+            AccentColor::Teal => AccentColor::TealLight,
+            AccentColor::Sky => AccentColor::SkyLight,
+            AccentColor::Sapphire => AccentColor::SapphireLight,
+            AccentColor::Blue => AccentColor::BlueLight,
+            AccentColor::Lavender => AccentColor::LavenderLight,
+
+            // Light -> Light (idempotent)
+            AccentColor::RosewaterLight
+            | AccentColor::FlamingoLight
+            | AccentColor::PinkLight
+            | AccentColor::MauveLight
+            | AccentColor::RedLight
+            | AccentColor::MaroonLight
+            | AccentColor::PeachLight
+            | AccentColor::YellowLight
+            | AccentColor::GreenLight
+            | AccentColor::TealLight
+            | AccentColor::SkyLight
+            | AccentColor::SapphireLight
+            | AccentColor::BlueLight
+            | AccentColor::LavenderLight => self,
+        }
+    }
+
+    /// Convert light -> base, keeping the hue; base stays base.
+    pub const fn to_base(self) -> Self {
+        match self {
+            // Light -> Base
+            AccentColor::RosewaterLight => AccentColor::Rosewater,
+            AccentColor::FlamingoLight => AccentColor::Flamingo,
+            AccentColor::PinkLight => AccentColor::Pink,
+            AccentColor::MauveLight => AccentColor::Mauve,
+            AccentColor::RedLight => AccentColor::Red,
+            AccentColor::MaroonLight => AccentColor::Maroon,
+            AccentColor::PeachLight => AccentColor::Peach,
+            AccentColor::YellowLight => AccentColor::Yellow,
+            AccentColor::GreenLight => AccentColor::Green,
+            AccentColor::TealLight => AccentColor::Teal,
+            AccentColor::SkyLight => AccentColor::Sky,
+            AccentColor::SapphireLight => AccentColor::Sapphire,
+            AccentColor::BlueLight => AccentColor::Blue,
+            AccentColor::LavenderLight => AccentColor::Lavender,
+
+            // Base -> Base (idempotent)
+            AccentColor::Rosewater
+            | AccentColor::Flamingo
+            | AccentColor::Pink
+            | AccentColor::Mauve
+            | AccentColor::Red
+            | AccentColor::Maroon
+            | AccentColor::Peach
+            | AccentColor::Yellow
+            | AccentColor::Green
+            | AccentColor::Teal
+            | AccentColor::Sky
+            | AccentColor::Sapphire
+            | AccentColor::Blue
+            | AccentColor::Lavender => self,
+        }
+    }
+
+    /// Flip base <-> light.
+    pub const fn toggle_lightness(self) -> Self {
+        if self.is_light() {
+            self.to_base()
+        } else {
+            self.to_light()
+        }
+    }
+
     /// Return all base colors.
     pub const fn base() -> &'static [AccentColor] {
         &BASE

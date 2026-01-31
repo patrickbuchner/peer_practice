@@ -1,17 +1,5 @@
-use peer_practice_shared::accent_colors::AccentColor;
-
-#[derive(Clone, Copy)]
-pub enum AccentName {
-    Rosewater,
-}
-
-impl AccentName {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            AccentName::Rosewater => "rosewater",
-        }
-    }
-}
+use peer_practice_shared::colors::accent_colors::AccentColor;
+use peer_practice_shared::colors::semantic_colors::{BackgroundColor, SemanticColor};
 
 #[derive(Clone, Copy)]
 pub enum PaletteStyle {
@@ -19,10 +7,10 @@ pub enum PaletteStyle {
 }
 
 impl PaletteStyle {
-    pub fn with_accent(self, accent_var: &str) -> String {
+    pub fn with_accent(self, accent_var: &AccentColor) -> String {
         match self {
             PaletteStyle::AccentSwatch => {
-                format!("--accent: {}; width: 100%;", accent_var)
+                format!("--accent: {}; width: 100%;", accent_var.css_var())
             }
         }
     }
@@ -37,8 +25,8 @@ pub enum StatusColor {
 impl StatusColor {
     pub const fn as_str(self) -> &'static str {
         match self {
-            StatusColor::Connected => "var(--success-color)",
-            StatusColor::Disconnected => "var(--danger-color)",
+            StatusColor::Connected => SemanticColor::Success.css_var(),
+            StatusColor::Disconnected => SemanticColor::Danger.css_var(),
         }
     }
 
@@ -64,6 +52,7 @@ impl SvgStrokeColor {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub enum CssVar {
     BgStrong,
@@ -74,15 +63,11 @@ pub enum CssVar {
 impl CssVar {
     pub const fn as_str(self) -> &'static str {
         match self {
-            CssVar::BgStrongest => "var(--bg-strongest-color)",
-            CssVar::Teal => "var(--teal)",
-            CssVar::BgStrong => "var(--bg-strong-color)",
+            CssVar::BgStrongest => BackgroundColor::Strongest.css_var(),
+            CssVar::BgStrong => BackgroundColor::Strong.css_var(),
+            CssVar::Teal => AccentColor::Teal.css_var(),
         }
     }
-}
-
-pub fn chat_accent_style(color: AccentColor) -> String {
-    format!("--accent: {};", color.css_var())
 }
 
 pub fn chat_name_style(color: AccentColor) -> String {
@@ -91,4 +76,27 @@ pub fn chat_name_style(color: AccentColor) -> String {
 
 pub fn chat_border_style(color: AccentColor) -> String {
     format!("border-color: {};", color.css_var())
+}
+
+#[derive(Clone, Copy)]
+pub enum ShadowColor {
+    Base,
+    Green,
+    Teal,
+    Sky,
+    Mauve,
+    Lavender,
+}
+
+impl ShadowColor {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            ShadowColor::Base => "base",
+            ShadowColor::Green => "green",
+            ShadowColor::Teal => "teal",
+            ShadowColor::Sky => "sky",
+            ShadowColor::Mauve => "mauve",
+            ShadowColor::Lavender => "lavender",
+        }
+    }
 }

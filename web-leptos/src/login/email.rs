@@ -1,17 +1,17 @@
-use leptos::logging::log;
-use leptos::prelude::*;
 use crate::components::styles::form_class::FormClass;
 use crate::components::text_input::TextInput;
-use crate::components::theme::Theme;
+use crate::components::theme::{IntentTheme, Theme};
+use leptos::logging::log;
+use leptos::prelude::*;
 
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::layout::LayoutClass;
+use crate::components::styles::text_class::TextClass;
 use crate::host;
 use peer_practice_shared::authentication::login_data::LoginData;
 use peer_practice_shared::authentication::method::AuthenticationMethod;
 use peer_practice_shared::email::Email;
 use peer_practice_shared::user::UserId;
-use crate::components::styles::button_class::ButtonClass;
-use crate::components::styles::layout::LayoutClass;
-use crate::components::styles::text_class::TextClass;
 
 #[component]
 pub fn LoginEmailStep(
@@ -84,7 +84,7 @@ pub fn LoginEmailStep(
                 <button
                     type="submit"
                     class=ButtonClass::Base.as_str()
-                    data-theme=Theme::Primary.as_str()
+                    data-theme=Theme::Intent(IntentTheme::Primary).as_str()
                 >
                     "Next"
                 </button>

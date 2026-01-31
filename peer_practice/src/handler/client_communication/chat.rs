@@ -83,7 +83,7 @@ mod tests {
     use peer_practice_server_services::chat::message::Message;
     use peer_practice_server_services::chat::progress::Progress;
     use peer_practice_server_services::ws_hub::ConnectionId;
-    use tokio::time::{timeout, Duration};
+    use tokio::time::{Duration, timeout};
 
     async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
         match timeout(Duration::from_secs(1), rx.recv()).await {

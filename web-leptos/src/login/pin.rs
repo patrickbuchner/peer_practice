@@ -1,19 +1,19 @@
-use leptos::logging::log;
-use leptos::prelude::*;
 use crate::components::styles::pin_theme;
 use crate::components::text_input::TextInput;
-use crate::components::theme::Theme;
+use crate::components::theme::{IntentTheme, Theme};
+use leptos::logging::log;
+use leptos::prelude::*;
 
 use crate::app_state::{AppStateReader, AppStateWriter};
-use crate::host;
-use crate::websocket::attempt_connect;
-use peer_practice_shared::authentication::login_data::PinLogin;
-use peer_practice_shared::user::UserId;
 use crate::components::styles::button_class::ButtonClass;
 use crate::components::styles::form_class::FormClass;
 use crate::components::styles::layout::LayoutClass;
 use crate::components::styles::text_class::TextClass;
 use crate::components::styles::toast::ToastClass;
+use crate::host;
+use crate::websocket::attempt_connect;
+use peer_practice_shared::authentication::login_data::PinLogin;
+use peer_practice_shared::user::UserId;
 
 #[component]
 pub fn LoginPinStep(
@@ -110,7 +110,7 @@ pub fn LoginPinStep(
                     <button
                         type="button"
                         class=ButtonClass::Base.as_str()
-                        data-theme=Theme::Secondary.as_str()
+                        data-theme=Theme::Intent(IntentTheme::Secondary).as_str()
                         on:click=move |_| {
                             write_pin.set(String::new());
                             show_toast_write.set(false);
@@ -122,7 +122,7 @@ pub fn LoginPinStep(
                     <button
                         type="submit"
                         class=Signal::derive(|| ButtonClass::Base.as_str().to_string())
-                        data-theme=Signal::derive(move || pin_theme(pin_complete.get()))
+                        data-theme=Signal::derive(move || pin_theme(pin_complete.get()).as_str())
                         aria-disabled=Signal::derive(move || {
                             if pin_complete.get() { "false" } else { "true" }
                         })

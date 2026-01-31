@@ -121,12 +121,11 @@ pub async fn handle_chats(
     }
 }
 
-pub async fn ensure_chat_for_post(
-    chat: &mpsc::Sender<ChatMsg>,
-    post_id: PostId,
-) -> Option<ChatId> {
+pub async fn ensure_chat_for_post(chat: &mpsc::Sender<ChatMsg>, post_id: PostId) -> Option<ChatId> {
     let (respond_to, recv) = oneshot::channel();
-    let _ = chat.send(ChatMsg::GetChatForPost(post_id, respond_to)).await;
+    let _ = chat
+        .send(ChatMsg::GetChatForPost(post_id, respond_to))
+        .await;
     if let Ok(Ok(progress)) = recv.await {
         return Some(progress.chat_id);
     }
@@ -134,7 +133,9 @@ pub async fn ensure_chat_for_post(
     let _ = chat.send(ChatMsg::CreateForPost(post_id)).await;
 
     let (respond_to, recv) = oneshot::channel();
-    let _ = chat.send(ChatMsg::GetChatForPost(post_id, respond_to)).await;
+    let _ = chat
+        .send(ChatMsg::GetChatForPost(post_id, respond_to))
+        .await;
     recv.await.ok().and_then(|res| res.ok()).map(|p| p.chat_id)
 }
 

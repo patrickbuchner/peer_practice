@@ -1,10 +1,10 @@
 use leptos::callback::Callback;
 use leptos::prelude::*;
-use leptos::{component, IntoView};
+use leptos::{IntoView, component};
 
-use crate::components::styles::shadow::ShadowColor;
 use crate::components::styles::card::CardShellClass;
-use crate::components::theme::{AccentStrength, CardShadow, Theme};
+use crate::components::styles::color::ShadowColor;
+use crate::components::theme::{AccentStrength, CardShadow, SurfaceTheme, Theme};
 
 fn card_class(class: Option<String>) -> String {
     let extra = class.unwrap_or_default().trim().to_string();
@@ -46,7 +46,7 @@ pub fn Card(
 ) -> impl IntoView {
     let class = card_class(class);
     let style = card_style(style.unwrap_or_default(), accent_color);
-    let data_theme = data_theme.unwrap_or(Theme::Strong);
+    let data_theme = data_theme.unwrap_or(Theme::Surface(SurfaceTheme::Strong));
     let data_shadow = data_shadow.unwrap_or(CardShadow::Weakest);
     let shadow_color = shadow_color.unwrap_or_else(|| {
         let (read, _set) = signal(ShadowColor::Base);
@@ -85,7 +85,7 @@ pub fn CardForm(
 ) -> impl IntoView {
     let class = card_class(class);
     let style = card_style(style.unwrap_or_default(), accent_color);
-    let data_theme = data_theme.unwrap_or(Theme::Strong);
+    let data_theme = data_theme.unwrap_or(Theme::Surface(SurfaceTheme::Strong));
     let data_shadow = data_shadow.unwrap_or(CardShadow::Weakest);
     let shadow_color = shadow_color.unwrap_or_else(|| {
         let (read, _set) = signal(ShadowColor::Base);

@@ -89,7 +89,8 @@ pub async fn handle_posts(
                             .send(ChatMsg::StoreMsgForPost {
                                 post_id,
                                 sender: user,
-                                kind: peer_practice_messages::current::chat::ChatMessageKind::Joined,
+                                kind:
+                                    peer_practice_messages::current::chat::ChatMessageKind::Joined,
                             })
                             .await;
                     }

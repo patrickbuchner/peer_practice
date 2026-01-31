@@ -7,21 +7,23 @@ use crate::components::buttons::ConfirmDeleteButton;
 use crate::components::buttons::ServerButton;
 use crate::components::card::CardForm;
 use crate::components::select_input::SelectInput;
+use crate::components::styles::button_class::ButtonClass;
+use crate::components::styles::cluster::ClusterClass;
 use crate::components::styles::color::CssVar;
+use crate::components::styles::event_card::EventCardClass;
+use crate::components::styles::ideas::IdeasColumns;
 use crate::components::text_box::TextBox;
 use crate::components::text_input::TextAreaInput;
-use crate::components::theme::{AccentStrength, CardShadow, Theme};
-use crate::event_card::editable::draft::{clear_draft, save_draft, Draft};
-use crate::event_card::{event_card_footer, markdown_to_safe_html, shadow_color_for_date, EventCardProps};
+use crate::components::theme::{AccentStrength, CardShadow, IntentTheme, SurfaceTheme, Theme};
+use crate::event_card::editable::draft::{Draft, clear_draft, save_draft};
+use crate::event_card::{
+    EventCardProps, event_card_footer, markdown_to_safe_html, shadow_color_for_date,
+};
 use peer_practice_shared::level::Level;
 use peer_practice_shared::messages::ClientToServer;
 use peer_practice_shared::messages::client_to_server::PostAction;
 use peer_practice_shared::post::{PostId, Topics};
 use peer_practice_shared::{convert_to_utc, convert_utc_to_local_date, ymd};
-use crate::components::styles::button_class::ButtonClass;
-use crate::components::styles::cluster::ClusterClass;
-use crate::components::styles::event_card::EventCardClass;
-use crate::components::styles::ideas::IdeasColumns;
 
 mod draft;
 #[component]
@@ -38,7 +40,11 @@ pub fn EventCardEditable(
     let (topics, set_topics) = signal::<Topics>(props.title.as_str().into());
 
     let is_new_post = props.id == PostId::NULL;
-    let theme = if is_new_post { Theme::Accent } else { Theme::Strong };
+    let theme = if is_new_post {
+        Theme::Accent
+    } else {
+        Theme::Surface(SurfaceTheme::Strong)
+    };
     let accent_strength = if is_new_post {
         AccentStrength::Strong
     } else {
@@ -68,13 +74,13 @@ pub fn EventCardEditable(
     let (date_selected, set_date_selected) = signal(initial_date);
     let post_id = props.id;
     let (shadow_color, set_shadow_color) = signal(if is_new_post {
-        crate::components::styles::shadow::ShadowColor::Teal
+        crate::components::styles::color::ShadowColor::Teal
     } else {
         shadow_color_for_date(&date_selected.get_untracked())
     });
     Effect::new(move |_| {
         let next = if is_new_post {
-            crate::components::styles::shadow::ShadowColor::Teal
+            crate::components::styles::color::ShadowColor::Teal
         } else {
             shadow_color_for_date(&date_selected.get())
         };
@@ -142,7 +148,9 @@ pub fn EventCardEditable(
                 date: convert_to_utc(date),
                 partaking_users: existing.partaking_users.clone(),
             };
-            state.send(ClientToServer::Post(PostAction::UpdatePost(post_id, updated)));
+            state.send(ClientToServer::Post(PostAction::UpdatePost(
+                post_id, updated,
+            )));
             clear_draft(post_id);
             set_has_draft.set(false);
         } else {
@@ -204,7 +212,9 @@ pub fn EventCardEditable(
                     data_accent_strength=accent_strength
                     accent_color=accent_color
                     value=Signal::derive(move || date_selected.get())
-                    on_change=Callback::new(move |ev| set_date_selected.set(event_target_value(&ev)))
+                    on_change=Callback::new(move |ev| {
+                        set_date_selected.set(event_target_value(&ev))
+                    })
                 >
                     {date_options
                         .iter()
@@ -218,9 +228,7 @@ pub fn EventCardEditable(
             </div>
 
             <div class=EventCardClass::RowNoWrap.as_str()>
-                <span class=EventCardClass::Label.as_str()>
-                    "Level"
-                </span>
+                <span class=EventCardClass::Label.as_str()>"Level"</span>
 
                 <SelectInput
                     class=EventCardClass::LevelSelect.as_str().to_string()
@@ -287,7 +295,7 @@ pub fn EventCardEditable(
 
                 <ServerButton
                     class=Signal::derive(|| ButtonClass::Small.as_str().to_string())
-                    data_theme=Arc::new(|| Theme::Secondary)
+                    data_theme=Arc::new(|| Theme::Intent(IntentTheme::Secondary))
                     r#type="submit".to_string()
                 >
                     "Submit"
@@ -300,7 +308,7 @@ pub fn EventCardEditable(
                         }>
                             <button
                                 class=ButtonClass::Small.as_str()
-                                data-theme=Theme::Secondary.as_str()
+                                data-theme=Theme::Intent(IntentTheme::Secondary).as_str()
                                 type="button"
                                 title="Reset to server version (discard local draft)"
                                 on:click=move |_| {
@@ -329,7 +337,10 @@ pub fn EventCardEditable(
                                 confirm_message="This action cannot be undone.".to_string()
                                 on_confirm=Callback::new({
                                     move |_| {
-                                        state.send(ClientToServer::Post(PostAction::DeletePost(post_id)));
+                                        state
+                                            .send(
+                                                ClientToServer::Post(PostAction::DeletePost(post_id)),
+                                            );
                                     }
                                 })
                             />

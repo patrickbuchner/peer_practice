@@ -1,9 +1,12 @@
 use crate::components::buttons::ServerButton;
-use crate::components::theme::{CardShadow, Theme};
+use crate::components::theme::{CardShadow, IntentTheme, SurfaceTheme, Theme};
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
 use std::sync::Arc;
+
+use peer_practice_shared::colors::accent_colors::AccentColor;
+use peer_practice_shared::colors::semantic_colors::BackgroundColor;
 
 #[component]
 pub fn ConfirmDangerousModal(
@@ -30,8 +33,11 @@ pub fn ConfirmDangerousModal(
                     aria-labelledby="confirm-title"
                     aria-describedby="confirm-desc"
                     class="card dialog dialog-sheet surface"
-                    style="--accent: var(--maroon, #be123c); max-height: 90dvh; overflow: auto;"
-                    data-theme=Theme::Strong.as_str()
+                    style=format!(
+                        "--accent: {}; max-height: 90dvh; overflow: auto;",
+                        AccentColor::Maroon.css_var(),
+                    )
+                    data-theme=Theme::Accent.as_str()
                     data-shadow=CardShadow::Weakest.as_str()
                     on:click=|ev| ev.stop_propagation()
                 >
@@ -45,7 +51,7 @@ pub fn ConfirmDangerousModal(
                     <div class="dialog-actions">
                         <button
                             class="btn"
-                            data-theme=Theme::Secondary.as_str()
+                            data-theme=Theme::Intent(IntentTheme::Secondary).as_str()
                             type="button"
                             on:click=move |ev| {
                                 ev.stop_propagation();
@@ -56,7 +62,7 @@ pub fn ConfirmDangerousModal(
                         </button>
                         <ServerButton
                             class=Signal::derive(|| "btn".to_string())
-                            data_theme=Arc::new(|| Theme::Danger)
+                            data_theme=Arc::new(|| Theme::Intent(IntentTheme::Danger))
                             r#type="button".to_string()
                             on_click=Callback::new({ move |_| on_confirm.run(()) })
                         >
@@ -78,7 +84,7 @@ pub fn CenterModal(
 ) -> impl IntoView {
     let accent_color = accent_color.unwrap_or_else(|| {
         let (default_accent, _set_default_accent) =
-            signal(String::from("var(--bg-strongest-color)"));
+            signal(BackgroundColor::Strongest.css_var().to_string());
         default_accent
     });
     view! {
@@ -94,7 +100,7 @@ pub fn CenterModal(
                             accent_color.get(),
                         )
                     }
-                    data-theme=Theme::Strong.as_str()
+                    data-theme=Theme::Surface(SurfaceTheme::Strong).as_str()
                     data-shadow=CardShadow::Weakest.as_str()
                 >
                     {children()}
