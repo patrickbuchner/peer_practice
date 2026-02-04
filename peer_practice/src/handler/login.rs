@@ -1,20 +1,20 @@
+use crate::app_state::AppState;
+use crate::handler::claims::Claims;
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use jsonwebtoken::{EncodingKey, Header, encode};
-use tokio::sync::oneshot;
-
-use crate::app_state::AppState;
-use crate::handler::claims::Claims;
 use peer_practice_messages::current::authentication::login_data::{LoginData, PinLogin};
 use peer_practice_messages::current::user::UserId;
+use peer_practice_server_services::active_sessions::ClientId;
 use peer_practice_server_services::email::EmailMsg;
 use peer_practice_server_services::pending_logins::PendingLoginsMsg;
 use peer_practice_server_services::users::UsersMsg;
 use rand::prelude::*;
+use tokio::sync::oneshot;
 use tower_sessions::cookie::time::OffsetDateTime;
 
 #[axum::debug_handler]
@@ -107,10 +107,19 @@ pub async fn pin_handler(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    let offset = 15;
+    create_access_cookie(&state, jar, pin_login.id, None)
+}
+
+pub fn create_access_cookie(
+    state: &AppState,
+    jar: CookieJar,
+    user_id: UserId,
+    id: Option<ClientId>,
+) -> Result<CookieJar, StatusCode> {
     let access_claims = Claims {
-        user_id: pin_login.id,
-        exp: (Utc::now() + Duration::days(offset)).timestamp() as usize,
+        user_id,
+        exp: (Utc::now() + state.jwt_expiry_duration).timestamp() as usize,
+        client_id: id,
     };
     let access_token = encode(
         &Header::default(),
@@ -124,10 +133,12 @@ pub async fn pin_handler(
             .path("/")
             .http_only(true)
             .expires(
-                OffsetDateTime::now_utc() + tower_sessions::cookie::time::Duration::days(offset),
+                OffsetDateTime::now_utc()
+                    + tower_sessions::cookie::time::Duration::days(
+                        state.jwt_expiry_duration.num_days(),
+                    ),
             ),
     );
-
     Ok(jar)
 }
 

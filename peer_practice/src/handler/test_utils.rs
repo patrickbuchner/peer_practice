@@ -1,5 +1,7 @@
 use crate::app_state::AppState;
-use peer_practice_server_services::{chat, email, pending_logins, posts, users, ws_hub};
+use peer_practice_server_services::{
+    active_sessions, chat, email, pending_logins, posts, users, ws_hub,
+};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 
@@ -10,6 +12,7 @@ pub struct TestReceivers {
     pub posts: mpsc::Receiver<posts::PostsMsg>,
     pub ws_hub: mpsc::Receiver<ws_hub::WsHubMsg>,
     pub chat: mpsc::Receiver<chat::ChatMsg>,
+    pub _active_sessions: mpsc::Receiver<active_sessions::ActiveSessionsMsg>,
 }
 
 pub fn test_state() -> (AppState, TestReceivers) {
@@ -19,15 +22,18 @@ pub fn test_state() -> (AppState, TestReceivers) {
     let (posts, posts_rx) = mpsc::channel(8);
     let (ws_hub, ws_hub_rx) = mpsc::channel(8);
     let (chat, chat_rx) = mpsc::channel(8);
+    let (active_sessions, active_sessions_rx) = mpsc::channel(8);
 
     let state = AppState {
         jwt_secret: "test-secret".to_string(),
+        jwt_expiry_duration: chrono::Duration::days(30),
         pending_logins,
         users,
         email,
         posts,
         ws_hub,
         chat,
+        active_sessions,
     };
 
     (
@@ -39,6 +45,7 @@ pub fn test_state() -> (AppState, TestReceivers) {
             posts: posts_rx,
             ws_hub: ws_hub_rx,
             chat: chat_rx,
+            _active_sessions: active_sessions_rx,
         },
     )
 }

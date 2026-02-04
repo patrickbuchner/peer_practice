@@ -32,6 +32,14 @@ pub enum StorageMsg {
     RetrieveChats {
         respond_to: oneshot::Sender<HashMap<ChatId, Progress>>,
     },
+    SaveJson {
+        namespace: String,
+        data: Value,
+    },
+    LoadJson {
+        namespace: String,
+        respond_to: oneshot::Sender<Value>,
+    },
     Ping {
         respond_to: oneshot::Sender<()>,
     },
@@ -177,6 +185,16 @@ async fn handle_storage_operations_with_fs(
                 }
 
                 let _ = respond_to.send(chats);
+            }
+            StorageMsg::SaveJson { namespace, data } => {
+                save_snapshot(&fs, &namespace, &data, &work_dir).await;
+            }
+            StorageMsg::LoadJson {
+                namespace,
+                respond_to,
+            } => {
+                let value = load_snapshot(&fs, &namespace, &work_dir).await;
+                let _ = respond_to.send(value);
             }
             StorageMsg::Ping { respond_to } => {
                 let _ = respond_to.send(());

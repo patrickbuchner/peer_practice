@@ -17,7 +17,7 @@ serde_json.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
 tower-http.workspace = true
-tower-sessions = "0.14"
+tower-sessions = "0.15.0"
 tracing.workspace = true
 jsonwebtoken = { version = "10.2", features = ["rust_crypto"] }
 clap = { version = "4.5", features = ["derive", "env"] }

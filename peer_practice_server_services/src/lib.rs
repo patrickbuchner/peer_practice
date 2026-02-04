@@ -1,3 +1,4 @@
+pub mod active_sessions;
 pub mod chat;
 pub mod clock;
 pub mod email;

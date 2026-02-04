@@ -35,10 +35,7 @@ async fn run(config: Config) -> Result<()> {
     let _logging_guard = init_file_logging(&config.server.data_dir)?;
     let state = AppState::new(config.clone());
 
-    task::spawn_named(
-        "expired-posts-reaper",
-        services::run_expired_posts_reaper(state.clone(), chrono::Duration::hours(1)),
-    );
+    services::spawn_clean_up_services(&state);
 
     info!(
         "Serving static files from: {}",

@@ -37,7 +37,7 @@ impl ManualClock {
 
     pub fn advance(&self, delta: Duration) {
         let mut current = self.current.lock().expect("manual clock lock poisoned");
-        *current = *current + delta;
+        *current += delta;
     }
 }
 

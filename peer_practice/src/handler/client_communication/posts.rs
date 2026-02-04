@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use eyre::WrapErr;
 use peer_practice_messages::current::messages::client_to_server::PostAction;
-use peer_practice_messages::current::messages::{server_to_client, ServerToClient};
+use peer_practice_messages::current::messages::{ServerToClient, server_to_client};
 use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::posts::PostsMsg;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
