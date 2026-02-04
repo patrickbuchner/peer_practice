@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use eyre::WrapErr;
 use peer_practice_messages::current::messages::client_to_server::PostAction;
-use peer_practice_messages::current::messages::{ServerToClient, server_to_client};
+use peer_practice_messages::current::messages::{server_to_client, ServerToClient};
 use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::posts::PostsMsg;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
@@ -96,21 +96,13 @@ pub async fn post_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::test_state;
+    use crate::handler::test_utils::{assert_empty, recv_msg, test_state};
     use peer_practice_messages::current::level::Level;
     use peer_practice_messages::current::post::{Post, PostId, Topics};
     use peer_practice_messages::test_helpers_impl::fixed_timestamp;
     use peer_practice_server_services::ws_hub::ConnectionId;
     use std::collections::HashSet;
-    use tokio::sync::mpsc::error::TryRecvError;
     use tokio::sync::oneshot;
-
-    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
-        match rx.recv().await {
-            Some(msg) => msg,
-            None => panic!("channel closed"),
-        }
-    }
 
     async fn sync_posts(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<PostsMsg>) {
         let (respond_to, recv) = oneshot::channel();
@@ -129,15 +121,6 @@ mod tests {
 
         recv.await.expect("ping ack");
     }
-
-    fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
-        match rx.try_recv() {
-            Ok(_) => panic!("expected no message"),
-            Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => panic!("channel closed"),
-        }
-    }
-
     fn sample_post(owner: UserId) -> Post {
         Post {
             title: Topics::default(),

@@ -21,10 +21,10 @@ mod services;
 mod task;
 
 #[cfg(feature = "fuzzing")]
-pub use handler::websocket::parse_received_message_for_fuzz;
+pub use handler::r#mod::parse_received_message_for_fuzz;
 
 async fn run(config: Config) -> Result<()> {
-    // Ensure data directory exists and initialize logging to a file within it
+    // Ensure the data directory exists and initialize logging to a file within it
     std::fs::create_dir_all(&config.server.data_dir).with_context(|| {
         format!(
             "Failed to create data directory at {}",

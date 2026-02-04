@@ -46,16 +46,9 @@ pub async fn handle_websocket_message(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::test_state;
+    use crate::handler::test_utils::{recv_msg, test_state};
     use peer_practice_messages::current::messages::server_to_client::UserAction;
     use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
-
-    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
-        match rx.recv().await {
-            Some(msg) => msg,
-            None => panic!("channel closed"),
-        }
-    }
 
     #[tokio::test]
     async fn hello_sends_you_are() {

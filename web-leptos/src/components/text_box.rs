@@ -17,7 +17,10 @@ fn text_box_class(class: Option<String>) -> String {
     classes.join(" ")
 }
 
-fn text_box_style(base_style: String, accent_color: Option<ReadSignal<String>>) -> impl Fn() -> String {
+fn text_box_style(
+    base_style: String,
+    accent_color: Option<ReadSignal<String>>,
+) -> impl Fn() -> String {
     move || {
         let mut style_value = base_style.clone();
         if let Some(accent) = accent_color.as_ref() {

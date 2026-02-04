@@ -7,7 +7,16 @@ license = "MIT OR Apache-2.0"
 version = "2026.1.13"
 
 [workspace.lints.rust]
+warnings = "deny"
+unsafe_code = "deny"
+
 unexpected_cfgs = { level = "allow", check-cfg = ["cfg(tokio_unstable)"] }
+
+[workspace.lints.clippy]
+pedantic = "deny"
+nursery = "deny"
+cargo = "deny"
+restriction = "warn"
 
 [workspace.dependencies]
 peer_practice_shared = { path = "peer_practice_shared" }

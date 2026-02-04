@@ -76,21 +76,13 @@ pub async fn user_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::test_state;
+    use crate::handler::test_utils::{assert_empty, recv_msg, test_state};
     use peer_practice_messages::current::email::Email;
     use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::UserAction as ServerUserAction;
     use peer_practice_messages::current::user::User;
     use peer_practice_server_services::ws_hub::ConnectionId;
-    use tokio::sync::mpsc::error::TryRecvError;
     use tokio::sync::oneshot;
-
-    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
-        match rx.recv().await {
-            Some(msg) => msg,
-            None => panic!("channel closed"),
-        }
-    }
 
     async fn sync_users(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<UsersMsg>) {
         let (respond_to, recv) = oneshot::channel();
@@ -108,14 +100,6 @@ mod tests {
         }
 
         recv.await.expect("ping ack");
-    }
-
-    fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
-        match rx.try_recv() {
-            Ok(_) => panic!("expected no message"),
-            Err(TryRecvError::Empty) => {}
-            Err(TryRecvError::Disconnected) => panic!("channel closed"),
-        }
     }
 
     fn sample_user(id: UserId) -> User {

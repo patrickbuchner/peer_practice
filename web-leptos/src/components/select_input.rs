@@ -15,7 +15,10 @@ fn select_class(class: Option<String>) -> String {
     format!("combo {extra}")
 }
 
-fn select_style(base_style: String, accent_color: Option<ReadSignal<String>>) -> impl Fn() -> String {
+fn select_style(
+    base_style: String,
+    accent_color: Option<ReadSignal<String>>,
+) -> impl Fn() -> String {
     move || {
         let mut style_value = base_style.clone();
         if let Some(accent) = accent_color.as_ref() {

@@ -1,11 +1,9 @@
 use crate::app_state::AppState;
-use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::messages::client_to_server::ChatAction;
-use peer_practice_messages::current::messages::server_to_client::ChatAction::{
-    Chat, ChatDoesNotExist, ChatDoesNotExistForPost,
-};
+use peer_practice_messages::current::messages::server_to_client::ChatAction::{Chat, ChatDoesNotExist, ChatDoesNotExistForPost};
+use peer_practice_messages::current::messages::ServerToClient;
 use peer_practice_messages::current::user::UserId;
-use peer_practice_server_services::chat::{ChatMsg, ensure_chat_for_post};
+use peer_practice_server_services::chat::{ensure_chat_for_post, ChatMsg};
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 
@@ -75,23 +73,13 @@ async fn send_chat(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::handler::test_utils::test_state;
+    use crate::handler::test_utils::{recv_msg, test_state};
     use peer_practice_messages::current::messages::ServerToClient;
-    use peer_practice_messages::current::messages::server_to_client::ChatAction as ServerChatAction;
     use peer_practice_messages::current::post::PostId;
     use peer_practice_messages::test_helpers_impl::fixed_timestamp;
     use peer_practice_server_services::chat::message::Message;
     use peer_practice_server_services::chat::progress::Progress;
     use peer_practice_server_services::ws_hub::ConnectionId;
-    use tokio::time::{Duration, timeout};
-
-    async fn recv_msg<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) -> T {
-        match timeout(Duration::from_secs(1), rx.recv()).await {
-            Ok(Some(msg)) => msg,
-            Ok(None) => panic!("channel closed"),
-            Err(_) => panic!("timeout waiting for message"),
-        }
-    }
 
     #[tokio::test]
     async fn get_chat_for_missing_sends_not_found() {
@@ -130,7 +118,7 @@ mod tests {
 
         match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send { msg, .. } => match msg {
-                ServerToClient::Chat(ServerChatAction::ChatDoesNotExistForPost(got_post)) => {
+                ServerToClient::Chat(ChatDoesNotExistForPost(got_post)) => {
                     assert_eq!(post_id, got_post);
                 }
                 _ => panic!("expected ChatDoesNotExistForPost"),
@@ -176,7 +164,7 @@ mod tests {
 
         match recv_msg(&mut rx.ws_hub).await {
             WsHubMsg::Send { msg, .. } => match msg {
-                ServerToClient::Chat(ServerChatAction::Chat(got_id, got_post_id, messages)) => {
+                ServerToClient::Chat(Chat(got_id, got_post_id, messages)) => {
                     assert_eq!(chat_id, got_id);
                     assert_eq!(post_id, got_post_id);
                     assert_eq!(1, messages.len());

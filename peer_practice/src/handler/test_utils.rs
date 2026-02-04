@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use peer_practice_server_services::{chat, email, pending_logins, posts, users, ws_hub};
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::TryRecvError;
 
 pub struct TestReceivers {
     pub pending_logins: mpsc::Receiver<pending_logins::PendingLoginsMsg>,
@@ -40,4 +41,19 @@ pub fn test_state() -> (AppState, TestReceivers) {
             chat: chat_rx,
         },
     )
+}
+
+pub async fn recv_msg<T>(rx: &mut mpsc::Receiver<T>) -> T {
+    match rx.recv().await {
+        Some(msg) => msg,
+        None => panic!("channel closed"),
+    }
+}
+
+pub fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
+    match rx.try_recv() {
+        Ok(_) => panic!("expected no message"),
+        Err(TryRecvError::Empty) => {}
+        Err(TryRecvError::Disconnected) => panic!("channel closed"),
+    }
 }

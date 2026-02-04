@@ -5,10 +5,19 @@
 
 .form-grid {
     display: grid;
-    grid-template-columns: max-content 1fr;
+
+    /* Label hugs content (but capped), input column prefers enough width
+       to show typical placeholders, yet can still shrink on small cards. */
+    grid-template-columns: fit-content(14ch) minmax(28ch, 1fr);
+
     column-gap: 0.75rem;
     row-gap: 0.5rem;
     align-items: center;
+}
+
+/* Allow grid children (especially inputs/buttons) to shrink within the card */
+.form-grid > * {
+    min-width: 0;
 }
 
 .form-actions {
@@ -16,6 +25,8 @@
     gap: 0.5rem;
     align-items: center;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    max-width: 100%;
 }
 
 .form-actions--full {
@@ -43,6 +54,10 @@
     --input-border: color-mix(in oklab, var(--card-fg, var(--bg-base-text)) var(--input-border-mix), transparent);
 
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+
     padding: 0.6rem 0.75rem;
     border-radius: 0.6rem;
     border: 1px solid var(--input-border);
@@ -50,6 +65,8 @@
     color: var(--input-fg);
     outline: none;
 }
+
+/* ... existing code ... */
 
 .input[data-theme="weakest"] {
     --input-bg: var(--bg-weakest-color);
@@ -104,8 +121,10 @@
     --input-border: color-mix(in oklab, var(--accent, var(--bg-strongest-color)) 65%, transparent);
 }
 
+/* Keep the “wide” intent without artificially capping it */
 .input--wide {
-    min-width: 20rem;
+    min-width: 0;
+    width: 100%;
 }
 
 .input--center {
@@ -120,4 +139,20 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem;
+}
+
+/* On small screens, stack label + input so nothing can escape the card */
+@media (max-width: 520px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .label--end {
+        justify-self: start;
+    }
+
+    .form-actions--full {
+        grid-column: 1;
+    }
 }

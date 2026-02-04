@@ -52,10 +52,7 @@ fn assert_empty<T>(rx: &mut mpsc::Receiver<T>) {
 
 async fn ping(users_tx: &mpsc::Sender<UsersMsg>) {
     let (respond_to, recv) = oneshot::channel();
-    users_tx
-        .send(UsersMsg::Ping { respond_to })
-        .await
-        .unwrap();
+    users_tx.send(UsersMsg::Ping { respond_to }).await.unwrap();
     recv_oneshot(recv).await
 }
 
@@ -214,7 +211,10 @@ async fn update_with_changed_email_updates_email_index() {
 
     // Assert
     assert!(matches!(saved_update, StorageMsg::SaveUsers(_)));
-    assert!(matches!(broadcast, WsHubMsg::BroadcastAll(ServerToClient::User(_))));
+    assert!(matches!(
+        broadcast,
+        WsHubMsg::BroadcastAll(ServerToClient::User(_))
+    ));
     assert_ne!(
         id1, id2,
         "old email should no longer map to the updated user id"
