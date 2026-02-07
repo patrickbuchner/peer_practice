@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use eyre::Context;
 use peer_practice_messages::current::messages::server_to_client::UserAction;
 use peer_practice_messages::current::messages::{ClientToServer, ServerToClient};
+use peer_practice_messages::current::sessions::SessionId;
 use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tracing::info;
@@ -16,6 +17,7 @@ pub async fn handle_websocket_message(
     con_id: ConnectionId,
     state: &AppState,
     user_id: UserId,
+    session_id: SessionId,
     msg: ClientToServer,
 ) -> eyre::Result<()> {
     info!("Received message from client: {:?} {:?}", msg, con_id);
@@ -31,7 +33,7 @@ pub async fn handle_websocket_message(
             .await
             .wrap_err("Failed to handle chat action")?,
         ClientToServer::Session(action) => {
-            sessions::sessions_handler(action, state, user_id)
+            sessions::sessions_handler(action, state, user_id, session_id)
                 .await
                 .wrap_err("Failed to handle session action")?
         }
@@ -67,8 +69,9 @@ mod tests {
         let (state, mut rx) = test_state();
         let user_id = UserId::new();
         let con_id = ConnectionId::new();
+        let session_id = SessionId::new();
 
-        handle_websocket_message(con_id, &state, user_id, ClientToServer::Hello)
+        handle_websocket_message(con_id, &state, user_id, session_id, ClientToServer::Hello)
             .await
             .expect("handler ok");
 

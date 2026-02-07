@@ -12,6 +12,7 @@ use eyre::Context;
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use peer_practice_messages::current::messages::{ClientToServer, ServerToClient};
 use peer_practice_messages::current::user::UserId;
+use peer_practice_messages::v2026_02_07::sessions::SessionId;
 use peer_practice_messages::{Envelope, EnvelopeHeader, Version};
 use peer_practice_server_services::active_sessions::ActiveSessionsMsg;
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
@@ -108,7 +109,7 @@ pub async fn ws_handler(
 ) -> Result<(CookieJar, Response), Response> {
     let (token, access_token) = retrieve_and_validate_access_token(&state, &mut jar).await?;
     let user_id = token.user_id;
-    let client_id = match token.client_id {
+    let session_id = match token.client_id {
         None => {
             let (tx, rx) = oneshot::channel();
             _ = state
@@ -127,11 +128,13 @@ pub async fn ws_handler(
         Some(client_id) => Ok(client_id),
     }?;
 
-    jar = create_access_cookie(&state, jar, user_id, Some(client_id))
+    jar = create_access_cookie(&state, jar, user_id, Some(session_id))
         .map_err(|a| a.into_response())?;
     Ok((
         jar,
-        ws.on_upgrade(move |socket| handle_socket(socket, user_id, state, access_token)),
+        ws.on_upgrade(move |socket| {
+            handle_socket(socket, user_id, session_id, state, access_token)
+        }),
     ))
 }
 
@@ -174,6 +177,7 @@ async fn retrieve_and_validate_access_token(
 async fn handle_socket(
     mut socket: WebSocket,
     user_id: UserId,
+    session_id: SessionId,
     state: AppState,
     access_token: String,
 ) {
@@ -210,7 +214,7 @@ async fn handle_socket(
                 };
             }
             client_message = socket.recv() => {
-                match receive_websocket_message(client_message, connection_id, user_id, &client_version, &state).await {
+                match receive_websocket_message(client_message, connection_id, user_id, session_id, &client_version, &state).await {
                     Some(version) => client_version = Some(version),
                     None => break,
                 }
@@ -257,6 +261,7 @@ async fn receive_websocket_message(
     ws_msg: Option<Result<Message, Error>>,
     connection_id: ConnectionId,
     user_id: UserId,
+    session_id: SessionId,
     expected_client_version: &Option<Version>,
     state: &AppState,
 ) -> Option<Version> {
@@ -267,6 +272,7 @@ async fn receive_websocket_message(
                 &text,
                 connection_id,
                 user_id,
+                session_id,
                 state,
             )
             .await
@@ -317,6 +323,7 @@ async fn consume_telegram(
     text: &Utf8Bytes,
     connection_id: ConnectionId,
     user_id: UserId,
+    session_id: SessionId,
     state: &AppState,
 ) -> eyre::Result<Version> {
     info!("Received message from {:?}: {}", user_id, text);
@@ -333,7 +340,7 @@ async fn consume_telegram(
 
     let (client_version, data) = parse_received_message(text)?;
 
-    handle_websocket_message(connection_id, state, user_id, data)
+    handle_websocket_message(connection_id, state, user_id, session_id, data)
         .await
         .wrap_err("Failed to handle websocket message")?;
 

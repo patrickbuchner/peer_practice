@@ -1,6 +1,7 @@
 use crate::clock::ClockRef;
 use crate::storage::StorageMsg;
 use chrono::TimeZone;
+use peer_practice_messages::current::sessions::{SessionId, SessionInformation};
 use peer_practice_messages::current::user::UserId;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -9,32 +10,18 @@ use std::collections::hash_map::Entry;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum ActiveSessionsMsg {
     RemoveObsoleteJwts,
     ValidateJwt(String, oneshot::Sender<Option<String>>),
     InvalidateJwt(String),
-    CreateClient(UserId, oneshot::Sender<ClientId>),
+    CreateClient(UserId, oneshot::Sender<SessionId>),
+    GetSessions(UserId, oneshot::Sender<Vec<SessionInformation>>),
+    UpdateSession(UserId, SessionInformation),
+    LogOut(UserId, SessionId),
+    LogOutAll(UserId),
     Ping(oneshot::Sender<()>),
-}
-
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, Hash)]
-pub struct ClientId {
-    id: Uuid,
-}
-
-impl Default for ClientId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ClientId {
-    pub fn new() -> Self {
-        Self { id: Uuid::new_v4() }
-    }
 }
 
 pub async fn handle_active_sessions(
@@ -86,14 +73,14 @@ pub async fn handle_active_sessions(
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
             ActiveSessionsMsg::CreateClient(user_id, tx) => {
-                let client_id = ClientId::new();
-                clients.insert(user_id, client_id);
+                let id = SessionId::new();
+                clients.insert(user_id, id);
                 if let Entry::Vacant(e) = active_clients.entry(user_id) {
-                    e.insert(vec![client_id]);
+                    e.insert(vec![id]);
                 } else {
-                    active_clients.get_mut(&user_id).unwrap().push(client_id);
+                    active_clients.get_mut(&user_id).unwrap().push(id);
                 }
-                _ = tx.send(client_id);
+                _ = tx.send(id);
 
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
@@ -121,12 +108,12 @@ pub async fn handle_active_sessions(
 struct ActiveSessionsSnapshot {
     // Each is serialized as a pair list to keep it JSON-friendly and stable.
     // dead_jwts stores millis since epoch (UTC) to avoid needing chrono serde features.
-    clients: Vec<(UserId, ClientId)>,
+    clients: Vec<(UserId, SessionId)>,
     dead_jwts: Vec<(String, i64)>,
 }
 
 fn snapshot_from_state(
-    clients: &HashMap<UserId, ClientId>,
+    clients: &HashMap<UserId, SessionId>,
     dead_jwts: &HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) -> ActiveSessionsSnapshot {
     ActiveSessionsSnapshot {
@@ -140,7 +127,7 @@ fn snapshot_from_state(
 
 fn apply_snapshot(
     snap: ActiveSessionsSnapshot,
-    clients: &mut HashMap<UserId, ClientId>,
+    clients: &mut HashMap<UserId, SessionId>,
     dead_jwts: &mut HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) {
     clients.clear();
@@ -157,7 +144,7 @@ fn apply_snapshot(
 
 async fn persist(
     storage: Sender<StorageMsg>,
-    clients: &HashMap<UserId, ClientId>,
+    clients: &HashMap<UserId, SessionId>,
     dead_jwts: &HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) {
     let snap = snapshot_from_state(clients, dead_jwts);

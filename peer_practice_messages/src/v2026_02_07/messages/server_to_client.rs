@@ -5,6 +5,7 @@ use crate::v2026_02_07::post::{Post, PostId};
 use crate::v2026_02_07::user::UserId;
 use crate::v2026_02_07::user::display_user::UserDisplay;
 use serde::{Deserialize, Serialize};
+use crate::v2026_02_07::sessions::SessionInformation;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum ServerToClient {
@@ -38,7 +39,8 @@ pub enum ChatAction {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum SessionAction {
     CurrentSession(SessionId),
-    Sessions(Vec<SessionId>),
+    Sessions(Vec<SessionInformation>),
+    SessionInformationChanged(SessionInformation),
 }
 
 pub mod transformations_v2026_01_11 {

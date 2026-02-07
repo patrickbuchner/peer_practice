@@ -9,13 +9,13 @@ use chrono::Utc;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use peer_practice_messages::current::authentication::login_data::{LoginData, PinLogin};
 use peer_practice_messages::current::user::UserId;
-use peer_practice_server_services::active_sessions::ClientId;
 use peer_practice_server_services::email::EmailMsg;
 use peer_practice_server_services::pending_logins::PendingLoginsMsg;
 use peer_practice_server_services::users::UsersMsg;
 use rand::prelude::*;
 use tokio::sync::oneshot;
 use tower_sessions::cookie::time::OffsetDateTime;
+use peer_practice_messages::current::sessions::SessionId;
 
 #[axum::debug_handler]
 pub async fn login_handler(
@@ -114,7 +114,7 @@ pub fn create_access_cookie(
     state: &AppState,
     jar: CookieJar,
     user_id: UserId,
-    id: Option<ClientId>,
+    id: Option<SessionId>,
 ) -> Result<CookieJar, StatusCode> {
     let access_claims = Claims {
         user_id,

@@ -121,6 +121,7 @@ async fn consume_telegram_rejects_version_mismatch() {
     let (state, mut rx) = test_state();
     let user_id = UserId::new();
     let con_id = ConnectionId::new();
+    let session_id = SessionId::new();
 
     let text = serde_json::to_string(&Envelope {
         version: Version::V2025_10_14,
@@ -133,6 +134,7 @@ async fn consume_telegram_rejects_version_mismatch() {
         &Utf8Bytes::from(text),
         con_id,
         user_id,
+        session_id,
         &state,
     )
     .await;
