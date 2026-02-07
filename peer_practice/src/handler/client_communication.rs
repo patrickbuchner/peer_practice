@@ -31,7 +31,7 @@ pub async fn handle_websocket_message(
             .await
             .wrap_err("Failed to handle chat action")?,
         ClientToServer::Session(action) => {
-            sessions::sessions_handler(action, state, user_id, con_id)
+            sessions::sessions_handler(action, state, user_id)
                 .await
                 .wrap_err("Failed to handle session action")?
         }

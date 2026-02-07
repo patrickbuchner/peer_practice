@@ -1,6 +1,6 @@
 [package]
 name = "peer_practice_shared"
-version = "2026.1.11"
+version = "2026.2.7"
 edition = "2024"
 license.workspace = true
 
