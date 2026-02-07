@@ -6,9 +6,9 @@ use peer_practice_messages::v2025_10_14::messages::ClientToServer as LegacyClien
 use peer_practice_messages::v2025_10_14::post::{Post, PostId, Topics};
 use peer_practice_messages::v2025_10_14::user::UserId;
 use peer_practice_messages::v2025_10_14::user::display_user::UserDisplay;
-use peer_practice_messages::v2026_01_11::chat::{ChatId, ChatMessage};
-use peer_practice_messages::v2026_01_11::messages::ClientToServer as CurrentClientToServer;
-use peer_practice_messages::v2026_01_11::messages::client_to_server::{
+use peer_practice_messages::current::chat::{ChatId, ChatMessage};
+use peer_practice_messages::current::messages::ClientToServer as CurrentClientToServer;
+use peer_practice_messages::current::messages::client_to_server::{
     ChatAction, PostAction, UserAction,
 };
 use proptest::collection::hash_set;
@@ -18,6 +18,43 @@ use uuid::Uuid;
 fn ascii_string(max_len: usize) -> impl Strategy<Value = String> {
     prop::collection::vec(proptest::char::range(' ', '~'), 0..=max_len)
         .prop_map(|chars| chars.into_iter().collect())
+}
+
+fn current_user_id_from_uuid(uuid: Uuid) -> UserId {
+    serde_json::from_str(&format!(r#"{{"id":"{}"}}"#, uuid)).expect("valid current user id")
+}
+
+fn current_post_id_from_uuid(uuid: Uuid) -> PostId {
+    serde_json::from_str(&format!(r#"{{"id":"{}"}}"#, uuid)).expect("valid current post id")
+}
+
+prop_compose! {
+    fn current_user_id_strategy()(bytes in any::<[u8; 16]>()) -> UserId {
+        current_user_id_from_uuid(Uuid::from_bytes(bytes))
+    }
+}
+
+prop_compose! {
+    fn current_post_id_strategy()(bytes in any::<[u8; 16]>()) -> PostId {
+        current_post_id_from_uuid(Uuid::from_bytes(bytes))
+    }
+}
+
+fn current_server_to_client_strategy(
+) -> impl Strategy<Value = ServerToClient> {
+    use peer_practice_messages::current::messages::server_to_client as stc;
+
+    prop_oneof![
+        Just(ServerToClient::MessageNotYetKnown),
+        current_user_id_strategy().prop_map(|id| {
+            ServerToClient::User(stc::UserAction::YouAre(id))
+        }),
+        current_post_id_strategy().prop_map(|post_id| {
+            ServerToClient::Chat(
+                stc::ChatAction::ChatDoesNotExistForPost(post_id)
+            )
+        }),
+    ]
 }
 
 fn user_id_from_uuid(uuid: Uuid) -> UserId {
@@ -140,22 +177,44 @@ fn current_client_to_server_strategy() -> impl Strategy<Value = CurrentClientToS
     ]
 }
 
+fn assert_serde_json_value_eq<T: serde::Serialize, U: serde::Serialize>(left: &T, right: &U) {
+    let left = serde_json::to_value(left).expect("to_value(left)");
+    let right = serde_json::to_value(right).expect("to_value(right)");
+    assert_eq!(left, right);
+}
+
 proptest! {
     #[test]
     fn parse_current_client_messages_roundtrip(message in current_client_to_server_strategy()) {
         let text = serde_json::to_string(&Envelope {
-            version: Version::V2026_01_11,
+            version: Version::V2026_02_07,
             data: &message,
         })
         .expect("serialize envelope");
         let envelope = Envelope {
-            version: Version::V2026_01_11,
+            version: Version::V2026_02_07,
             data: message,
         };
         let parsed = parse_received_message(&Utf8Bytes::from(text)).expect("parse message");
 
-        prop_assert_eq!(parsed.0, Version::V2026_01_11);
+        prop_assert_eq!(parsed.0, Version::V2026_02_07);
         prop_assert_eq!(parsed.1, envelope.data);
+    }
+
+    #[test]
+    fn parse_v2026_01_11_client_messages_upgrade_to_current(message in current_client_to_server_strategy()) {
+        let v01: peer_practice_messages::v2026_01_11::messages::ClientToServer = message.clone().into();
+
+        let text = serde_json::to_string(&Envelope {
+            version: Version::V2026_01_11,
+            data: &v01,
+        })
+        .expect("serialize envelope");
+
+        let parsed = parse_received_message(&Utf8Bytes::from(text)).expect("parse message");
+
+        prop_assert_eq!(parsed.0, Version::V2026_01_11);
+        prop_assert_eq!(parsed.1, message);
     }
 
     #[test]
@@ -165,10 +224,67 @@ proptest! {
             data: &message,
         })
         .expect("serialize envelope");
-        let expected: CurrentClientToServer = message.into();
+        let expected: peer_practice_messages::v2026_01_11::messages::ClientToServer = message.into();
+        let expected: CurrentClientToServer = expected.into();
+
         let parsed = parse_received_message(&Utf8Bytes::from(text)).expect("parse message");
 
         prop_assert_eq!(parsed.0, Version::V2025_10_14);
         prop_assert_eq!(parsed.1, expected);
+    }
+
+    #[test]
+    fn serialize_current_server_messages_roundtrip_current(
+        message in current_server_to_client_strategy()
+    ) {
+        let text = serialize_server_message(&message, Version::V2026_02_07).expect("serialize");
+        let env: Envelope<ServerToClient> =
+            serde_json::from_str(&text).expect("parse envelope");
+
+        prop_assert_eq!(env.version, Version::V2026_02_07);
+
+        assert_serde_json_value_eq(&env.data, &message);
+    }
+
+    #[test]
+    fn serialize_current_server_messages_downconvert_to_v2026_01_11(
+        message in current_server_to_client_strategy()
+    ) {
+        let expected_current_after_roundtrip: ServerToClient = {
+            let v01: peer_practice_messages::v2026_01_11::messages::ServerToClient = message.clone().into();
+            v01.into()
+        };
+
+        let text = serialize_server_message(&message, Version::V2026_01_11).expect("serialize");
+        let env: Envelope<peer_practice_messages::v2026_01_11::messages::ServerToClient> =
+            serde_json::from_str(&text).expect("parse envelope");
+
+        prop_assert_eq!(env.version, Version::V2026_01_11);
+
+        let got_current: ServerToClient = env.data.into();
+        assert_serde_json_value_eq(&got_current, &expected_current_after_roundtrip);
+    }
+
+    #[test]
+    fn serialize_current_server_messages_downconvert_to_v2025_10_14(
+        message in current_server_to_client_strategy()
+    ) {
+        let expected_current_after_roundtrip: ServerToClient = {
+            let v01: peer_practice_messages::v2026_01_11::messages::ServerToClient = message.clone().into();
+            let v10: peer_practice_messages::v2025_10_14::messages::ServerToClient = v01.into();
+            let v01_back: peer_practice_messages::v2026_01_11::messages::ServerToClient = v10.into();
+            v01_back.into()
+        };
+
+        let text = serialize_server_message(&message, Version::V2025_10_14).expect("serialize");
+        let env: Envelope<peer_practice_messages::v2025_10_14::messages::ServerToClient> =
+            serde_json::from_str(&text).expect("parse envelope");
+
+        prop_assert_eq!(env.version, Version::V2025_10_14);
+
+        let v01: peer_practice_messages::v2026_01_11::messages::ServerToClient = env.data.into();
+        let got_current: ServerToClient = v01.into();
+
+        assert_serde_json_value_eq(&got_current, &expected_current_after_roundtrip);
     }
 }

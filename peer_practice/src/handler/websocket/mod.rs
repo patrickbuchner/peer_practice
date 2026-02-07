@@ -18,6 +18,89 @@ use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 use tracing::{error, info};
 
+fn serialize_server_message(msg: &ServerToClient, version: Version) -> Result<String, String> {
+    fn serialize_for_client_version(
+        msg: &ServerToClient,
+        version: Version,
+    ) -> Result<String, serde_json::Error> {
+        match version {
+            Version::V2026_02_07 => serde_json::to_string(&Envelope {
+                version: Version::V2026_02_07,
+                data: msg.clone(),
+            }),
+
+            Version::V2026_01_11 => {
+                let v01: peer_practice_messages::v2026_01_11::messages::ServerToClient =
+                    msg.clone().into();
+
+                serde_json::to_string(&Envelope {
+                    version: Version::V2026_01_11,
+                    data: v01,
+                })
+            }
+
+            Version::V2025_10_14 => {
+                let v01: peer_practice_messages::v2026_01_11::messages::ServerToClient =
+                    msg.clone().into();
+                let v10: peer_practice_messages::v2025_10_14::messages::ServerToClient = v01.into();
+
+                serde_json::to_string(&Envelope {
+                    version: Version::V2025_10_14,
+                    data: v10,
+                })
+            }
+        }
+    }
+
+    serialize_for_client_version(msg, version)
+        .map_err(|e| format!("Failed to serialize message: {e}"))
+}
+
+/// Parses a client message by reading the envelope version and decoding the payload into the
+/// current `ClientToServer` type.
+///
+/// This function does **only parsing** and returns:
+/// - the `Version` found in the message
+/// - the parsed message as `peer_practice_messages::current::messages::ClientToServer`
+fn parse_received_message(text: &Utf8Bytes) -> eyre::Result<(Version, ClientToServer)> {
+    fn parse_and_upgrade(text: &Utf8Bytes, version: Version) -> eyre::Result<ClientToServer> {
+        match version {
+            Version::V2026_02_07 => Ok(serde_json::from_str::<Envelope<ClientToServer>>(text)
+                .wrap_err("Failed to parse Envelope")?
+                .data),
+
+            Version::V2026_01_11 => {
+                let v01 = serde_json::from_str::<
+                    Envelope<peer_practice_messages::v2026_01_11::messages::ClientToServer>,
+                >(text)
+                .wrap_err("Failed to parse Envelope")?
+                .data;
+
+                Ok(v01.into())
+            }
+
+            Version::V2025_10_14 => {
+                let v10 = serde_json::from_str::<
+                    Envelope<peer_practice_messages::v2025_10_14::messages::ClientToServer>,
+                >(text)
+                .wrap_err("Failed to parse Envelope")?
+                .data;
+
+                let v01: peer_practice_messages::v2026_01_11::messages::ClientToServer = v10.into();
+                Ok(v01.into())
+            }
+        }
+    }
+
+    let client_version = serde_json::from_str::<EnvelopeHeader>(text)
+        .wrap_err("Parsing message header failed")?
+        .version;
+
+    let data = parse_and_upgrade(text, client_version)?;
+
+    Ok((client_version, data))
+}
+
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
@@ -115,7 +198,7 @@ async fn handle_socket(
     };
 
     let connection_id = connection_handle.id();
-    let mut client_version = Some(Version::default());
+    let mut client_version = None;
 
     let mut invalidated = false;
 
@@ -229,24 +312,6 @@ async fn send_message(
         Ok(())
     }
 }
-
-fn serialize_server_message(msg: &ServerToClient, version: Version) -> Result<String, String> {
-    let text = match version {
-        Version::V2026_01_11 => serde_json::to_string(&Envelope {
-            version: Version::V2026_01_11,
-            data: msg.clone(),
-        }),
-        Version::V2025_10_14 => serde_json::to_string(&Envelope::<
-            peer_practice_messages::v2025_10_14::messages::ServerToClient,
-        > {
-            version: Version::V2025_10_14,
-            data: msg.clone().into(),
-        }),
-    };
-
-    text.map_err(|e| format!("Failed to serialize message: {}", e))
-}
-
 async fn consume_telegram(
     expected_client_version: &Option<Version>,
     text: &Utf8Bytes,
@@ -273,35 +338,6 @@ async fn consume_telegram(
         .wrap_err("Failed to handle websocket message")?;
 
     Ok(client_version)
-}
-
-/// Parses a client message by reading the envelope version and decoding the payload into the
-/// current `ClientToServer` type.
-///
-/// This function does **only parsing** and returns:
-/// - the `Version` found in the message
-/// - the parsed message as `peer_practice_messages::current::messages::ClientToServer`
-fn parse_received_message(text: &Utf8Bytes) -> eyre::Result<(Version, ClientToServer)> {
-    let client_version = serde_json::from_str::<EnvelopeHeader>(text)
-        .wrap_err("Parsing message header failed")?
-        .version;
-
-    let data = match client_version {
-        Version::V2026_01_11 => {
-            serde_json::from_str::<Envelope<ClientToServer>>(text)
-                .wrap_err("Failed to parse Envelope")?
-                .data
-        }
-        Version::V2025_10_14 => {
-            let legacy = serde_json::from_str::<
-                Envelope<peer_practice_messages::v2025_10_14::messages::ClientToServer>,
-            >(text)
-            .wrap_err("Failed to parse Envelope")?;
-            legacy.data.into()
-        }
-    };
-
-    Ok((client_version, data))
 }
 
 #[cfg(feature = "fuzzing")]

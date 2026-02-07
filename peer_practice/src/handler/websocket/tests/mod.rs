@@ -4,7 +4,7 @@ use chrono::TimeZone;
 use peer_practice_messages::current::level::Level;
 use peer_practice_messages::current::post::{Post, Topics};
 use peer_practice_messages::current::user::display_user::UserDisplay;
-use peer_practice_messages::v2026_01_11::chat::{ChatId, ChatMessage};
+use peer_practice_messages::current::chat::{ChatId, ChatMessage};
 use std::collections::HashSet;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::oneshot;
@@ -35,6 +35,7 @@ macro_rules! parse_case {
 mod proptest;
 mod v2025_10_14;
 mod v2026_01_11;
+mod v2026_02_07;
 
 fn sample_user_display(user_id: UserId) -> UserDisplay {
     UserDisplay {
@@ -102,8 +103,12 @@ fn assert_empty<T>(rx: &mut tokio::sync::mpsc::Receiver<T>) {
 fn serialize_server_message_sets_expected_version() {
     let msg = ServerToClient::MessageNotYetKnown;
 
-    let current = serialize_server_message(&msg, Version::V2026_01_11).expect("serialize current");
+    let current = serialize_server_message(&msg, Version::V2026_02_07).expect("serialize current");
     let header: EnvelopeHeader = serde_json::from_str(&current).expect("parse header");
+    assert_eq!(Version::V2026_02_07, header.version);
+
+    let prev = serialize_server_message(&msg, Version::V2026_01_11).expect("serialize previous");
+    let header: EnvelopeHeader = serde_json::from_str(&prev).expect("parse header");
     assert_eq!(Version::V2026_01_11, header.version);
 
     let legacy = serialize_server_message(&msg, Version::V2025_10_14).expect("serialize legacy");
@@ -124,7 +129,7 @@ async fn consume_telegram_rejects_version_mismatch() {
     .expect("serialize envelope");
 
     let res = consume_telegram(
-        &Some(Version::V2026_01_11),
+        &Some(Version::V2026_02_07),
         &Utf8Bytes::from(text),
         con_id,
         user_id,
