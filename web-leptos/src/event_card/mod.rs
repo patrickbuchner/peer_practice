@@ -111,12 +111,12 @@ fn ChatButton(post_id: PostId, #[prop(into)] state: AppStateReader) -> impl Into
     let is_on_chat = Signal::derive(move || location.pathname.get().starts_with("/chat/"));
 
     Effect::new(move |_| {
-        if waiting_for_chat.get() {
-            if let Some(chat_id) = state.post_chats.get().get(&post_id).cloned() {
-                let path = format!("/chat/{}", chat_id.get_id());
-                navigate_effect(&path, Default::default());
-                set_waiting_for_chat.set(false);
-            }
+        if waiting_for_chat.get()
+            && let Some(chat_id) = state.post_chats.get().get(&post_id).cloned()
+        {
+            let path = format!("/chat/{}", chat_id.get_id());
+            navigate_effect(&path, Default::default());
+            set_waiting_for_chat.set(false);
         }
     });
 

@@ -209,10 +209,7 @@ mod valid_parsing {
         }
       }
     }"#,
-        ExpectedResult::Ok(
-            Version::V2026_01_11,
-            ClientToServer::Post(PostAction::GetPostMessages(PostId::NULL))
-        )
+        ExpectedResult::Ok(Version::V2026_01_11, ClientToServer::MessageRemoved)
     );
 
     parse_case!(

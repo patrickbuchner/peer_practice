@@ -8,7 +8,9 @@ use tracing::info;
 
 mod chat;
 mod posts;
+mod sessions;
 mod users;
+type Response = Option<Vec<ServerToClient>>;
 
 pub async fn handle_websocket_message(
     con_id: ConnectionId,
@@ -17,28 +19,38 @@ pub async fn handle_websocket_message(
     msg: ClientToServer,
 ) -> eyre::Result<()> {
     info!("Received message from client: {:?} {:?}", msg, con_id);
-    match msg {
-        ClientToServer::Hello => {
+    let direct_responses = match msg {
+        ClientToServer::Hello => Some(vec![ServerToClient::User(UserAction::YouAre(user_id))]),
+        ClientToServer::User(action) => users::user_handler(action, state, user_id)
+            .await
+            .wrap_err("Failed to handle user action")?,
+        ClientToServer::Post(action) => posts::post_handler(action, state, user_id)
+            .await
+            .wrap_err("Failed to handle post action")?,
+        ClientToServer::Chat(action) => chat::chat_handler(action, state)
+            .await
+            .wrap_err("Failed to handle chat action")?,
+        ClientToServer::Session(action) => {
+            sessions::sessions_handler(action, state, user_id, con_id)
+                .await
+                .wrap_err("Failed to handle session action")?
+        }
+
+        ClientToServer::MessageNotYetKnown => None,
+        ClientToServer::MessageRemoved => None,
+    };
+    if let Some(direct_responses) = direct_responses {
+        for direct_response in direct_responses {
             state
                 .ws_hub
                 .send(WsHubMsg::Send {
                     user_id,
                     con_id,
-                    msg: ServerToClient::User(UserAction::YouAre(user_id)),
+                    msg: direct_response,
                 })
                 .await
-                .wrap_err("Failed to send hello message to client")?;
+                .wrap_err("Failed to send response to client")?;
         }
-        ClientToServer::User(action) => users::user_handler(action, state, user_id, con_id)
-            .await
-            .wrap_err("Failed to handle user action")?,
-        ClientToServer::Post(action) => posts::post_handler(action, state, user_id, con_id)
-            .await
-            .wrap_err("Failed to handle post action")?,
-        ClientToServer::Chat(action) => chat::chat_handler(action, state, user_id, con_id)
-            .await
-            .wrap_err("Failed to handle chat action")?,
-        ClientToServer::MessageNotYetKnown => {}
     }
     Ok(())
 }

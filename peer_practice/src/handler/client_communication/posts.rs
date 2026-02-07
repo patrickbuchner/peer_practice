@@ -1,19 +1,18 @@
 use crate::app_state::AppState;
+use crate::handler::client_communication::Response;
 use eyre::WrapErr;
 use peer_practice_messages::current::messages::client_to_server::PostAction;
 use peer_practice_messages::current::messages::{ServerToClient, server_to_client};
 use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::posts::PostsMsg;
-use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 
 pub async fn post_handler(
     action: PostAction,
     state: &AppState,
     user_id: UserId,
-    con_id: ConnectionId,
-) -> eyre::Result<()> {
-    match action {
+) -> eyre::Result<Response> {
+    let response = match action {
         PostAction::GetPosts => {
             let (ptx, prx) = oneshot::channel();
             state
@@ -22,19 +21,15 @@ pub async fn post_handler(
                 .await
                 .expect("Failed to get posts");
             if let Ok(posts) = prx.await {
-                for (post_id, post) in posts {
-                    state
-                        .ws_hub
-                        .send(WsHubMsg::Send {
-                            user_id,
-                            con_id,
-                            msg: ServerToClient::Post(server_to_client::PostAction::Post(
-                                post_id, post,
-                            )),
-                        })
-                        .await
-                        .wrap_err("Failed to send post to client")?;
-                }
+                let response = posts
+                    .iter()
+                    .map(|(id, post)| {
+                        ServerToClient::Post(server_to_client::PostAction::Post(*id, post.clone()))
+                    })
+                    .collect();
+                Some(response)
+            } else {
+                None
             }
         }
         PostAction::Join(post) => {
@@ -43,6 +38,7 @@ pub async fn post_handler(
                 .send(PostsMsg::UserJoins(post, user_id))
                 .await
                 .wrap_err("Failed to join post")?;
+            None
         }
         PostAction::Leave(post) => {
             state
@@ -50,6 +46,7 @@ pub async fn post_handler(
                 .send(PostsMsg::UserLeaves(post, user_id))
                 .await
                 .wrap_err("Failed to leave post")?;
+            None
         }
         PostAction::UpdatePost(id, post) => {
             if post.owner == user_id {
@@ -59,6 +56,7 @@ pub async fn post_handler(
                     .await
                     .wrap_err("Failed to update post")?;
             }
+            None
         }
         PostAction::NewPost(mut post) => {
             post.owner = user_id;
@@ -70,6 +68,7 @@ pub async fn post_handler(
                 .await
                 .wrap_err("Failed to insert new post")?;
             rx.await.wrap_err("Failed to insert new post")?;
+            None
         }
         PostAction::DeletePost(post_id) => {
             let (tx, rx) = oneshot::channel();
@@ -87,10 +86,10 @@ pub async fn post_handler(
                     .await
                     .wrap_err("Failed to remove post")?;
             }
+            None
         }
-        PostAction::GetPostMessages(_) => {}
-    }
-    Ok(())
+    };
+    Ok(response)
 }
 
 #[cfg(test)]
@@ -100,7 +99,6 @@ mod tests {
     use peer_practice_messages::current::level::Level;
     use peer_practice_messages::current::post::{Post, PostId, Topics};
     use peer_practice_messages::test_helpers_impl::fixed_timestamp;
-    use peer_practice_server_services::ws_hub::ConnectionId;
     use std::collections::HashSet;
     use tokio::sync::oneshot;
 
@@ -143,7 +141,6 @@ mod tests {
             PostAction::UpdatePost(PostId::new(), post),
             &state,
             other,
-            ConnectionId::new(),
         )
         .await
         .expect("handler ok");
@@ -166,7 +163,6 @@ mod tests {
                 PostAction::DeletePost(post_id),
                 &state_for_handler,
                 other,
-                ConnectionId::new(),
             )
             .await
         });

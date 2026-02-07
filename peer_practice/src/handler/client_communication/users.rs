@@ -1,21 +1,20 @@
 use crate::app_state::AppState;
+use crate::handler::client_communication::Response;
 use eyre::Context;
 use peer_practice_messages::current::messages::client_to_server::UserAction;
-use peer_practice_messages::current::messages::{ServerToClient, server_to_client};
+use peer_practice_messages::current::messages::{server_to_client, ServerToClient};
 use peer_practice_messages::current::user::UserId;
 use peer_practice_server_services::users::UsersMsg;
-use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 use tracing::instrument;
 
-#[instrument(skip(state), fields(user_id = ?user_id, con_id = ?con_id))]
+#[instrument(skip(state), fields(user_id = ?user_id))]
 pub async fn user_handler(
     user_action: UserAction,
     state: &AppState,
     user_id: UserId,
-    con_id: ConnectionId,
-) -> eyre::Result<()> {
-    match user_action {
+) -> eyre::Result<Response> {
+    let msg = match user_action {
         UserAction::Get(user) => {
             let (tx, rx) = oneshot::channel();
             state
@@ -30,18 +29,11 @@ pub async fn user_handler(
             if let Ok(user) = rx.await
                 && let Some(user) = &user
             {
-                state
-                    .ws_hub
-                    .send(WsHubMsg::Send {
-                        user_id,
-                        con_id,
-                        msg: ServerToClient::User(server_to_client::UserAction::User(
-                            user.id,
-                            user.into(),
-                        )),
-                    })
-                    .await
-                    .wrap_err("Failed to send user to client")?;
+                Some(vec![ServerToClient::User(
+                    server_to_client::UserAction::User(user.id, user.into()),
+                )])
+            } else {
+                None
             }
         }
         UserAction::Update(user_display) => {
@@ -68,9 +60,10 @@ pub async fn user_handler(
                         .wrap_err("Failed to update user")?;
                 }
             }
+            None
         }
-    }
-    Ok(())
+    };
+    Ok(msg)
 }
 
 #[cfg(test)]
@@ -78,10 +71,9 @@ mod tests {
     use super::*;
     use crate::handler::test_utils::{assert_empty, recv_msg, test_state};
     use peer_practice_messages::current::email::Email;
-    use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::messages::server_to_client::UserAction as ServerUserAction;
+    use peer_practice_messages::current::messages::ServerToClient;
     use peer_practice_messages::current::user::User;
-    use peer_practice_server_services::ws_hub::ConnectionId;
     use tokio::sync::oneshot;
 
     async fn sync_users(state: &AppState, rx: &mut tokio::sync::mpsc::Receiver<UsersMsg>) {
@@ -120,14 +112,9 @@ mod tests {
             display_name: Some("New".to_string()),
         };
 
-        user_handler(
-            UserAction::Update(display),
-            &state,
-            user_id,
-            ConnectionId::new(),
-        )
-        .await
-        .expect("handler ok");
+        user_handler(UserAction::Update(display), &state, user_id)
+            .await
+            .expect("handler ok");
 
         sync_users(&state, &mut rx.users).await;
         assert_empty(&mut rx.users);
@@ -137,13 +124,13 @@ mod tests {
     async fn get_user_sends_user_when_found() {
         let (state, mut rx) = test_state();
         let user_id = UserId::new();
-        let con_id = ConnectionId::new();
         let user = sample_user(user_id);
 
         let state = state.clone();
-        let handler = tokio::spawn(async move {
-            user_handler(UserAction::Get(user_id), &state, user_id, con_id).await
-        });
+        let handler =
+            tokio::spawn(
+                async move { user_handler(UserAction::Get(user_id), &state, user_id).await },
+            );
 
         match recv_msg(&mut rx.users).await {
             UsersMsg::GetById { id, respond_to } => {
@@ -153,24 +140,8 @@ mod tests {
             _ => panic!("expected UsersMsg::GetById"),
         }
 
-        handler.await.expect("handler task ok").expect("handler ok");
+        let response = handler.await.expect("handler task ok").expect("handler ok");
 
-        match recv_msg(&mut rx.ws_hub).await {
-            WsHubMsg::Send {
-                user_id: got_user,
-                con_id: got_con,
-                msg,
-            } => {
-                assert_eq!(user_id, got_user);
-                assert_eq!(con_id, got_con);
-                match msg {
-                    ServerToClient::User(ServerUserAction::User(got_id, _)) => {
-                        assert_eq!(user_id, got_id);
-                    }
-                    _ => panic!("expected User message"),
-                }
-            }
-            _ => panic!("expected WsHubMsg::Send"),
-        }
+        assert_eq!(response, Some(vec![ServerToClient::User(ServerUserAction::User(user_id, user.into()))]));
     }
 }

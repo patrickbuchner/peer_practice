@@ -9,25 +9,25 @@ mod valid_parsing {
     parse_case!(
         hello,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": "Hello"
     }"#,
-        ExpectedResult::Ok(Version::V2026_01_11, ClientToServer::Hello)
+        ExpectedResult::Ok(Version::V2026_02_07, ClientToServer::Hello)
     );
 
     parse_case!(
         message_not_yet_known,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": "MessageNotYetKnown"
     }"#,
-        ExpectedResult::Ok(Version::V2026_01_11, ClientToServer::MessageNotYetKnown)
+        ExpectedResult::Ok(Version::V2026_02_07, ClientToServer::MessageNotYetKnown)
     );
 
     parse_case!(
         user_get,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "User": {
           "Get": {
@@ -37,7 +37,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::User(UserAction::Get(UserId::test()))
         )
     );
@@ -45,7 +45,7 @@ mod valid_parsing {
     parse_case!(
         user_update,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "User": {
           "Update": {
@@ -58,7 +58,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::User(UserAction::Update(sample_user_display(UserId::test())))
         )
     );
@@ -66,13 +66,13 @@ mod valid_parsing {
     parse_case!(
         post_get_posts,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": "GetPosts"
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::GetPosts)
         )
     );
@@ -80,7 +80,7 @@ mod valid_parsing {
     parse_case!(
         post_join,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": {
           "Join": {
@@ -90,7 +90,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::Join(PostId::NULL))
         )
     );
@@ -98,7 +98,7 @@ mod valid_parsing {
     parse_case!(
         post_leave,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": {
           "Leave": {
@@ -108,7 +108,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::Leave(PostId::NULL))
         )
     );
@@ -116,7 +116,7 @@ mod valid_parsing {
     parse_case!(
         post_update_post,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": {
           "UpdatePost": [
@@ -142,7 +142,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::UpdatePost(
                 PostId::NULL,
                 sample_post(UserId::test())
@@ -153,7 +153,7 @@ mod valid_parsing {
     parse_case!(
         post_new_post,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": {
           "NewPost": {
@@ -174,7 +174,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::NewPost(sample_post(UserId::test())))
         )
     );
@@ -182,7 +182,7 @@ mod valid_parsing {
     parse_case!(
         post_delete_post,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Post": {
           "DeletePost": {
@@ -192,33 +192,15 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Post(PostAction::DeletePost(PostId::NULL))
-        )
-    );
-
-    parse_case!(
-        post_get_post_messages,
-        r#"{
-      "version": "V2026_01_11",
-      "data": {
-        "Post": {
-          "GetPostMessages": {
-            "id": "00000000-0000-0000-0000-000000000000"
-          }
-        }
-      }
-    }"#,
-        ExpectedResult::Ok(
-            Version::V2026_01_11,
-            ClientToServer::Post(PostAction::GetPostMessages(PostId::NULL))
         )
     );
 
     parse_case!(
         chat_get_chat_for,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Chat": {
           "GetChatFor": {
@@ -228,7 +210,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Chat(ChatAction::GetChatFor(PostId::NULL))
         )
     );
@@ -236,7 +218,7 @@ mod valid_parsing {
     parse_case!(
         chat_get_chat,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Chat": {
           "GetChat": {
@@ -246,7 +228,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Chat(ChatAction::GetChat(sample_chat_id()))
         )
     );
@@ -254,7 +236,7 @@ mod valid_parsing {
     parse_case!(
         chat_send_message,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Chat": {
           "SendMessage": {
@@ -272,7 +254,7 @@ mod valid_parsing {
       }
     }"#,
         ExpectedResult::Ok(
-            Version::V2026_01_11,
+            Version::V2026_02_07,
             ClientToServer::Chat(ChatAction::SendMessage(sample_chat_message(
                 UserId::test(),
                 sample_chat_id()
@@ -306,7 +288,7 @@ mod invalid_parsing {
     parse_case!(
         invalid_chat_id,
         r#"{
-      "version": "V2026_01_11",
+      "version": "V2026_02_07",
       "data": {
         "Chat": {
           "GetChat": {

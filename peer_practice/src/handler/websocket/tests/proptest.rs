@@ -1,16 +1,17 @@
 use super::super::*;
 use axum::extract::ws::Utf8Bytes;
 use chrono::TimeZone;
+use peer_practice_messages::current::chat::{ChatId, ChatMessage};
+use peer_practice_messages::current::messages::ClientToServer as CurrentClientToServer;
+use peer_practice_messages::current::messages::client_to_server::{
+    ChatAction, PostAction, SessionAction, UserAction,
+};
+use peer_practice_messages::current::sessions::{SessionId, SessionInformation};
 use peer_practice_messages::v2025_10_14::level::Level;
 use peer_practice_messages::v2025_10_14::messages::ClientToServer as LegacyClientToServer;
 use peer_practice_messages::v2025_10_14::post::{Post, PostId, Topics};
 use peer_practice_messages::v2025_10_14::user::UserId;
 use peer_practice_messages::v2025_10_14::user::display_user::UserDisplay;
-use peer_practice_messages::current::chat::{ChatId, ChatMessage};
-use peer_practice_messages::current::messages::ClientToServer as CurrentClientToServer;
-use peer_practice_messages::current::messages::client_to_server::{
-    ChatAction, PostAction, UserAction,
-};
 use proptest::collection::hash_set;
 use proptest::prelude::*;
 use uuid::Uuid;
@@ -40,19 +41,15 @@ prop_compose! {
     }
 }
 
-fn current_server_to_client_strategy(
-) -> impl Strategy<Value = ServerToClient> {
+fn current_server_to_client_strategy() -> impl Strategy<Value = ServerToClient> {
     use peer_practice_messages::current::messages::server_to_client as stc;
 
     prop_oneof![
         Just(ServerToClient::MessageNotYetKnown),
-        current_user_id_strategy().prop_map(|id| {
-            ServerToClient::User(stc::UserAction::YouAre(id))
-        }),
+        current_user_id_strategy()
+            .prop_map(|id| { ServerToClient::User(stc::UserAction::YouAre(id)) }),
         current_post_id_strategy().prop_map(|post_id| {
-            ServerToClient::Chat(
-                stc::ChatAction::ChatDoesNotExistForPost(post_id)
-            )
+            ServerToClient::Chat(stc::ChatAction::ChatDoesNotExistForPost(post_id))
         }),
     ]
 }
@@ -129,6 +126,24 @@ prop_compose! {
     }
 }
 
+fn session_id_from_uuid(uuid: Uuid) -> SessionId {
+    serde_json::from_str(&format!(r#"{{"id":"{}"}}"#, uuid)).expect("valid session id")
+}
+
+prop_compose! {
+    fn session_id_strategy()(bytes in any::<[u8; 16]>()) -> SessionId {
+        session_id_from_uuid(Uuid::from_bytes(bytes))
+    }
+}
+
+prop_compose! {
+    fn session_information_strategy()
+        (session_id in session_id_strategy(), description in ascii_string(64))
+        -> SessionInformation {
+        SessionInformation { session_id, description }
+    }
+}
+
 fn legacy_client_to_server_strategy() -> impl Strategy<Value = LegacyClientToServer> {
     prop_oneof![
         Just(LegacyClientToServer::MessageNotYetKnown),
@@ -159,7 +174,6 @@ fn current_client_to_server_strategy() -> impl Strategy<Value = CurrentClientToS
             .prop_map(|(id, post)| PostAction::UpdatePost(id, post)),
         post_strategy().prop_map(PostAction::NewPost),
         post_id_strategy().prop_map(PostAction::DeletePost),
-        post_id_strategy().prop_map(PostAction::GetPostMessages),
     ];
 
     let chat_action = prop_oneof![
@@ -168,12 +182,21 @@ fn current_client_to_server_strategy() -> impl Strategy<Value = CurrentClientToS
         chat_message_strategy().prop_map(ChatAction::SendMessage),
     ];
 
+    let session_action = prop_oneof![
+        Just(SessionAction::GetSessions),
+        Just(SessionAction::GetThisSession),
+        session_information_strategy().prop_map(SessionAction::UpdateSession),
+        session_id_strategy().prop_map(SessionAction::LogOutSession),
+        Just(SessionAction::LogOutAllSessions),
+    ];
+
     prop_oneof![
         Just(CurrentClientToServer::Hello),
         Just(CurrentClientToServer::MessageNotYetKnown),
         user_action.prop_map(CurrentClientToServer::User),
         post_action.prop_map(CurrentClientToServer::Post),
         chat_action.prop_map(CurrentClientToServer::Chat),
+        session_action.prop_map(CurrentClientToServer::Session),
     ]
 }
 
@@ -202,8 +225,13 @@ proptest! {
     }
 
     #[test]
-    fn parse_v2026_01_11_client_messages_upgrade_to_current(message in current_client_to_server_strategy()) {
-        let v01: peer_practice_messages::v2026_01_11::messages::ClientToServer = message.clone().into();
+    fn parse_v2026_01_11_client_messages_upgrade_to_current(
+        message in current_client_to_server_strategy()
+    ) {
+        let v01: peer_practice_messages::v2026_01_11::messages::ClientToServer =
+            message.clone().into();
+
+        let expected_current: CurrentClientToServer = v01.clone().into();
 
         let text = serde_json::to_string(&Envelope {
             version: Version::V2026_01_11,
@@ -214,7 +242,7 @@ proptest! {
         let parsed = parse_received_message(&Utf8Bytes::from(text)).expect("parse message");
 
         prop_assert_eq!(parsed.0, Version::V2026_01_11);
-        prop_assert_eq!(parsed.1, message);
+        prop_assert_eq!(parsed.1, expected_current);
     }
 
     #[test]

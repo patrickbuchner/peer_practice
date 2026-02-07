@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc bc681ce1ac4ec9b2f3a4fd7b85a0ef27fed36fe7abb22e9e90e80dca5f1a4bde # shrinks to message = Session(GetSessions)

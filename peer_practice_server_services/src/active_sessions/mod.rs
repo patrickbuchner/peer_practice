@@ -25,6 +25,12 @@ pub struct ClientId {
     id: Uuid,
 }
 
+impl Default for ClientId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClientId {
     pub fn new() -> Self {
         Self { id: Uuid::new_v4() }

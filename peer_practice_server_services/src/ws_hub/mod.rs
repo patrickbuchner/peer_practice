@@ -13,6 +13,12 @@ pub struct ConnectionId {
 #[cfg(test)]
 mod test;
 
+impl Default for ConnectionId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConnectionId {
     pub fn new() -> Self {
         Self { id: Uuid::new_v4() }
