@@ -14,6 +14,7 @@ use peer_practice_server_services::pending_logins::PendingLoginsMsg;
 use peer_practice_server_services::users::UsersMsg;
 use rand::prelude::*;
 use tokio::sync::oneshot;
+use tower_sessions::cookie::SameSite;
 use tower_sessions::cookie::time::OffsetDateTime;
 use peer_practice_messages::current::sessions::SessionId;
 
@@ -132,6 +133,8 @@ pub fn create_access_cookie(
         Cookie::build(("access_token", access_token))
             .path("/")
             .http_only(true)
+            .secure(true)
+            .same_site(SameSite::Lax)
             .expires(
                 OffsetDateTime::now_utc()
                     + tower_sessions::cookie::time::Duration::days(
