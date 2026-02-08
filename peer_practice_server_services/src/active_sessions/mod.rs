@@ -22,6 +22,12 @@ pub enum ActiveSessionsMsg {
     LogOut(UserId, SessionId),
     LogOutAll(UserId),
     Ping(oneshot::Sender<()>),
+    GetSessionState(UserId, SessionId, oneshot::Sender<SessionState>),
+}
+#[derive(Debug)]
+pub enum SessionState {
+    Valid,
+    LoggedOut,
 }
 
 pub async fn handle_active_sessions(
@@ -73,14 +79,24 @@ pub async fn handle_active_sessions(
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
             ActiveSessionsMsg::CreateClient(user_id, tx) => {
-                let id = SessionId::new();
-                clients.insert(user_id, id);
-                if let Entry::Vacant(e) = active_clients.entry(user_id) {
-                    e.insert(vec![id]);
+                let session_id = SessionId::new();
+                if let Entry::Vacant(e) = clients.entry(user_id) {
+                    e.insert(vec![SessionInformation {
+                        session_id,
+                        description: String::new(),
+                    }]);
                 } else {
-                    active_clients.get_mut(&user_id).unwrap().push(id);
+                    clients.get_mut(&user_id).unwrap().push(SessionInformation {
+                        session_id,
+                        description: String::new(),
+                    });
                 }
-                _ = tx.send(id);
+                if let Entry::Vacant(e) = active_clients.entry(user_id) {
+                    e.insert(vec![session_id]);
+                } else {
+                    active_clients.get_mut(&user_id).unwrap().push(session_id);
+                }
+                _ = tx.send(session_id);
 
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
@@ -97,6 +113,45 @@ pub async fn handle_active_sessions(
 
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
+            ActiveSessionsMsg::GetSessions(uid, answer) => match clients.get(&uid) {
+                None => {}
+                Some(sids) => {
+                    _ = answer.send(sids.clone());
+                }
+            },
+            ActiveSessionsMsg::UpdateSession(uid, info) => {
+                if let Some(sids) = clients.get_mut(&uid) {
+                    for sid in sids {
+                        if sid.session_id == info.session_id {
+                            sid.description = info.description.clone();
+                        }
+                    }
+                }
+                persist(storage.clone(), &clients, &dead_jwts).await;
+            }
+            ActiveSessionsMsg::LogOut(uid, sid) => {
+                if let Some(sids) = clients.get_mut(&uid) {
+                    for i in 0..sids.len() {
+                        if sids[i].session_id == sid {
+                            sids.remove(i);
+                        }
+                    }
+                }
+                persist(storage.clone(), &clients, &dead_jwts).await;
+            }
+            ActiveSessionsMsg::LogOutAll(uid) => {
+                clients.remove(&uid);
+                persist(storage.clone(), &clients, &dead_jwts).await;
+            }
+            ActiveSessionsMsg::GetSessionState(uid, sid, tx) => {
+                if let Some(sids) = clients.get(&uid) {
+                    if sids.iter().any(|s| s.session_id == sid) {
+                        _ = tx.send(SessionState::Valid);
+                    } else {
+                        _ = tx.send(SessionState::LoggedOut);
+                    }
+                }
+            }
             ActiveSessionsMsg::Ping(tx) => {
                 _ = tx.send(());
             }
@@ -106,18 +161,16 @@ pub async fn handle_active_sessions(
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct ActiveSessionsSnapshot {
-    // Each is serialized as a pair list to keep it JSON-friendly and stable.
-    // dead_jwts stores millis since epoch (UTC) to avoid needing chrono serde features.
-    clients: Vec<(UserId, SessionId)>,
+    clients: Vec<(UserId, Vec<SessionInformation>)>,
     dead_jwts: Vec<(String, i64)>,
 }
 
 fn snapshot_from_state(
-    clients: &HashMap<UserId, SessionId>,
+    clients: &HashMap<UserId, Vec<SessionInformation>>,
     dead_jwts: &HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) -> ActiveSessionsSnapshot {
     ActiveSessionsSnapshot {
-        clients: clients.iter().map(|(u, c)| (*u, *c)).collect(),
+        clients: clients.iter().map(|(u, c)| (*u, c.clone())).collect(),
         dead_jwts: dead_jwts
             .iter()
             .map(|(jwt, ts)| (jwt.clone(), ts.timestamp_millis()))
@@ -127,7 +180,7 @@ fn snapshot_from_state(
 
 fn apply_snapshot(
     snap: ActiveSessionsSnapshot,
-    clients: &mut HashMap<UserId, SessionId>,
+    clients: &mut HashMap<UserId, Vec<SessionInformation>>,
     dead_jwts: &mut HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) {
     clients.clear();
@@ -144,7 +197,7 @@ fn apply_snapshot(
 
 async fn persist(
     storage: Sender<StorageMsg>,
-    clients: &HashMap<UserId, SessionId>,
+    clients: &HashMap<UserId, Vec<SessionInformation>>,
     dead_jwts: &HashMap<String, chrono::DateTime<chrono::Utc>>,
 ) {
     let snap = snapshot_from_state(clients, dead_jwts);

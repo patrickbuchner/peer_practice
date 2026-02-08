@@ -14,7 +14,7 @@ use peer_practice_messages::current::messages::{ClientToServer, ServerToClient};
 use peer_practice_messages::current::user::UserId;
 use peer_practice_messages::v2026_02_07::sessions::SessionId;
 use peer_practice_messages::{Envelope, EnvelopeHeader, Version};
-use peer_practice_server_services::active_sessions::ActiveSessionsMsg;
+use peer_practice_server_services::active_sessions::{ActiveSessionsMsg, SessionState};
 use peer_practice_server_services::ws_hub::{ConnectionId, WsHubMsg};
 use tokio::sync::oneshot;
 use tracing::{error, info};
@@ -218,6 +218,14 @@ async fn handle_socket(
                     Some(version) => client_version = Some(version),
                     None => break,
                 }
+                let (tx, rx) = oneshot::channel();
+                _ = state.active_sessions.send(ActiveSessionsMsg::GetSessionState(user_id, session_id, tx)).await;
+
+                if let Ok(SessionState::LoggedOut) = rx.await {
+                    break;
+                }
+
+
                 if !invalidated {
                     _ = state
                         .active_sessions
