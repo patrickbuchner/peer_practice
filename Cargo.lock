@@ -2729,7 +2729,7 @@ dependencies = [
 
 [[package]]
 name = "peer_practice_messages"
-version = "0.1.2"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "lettre",
@@ -4971,7 +4971,7 @@ dependencies = [
 
 [[package]]
 name = "web-leptos"
-version = "0.2.2"
+version = "0.2.1"
 dependencies = [
  "ammonia",
  "chrono",
