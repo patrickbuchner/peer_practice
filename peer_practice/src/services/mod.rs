@@ -20,7 +20,7 @@ async fn remove_expired_posts(app_state: &AppState, now: DateTime<Utc>) -> eyre:
     let (tx, rx) = tokio::sync::oneshot::channel();
     app_state.posts.send(PostsMsg::List(tx)).await?;
     for (id, post) in rx.await? {
-        let due = post.date + Duration::days(2);
+        let due = post.date + Duration::days(8);
         if due < now {
             app_state.posts.send(PostsMsg::Remove(id)).await?;
         }
