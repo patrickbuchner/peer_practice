@@ -1,13 +1,53 @@
 use crate::app_state::AppStateReader;
 use crate::components::modal::ConfirmDangerousModal;
+use crate::components::styles::button_class::ButtonClass;
 use crate::components::theme::{IntentTheme, Theme};
 use leptos::callback::Callback;
 use leptos::prelude::*;
 use leptos::{IntoView, component};
 use std::sync::Arc;
 
+#[derive(Clone, Copy)]
+pub enum ButtonPreset {
+    Primary,
+    Secondary,
+    Danger,
+    DangerSessionLogout,
+}
+
+impl ButtonPreset {
+    pub const fn class(self) -> ButtonClass {
+        match self {
+            ButtonPreset::Primary => ButtonClass::Base,
+            ButtonPreset::Secondary => ButtonClass::Base,
+            ButtonPreset::Danger => ButtonClass::Base,
+            ButtonPreset::DangerSessionLogout => ButtonClass::Base,
+        }
+    }
+
+    pub const fn style(self) -> &'static str {
+        match self {
+            ButtonPreset::Primary => "",
+            ButtonPreset::Secondary => "",
+            ButtonPreset::Danger => "",
+            ButtonPreset::DangerSessionLogout => "height: 100%; min-width: 7.5rem;",
+        }
+    }
+
+    pub fn theme(self) -> Arc<dyn Fn() -> Theme + Send + Sync> {
+        match self {
+            ButtonPreset::Primary => Arc::new(|| Theme::Intent(IntentTheme::Primary)),
+            ButtonPreset::Secondary => Arc::new(|| Theme::Intent(IntentTheme::Secondary)),
+            ButtonPreset::Danger | ButtonPreset::DangerSessionLogout => {
+                Arc::new(|| Theme::Intent(IntentTheme::Danger))
+            }
+        }
+    }
+}
+
 #[component]
 pub fn ServerButton(
+    #[prop(optional)] preset: Option<ButtonPreset>,
     #[prop(optional)] class: Option<Signal<String>>,
     #[prop(optional)] style: Option<String>,
     #[prop(optional)] title: Option<String>,
@@ -25,8 +65,13 @@ pub fn ServerButton(
 
     let btn_type = r#type.unwrap_or_else(|| "button".to_string());
     let aria = aria_label.unwrap_or_default();
-    let style = style.unwrap_or_default();
-    let data_theme = data_theme.unwrap_or_else(|| Arc::new(|| Theme::Intent(IntentTheme::Primary)));
+
+    // Apply preset defaults, but allow explicit props to override them.
+    let preset = preset.unwrap_or(ButtonPreset::Primary);
+
+    let class = class.unwrap_or_else(|| Signal::derive(move || preset.class().as_str().to_string()));
+    let style = style.unwrap_or_else(|| preset.style().to_string());
+    let data_theme = data_theme.unwrap_or_else(|| preset.theme());
 
     let guarded_on_click = on_click.map(|cb| {
         Callback::new(move |ev: leptos::ev::MouseEvent| {
@@ -41,7 +86,7 @@ pub fn ServerButton(
 
     view! {
         <button
-            class=class
+            class=Some(class)
             style=style
             title=title.unwrap_or_default()
             aria-label=aria
@@ -60,6 +105,7 @@ pub fn ServerButton(
     }
 }
 
+// ... existing code ...
 #[component]
 pub fn ConfirmDeleteButton(
     #[prop(optional)] button_label: Option<String>,

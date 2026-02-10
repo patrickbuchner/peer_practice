@@ -19,14 +19,16 @@ async fn arrange(
     JoinHandle<()>,
     Arc<ManualClock>,
 ) {
-    let (active_tx, active_rx) = mpsc::channel::<ActiveSessionsMsg>(16);
-    let (storage_tx, mut storage_rx) = mpsc::channel::<StorageMsg>(16);
+    let (active_tx, active_rx) = mpsc::channel(16);
+    let (storage_tx, mut storage_rx) = mpsc::channel(16);
+    let (ws_hub_tx, mut ws_hub_rx) = mpsc::channel(16);
 
     let clock = Arc::new(ManualClock::new(test_timestamp()));
     let task = tokio::spawn(handle_active_sessions(
         jwt_expiry_duration,
         clock.clone(),
         storage_tx,
+        ws_hub_tx,
         active_rx,
     ));
 

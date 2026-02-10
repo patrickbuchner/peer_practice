@@ -32,7 +32,6 @@ pub fn Settings(state: AppStateReader) -> impl IntoView {
             >
                 <DisplayName state theme />
             </div>
-
             <UserAccentColor />
         </section>
     }

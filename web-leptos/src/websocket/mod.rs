@@ -6,7 +6,9 @@ use leptos::logging::log;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use peer_practice_shared::Envelope;
-use peer_practice_shared::messages::server_to_client::{ChatAction, PostAction, UserAction};
+use peer_practice_shared::messages::server_to_client::{
+    ChatAction, PostAction, SessionAction, UserAction,
+};
 use peer_practice_shared::messages::{ClientToServer, ServerToClient, client_to_server};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -148,8 +150,9 @@ fn handle_websocket_messages(
             UserAction::YouAre(id) => {
                 state_writer.user_id.set(Some(id));
                 state.send(ClientToServer::User(client_to_server::UserAction::Get(id)));
-
                 state.send(ClientToServer::Post(client_to_server::PostAction::GetPosts));
+                state.send(ClientToServer::Session(client_to_server::SessionAction::GetSessions));
+                state.send(ClientToServer::Session(client_to_server::SessionAction::GetThisSession));
             }
         },
         ServerToClient::Post(post_action) => match post_action {
@@ -177,6 +180,26 @@ fn handle_websocket_messages(
                 state_writer.chats.update(|chats| {
                     chats.entry(message.chat_id).or_default().push(message);
                 });
+            }
+        },
+        ServerToClient::Session(session_action) => match session_action {
+            SessionAction::CurrentSession(sid) => {
+                state_writer.sessions.current.set(Some(sid));
+            }
+            SessionAction::Sessions(sessions) => state_writer.sessions.sessions.update(|s| {
+                s.clear();
+                for session in sessions {
+                    s.insert(session.session_id, session);
+                }
+            }),
+            SessionAction::SessionInformationChanged(info) => {
+                state_writer.sessions.sessions.update(|s| {
+                    if s.contains_key(&info.session_id)
+                        && let Some(s) = s.get_mut(&info.session_id)
+                    {
+                        s.description = info.description.clone();
+                    }
+                })
             }
         },
         _ => log!("Received unhandled message type"),

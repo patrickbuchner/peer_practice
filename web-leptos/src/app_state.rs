@@ -8,6 +8,9 @@ use peer_practice_shared::post::{Post, PostId};
 use peer_practice_shared::user::UserId;
 use peer_practice_shared::user::display_user::UserDisplay;
 use std::collections::HashMap;
+use crate::app_state::sessions::create_sessions;
+
+pub mod sessions;
 
 pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
     let (tx_read, tx_write) = signal(None);
@@ -18,6 +21,7 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
     let (chats_read, chats_write) = signal(HashMap::new());
     let (chat_posts_read, chat_posts_write) = signal(HashMap::new());
     let (post_chats_read, post_chats_write) = signal(HashMap::new());
+    let (sessions_read, sessions_write) = create_sessions();
     (
         AppStateReader {
             tx: tx_read,
@@ -28,6 +32,7 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
             chats: chats_read,
             chat_posts: chat_posts_read,
             post_chats: post_chats_read,
+            sessions: sessions_read,
         },
         AppStateWriter {
             tx: tx_write,
@@ -38,6 +43,7 @@ pub fn initialize_app_state() -> (AppStateReader, AppStateWriter) {
             chats: chats_write,
             chat_posts: chat_posts_write,
             post_chats: post_chats_write,
+            sessions: sessions_write,
         },
     )
 }
@@ -51,6 +57,7 @@ pub struct AppStateWriter {
     pub chats: WriteSignal<HashMap<ChatId, Vec<ChatMessageFromServer>>>,
     pub chat_posts: WriteSignal<HashMap<ChatId, PostId>>,
     pub post_chats: WriteSignal<HashMap<PostId, ChatId>>,
+    pub sessions: sessions::SessionsWriter,
 }
 impl AppStateWriter {
     pub(crate) fn set_tx(&self, tx: Option<UnboundedSender<ClientToServer>>) {
@@ -68,6 +75,7 @@ pub struct AppStateReader {
     pub chats: ReadSignal<HashMap<ChatId, Vec<ChatMessageFromServer>>>,
     pub chat_posts: ReadSignal<HashMap<ChatId, PostId>>,
     pub post_chats: ReadSignal<HashMap<PostId, ChatId>>,
+    pub sessions: sessions::SessionsReader,
 }
 
 impl AppStateReader {

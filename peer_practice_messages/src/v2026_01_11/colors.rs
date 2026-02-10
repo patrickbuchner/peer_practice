@@ -14,6 +14,7 @@ pub enum Color {
     Background(BackgroundColor),
     BackgroundText(BackgroundTextColor),
     Accent(AccentColor),
+    Transparent,
 }
 
 impl Color {
@@ -25,6 +26,7 @@ impl Color {
             Color::Background(c) => c.css_var(),
             Color::BackgroundText(c) => c.css_var(),
             Color::Accent(c) => c.css_var(),
+            Color::Transparent => "transparent",
         }
     }
 }

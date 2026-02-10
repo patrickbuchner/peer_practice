@@ -212,19 +212,28 @@ async fn handle_socket(
               if send_websocket_message(server_message, &mut socket, &client_version).await.is_none() {
                     break;
                 };
+
+                let (tx, rx) = oneshot::channel();
+                _ = state.active_sessions
+                    .send(ActiveSessionsMsg::GetSessionState(user_id, session_id, tx))
+                    .await;
+
+                if let Ok(SessionState::LoggedOut) = rx.await {
+                    break;
+                }
             }
             client_message = socket.recv() => {
                 match receive_websocket_message(client_message, connection_id, user_id, session_id, &client_version, &state).await {
                     Some(version) => client_version = Some(version),
                     None => break,
                 }
+
                 let (tx, rx) = oneshot::channel();
                 _ = state.active_sessions.send(ActiveSessionsMsg::GetSessionState(user_id, session_id, tx)).await;
 
                 if let Ok(SessionState::LoggedOut) = rx.await {
                     break;
                 }
-
 
                 if !invalidated {
                     _ = state
@@ -259,7 +268,6 @@ async fn send_websocket_message(
             }
         }
         None => {
-            // Hub closed our channel; end the connection
             None
         }
     }

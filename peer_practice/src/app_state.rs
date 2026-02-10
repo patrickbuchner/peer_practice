@@ -54,6 +54,7 @@ impl AppState {
                 chrono::Duration::days(30),
                 clock.clone(),
                 storage.clone(),
+                ws_hub.clone(),
                 rx,
             )
         });

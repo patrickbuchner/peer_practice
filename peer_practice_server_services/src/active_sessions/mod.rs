@@ -1,6 +1,9 @@
 use crate::clock::ClockRef;
 use crate::storage::StorageMsg;
+use crate::ws_hub::WsHubMsg;
 use chrono::TimeZone;
+use peer_practice_messages::current::messages::client_to_server::SessionAction;
+use peer_practice_messages::current::messages::{ServerToClient, server_to_client};
 use peer_practice_messages::current::sessions::{SessionId, SessionInformation};
 use peer_practice_messages::current::user::UserId;
 use serde::{Deserialize, Serialize};
@@ -34,6 +37,7 @@ pub async fn handle_active_sessions(
     jwt_expiry_duration: chrono::Duration,
     clock: ClockRef,
     storage: Sender<StorageMsg>,
+    ws_hub: Sender<WsHubMsg>,
     mut rx: Receiver<ActiveSessionsMsg>,
 ) {
     let mut clients = HashMap::new();
@@ -78,26 +82,30 @@ pub async fn handle_active_sessions(
 
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
-            ActiveSessionsMsg::CreateClient(user_id, tx) => {
+            ActiveSessionsMsg::CreateClient(uid, tx) => {
                 let session_id = SessionId::new();
-                if let Entry::Vacant(e) = clients.entry(user_id) {
+                if let Entry::Vacant(e) = clients.entry(uid) {
                     e.insert(vec![SessionInformation {
                         session_id,
                         description: String::new(),
                     }]);
                 } else {
-                    clients.get_mut(&user_id).unwrap().push(SessionInformation {
+                    clients.get_mut(&uid).unwrap().push(SessionInformation {
                         session_id,
                         description: String::new(),
                     });
                 }
-                if let Entry::Vacant(e) = active_clients.entry(user_id) {
+                if let Entry::Vacant(e) = active_clients.entry(uid) {
                     e.insert(vec![session_id]);
                 } else {
-                    active_clients.get_mut(&user_id).unwrap().push(session_id);
+                    active_clients.get_mut(&uid).unwrap().push(session_id);
                 }
                 _ = tx.send(session_id);
 
+                let msg = server_to_client::SessionAction::Sessions(
+                    clients[&uid].clone(),
+                );
+                broadcast_to_current_user(&ws_hub, uid, msg).await;
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
             ActiveSessionsMsg::RemoveObsoleteJwts => {
@@ -124,9 +132,16 @@ pub async fn handle_active_sessions(
                     for sid in sids {
                         if sid.session_id == info.session_id {
                             sid.description = info.description.clone();
+
                         }
                     }
+
+                    let msg = server_to_client::SessionAction::Sessions(
+                        clients[&uid].clone(),
+                    );
+                    broadcast_to_current_user(&ws_hub, uid, msg).await;
                 }
+
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
             ActiveSessionsMsg::LogOut(uid, sid) => {
@@ -134,29 +149,57 @@ pub async fn handle_active_sessions(
                     for i in 0..sids.len() {
                         if sids[i].session_id == sid {
                             sids.remove(i);
+                            break;
                         }
                     }
+                    let msg = server_to_client::SessionAction::Sessions(
+                        clients[&uid].clone(),
+                    );
+                    broadcast_to_current_user(&ws_hub, uid, msg).await;
                 }
+
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
             ActiveSessionsMsg::LogOutAll(uid) => {
                 clients.remove(&uid);
+
+                let msg = server_to_client::SessionAction::Sessions(Vec::new());
+                broadcast_to_current_user(&ws_hub, uid, msg).await;
+
                 persist(storage.clone(), &clients, &dead_jwts).await;
             }
+
             ActiveSessionsMsg::GetSessionState(uid, sid, tx) => {
-                if let Some(sids) = clients.get(&uid) {
-                    if sids.iter().any(|s| s.session_id == sid) {
-                        _ = tx.send(SessionState::Valid);
-                    } else {
-                        _ = tx.send(SessionState::LoggedOut);
+                let state = match clients.get(&uid) {
+                    None => SessionState::LoggedOut,
+                    Some(sids) => {
+                        if sids.iter().any(|s| s.session_id == sid) {
+                            SessionState::Valid
+                        } else {
+                            SessionState::LoggedOut
+                        }
                     }
-                }
+                };
+
+                let _ = tx.send(state);
             }
+
             ActiveSessionsMsg::Ping(tx) => {
                 _ = tx.send(());
             }
         }
     }
+}
+
+async fn broadcast_to_current_user(
+    ws_hub: &Sender<WsHubMsg>,
+    uid: UserId,
+    msg: server_to_client::SessionAction,
+) {
+    let msg = ServerToClient::Session(msg);
+    _ = ws_hub
+        .send(WsHubMsg::BroadcastUser { user_id: uid, msg })
+        .await;
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
