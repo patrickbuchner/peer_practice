@@ -78,14 +78,14 @@ craneLib.buildTrunkPackage {
   wasm-bindgen-cli = pkgs.buildWasmBindgenCli rec {
     src = pkgs.fetchCrate {
       pname = "wasm-bindgen-cli";
-      version = "0.2.108";
-      hash = "sha256-UsuxILm1G6PkmVw0I/JF12CRltAfCJQFOaT4hFwvR8E=";
+      version = "0.2.118";
+      hash = "sha256-ve783oYH0TGv8Z8lIPdGjItzeLDQLOT5uv/jbFOlZpI=";
     };
 
     cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
       inherit src;
       inherit (src) pname version;
-      hash = "sha256-iqQiWbsKlLBiJFeqIYiXo3cqxGLSjNM8SOWXGM9u43E=";
+      hash = "sha256-EYDfuBlH3zmTxACBL+sjicRna84CvoesKSQVcYiG9P0=";
     };
   };
 }
